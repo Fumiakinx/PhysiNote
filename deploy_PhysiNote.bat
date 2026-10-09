@@ -8,7 +8,7 @@ echo.
 cd /d "%~dp0"
 
 echo [1/3] Adding changes to Git...
-git add index.html main.js style.css GEMINI.md deploy_PhysiNote.bat
+git add index.html main.js style.css GEMINI.md deploy_PhysiNote.bat LICENSE
 if %errorlevel% neq 0 (
     echo [ERROR] Git add failed.
     goto error_end
