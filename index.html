@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>PhysiNote - 物理数式ノート</title>
+  <!-- KaTeX（数式レンダリング）の読み込み -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/mhchem.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/smiles-drawer@2.1.7/dist/smiles-drawer.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="editor-card">
+    <h1>PhysiNote</h1>
+    <div class="instruction">
+      数式を入力すると自動整形されます。枠全体にカーソルを合わせると「数式の物理的意味」、各記号に合わせると「単位・意味」が表示されます。
+    </div>
+
+    <div class="library-trigger-container">
+      <button type="button" id="open-library-btn" class="library-trigger-btn">
+        <span class="icon">📖</span> 数式ライブラリを開く
+      </button>
+      <button type="button" id="open-chem-library-btn" class="library-trigger-btn chem-library-trigger-btn">
+        <span class="icon">🧪</span> 化学式ライブラリを開く
+      </button>
+      <button type="button" id="open-circuit-library-btn" class="library-trigger-btn circuit-library-trigger-btn">
+        <span class="icon">⚡</span> 回路ライブラリを開く
+      </button>
+      <button type="button" id="open-timing-library-btn" class="library-trigger-btn timing-library-trigger-btn">
+        <span class="icon">⏱️</span> 波形ライブラリを開く
+      </button>
+      <button type="button" id="open-fsm-library-btn" class="library-trigger-btn fsm-library-trigger-btn">
+        <span class="icon">🔄</span> 状態遷移図ライブラリを開く
+      </button>
+      <button type="button" id="open-feynman-library-btn" class="library-trigger-btn feynman-library-trigger-btn">
+        <span class="icon">⚛️</span> ファインマン図ライブラリを開く
+      </button>
+      <button type="button" id="open-sankey-library-btn" class="library-trigger-btn sankey-library-trigger-btn">
+        <span class="icon">🔀</span> サンキー図ライブラリを開く
+      </button>
+      <button type="button" id="open-export-btn" class="export-trigger-btn">
+        <span class="icon">🖼️</span> 画像ファイル出力
+      </button>
+    </div>
+
+    <textarea id="formula-input" placeholder="例: F = m * a または F = \frac{G \cdot M \cdot m}{r^2}">F = m * a</textarea>
+
+    <div class="preview-container">
+      <!-- ⚠️ 警告インジケータ（マウスホバーでエラー理由を表示） -->
+      <div id="syntax-warning" class="syntax-warning">
+        ⚠️ 入力途中
+      </div>
+
+      <!-- 数式プレビュー外枠（数式全体のTips属性を保持） -->
+      <div class="preview-box">
+        <!-- 横スクロール対応の数式描画コンテナ -->
+        <div class="formula-preview-scroll" id="formula-preview"></div>
+      </div>
+    </div>
+
+    <!-- 物理的解説パネル（構造分解・有効範囲・限界境界・時間発展） -->
+    <div id="formula-explanation" class="explanation-card" style="display: none;">
+      <div class="explanation-header">
+        <h3 id="explanation-title" class="explanation-title"></h3>
+      </div>
+      <div class="explanation-grid">
+        <div class="explanation-item" id="explanation-purpose-item">
+          <div class="explanation-label label-purpose">
+            <span class="label-icon">🧩</span> 数式の目的（全体像）
+          </div>
+          <div id="explanation-purpose" class="explanation-body"></div>
+        </div>
+        <div class="explanation-item" id="explanation-elements-item">
+          <div class="explanation-label label-elements">
+            <span class="label-icon">⚙️</span> 各要素の役割（引数・内部変数）
+          </div>
+          <div id="explanation-elements" class="explanation-body explanation-elements-list"></div>
+        </div>
+        <div class="explanation-item">
+          <div class="explanation-label label-range">
+            <span class="label-icon">🎯</span> 有効範囲
+          </div>
+          <div id="explanation-range" class="explanation-body"></div>
+        </div>
+        <div class="explanation-item">
+          <div class="explanation-label label-limit">
+            <span class="label-icon">⚠️</span> 適用限界のシグナル
+          </div>
+          <div id="explanation-limit" class="explanation-body"></div>
+        </div>
+        <div class="explanation-item">
+          <div class="explanation-label label-time">
+            <span class="label-icon">⏳</span> 時間の許容
+          </div>
+          <div id="explanation-time" class="explanation-body"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数式ライブラリ モーダル -->
+  <div id="library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <h2 id="modal-title">数式ライブラリ</h2>
+        <button type="button" id="modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="modal-search-area">
+        <input type="text" id="library-search-input" placeholder="数式名、概要、キーワードで検索..." autocomplete="off">
+      </div>
+
+      <div class="modal-category-tabs" id="library-category-tabs">
+        <button type="button" class="category-tab active" data-category="すべて">すべて</button>
+        <button type="button" class="category-tab" data-category="力学">力学</button>
+        <button type="button" class="category-tab" data-category="電磁気学">電磁気学</button>
+        <button type="button" class="category-tab" data-category="熱力学">熱力学</button>
+        <button type="button" class="category-tab" data-category="統計力学">統計力学</button>
+        <button type="button" class="category-tab" data-category="流体力学">流体力学</button>
+        <button type="button" class="category-tab" data-category="波動・光学">波動・光学</button>
+        <button type="button" class="category-tab" data-category="量子力学">量子力学</button>
+        <button type="button" class="category-tab" data-category="解析力学">解析力学</button>
+        <button type="button" class="category-tab" data-category="解析学">解析学</button>
+        <button type="button" class="category-tab" data-category="線形代数">線形代数</button>
+      </div>
+
+      <div class="modal-content-area">
+        <div id="library-card-grid" class="card-grid"></div>
+        <div id="library-empty-message" class="empty-message" style="display: none;">
+          一致する数式が見つかりませんでした
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="modal-close-footer" class="modal-btn-secondary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 化学式ライブラリ モーダル -->
+  <div id="chem-library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="chem-modal-title">
+      <div class="modal-header">
+        <h2 id="chem-modal-title">化学式ライブラリ</h2>
+        <button type="button" id="chem-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="modal-search-area">
+        <input type="text" id="chem-library-search-input" placeholder="化合物名、化学式、キーワードで検索..." autocomplete="off">
+      </div>
+
+      <div class="modal-category-tabs" id="chem-library-category-tabs">
+        <button type="button" class="chem-category-tab active" data-category="すべて">すべて</button>
+        <button type="button" class="chem-category-tab" data-category="医薬品・生体分子">医薬品・生体分子</button>
+        <button type="button" class="chem-category-tab" data-category="芳香族化合物">芳香族化合物</button>
+        <button type="button" class="chem-category-tab" data-category="有機化合物">有機化合物</button>
+        <button type="button" class="chem-category-tab" data-category="無機化合物">無機化合物</button>
+        <button type="button" class="chem-category-tab" data-category="化学反応式">化学反応式</button>
+      </div>
+
+      <div class="modal-content-area">
+        <div id="chem-library-card-grid" class="card-grid"></div>
+        <div id="chem-library-empty-message" class="empty-message" style="display: none;">
+          一致する化学式が見つかりませんでした
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="chem-modal-close-footer" class="modal-btn-secondary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 電子回路ライブラリ モーダル -->
+  <div id="circuit-library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="circuit-modal-title">
+      <div class="modal-header">
+        <h2 id="circuit-modal-title">電子回路ライブラリ</h2>
+        <button type="button" id="circuit-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="modal-search-area">
+        <input type="text" id="circuit-library-search-input" placeholder="回路名、部品、キーワードで検索..." autocomplete="off">
+      </div>
+
+      <div class="modal-category-tabs" id="circuit-library-category-tabs">
+        <button type="button" class="circuit-category-tab active" data-category="すべて">すべて</button>
+        <button type="button" class="circuit-category-tab" data-category="基本回路・受動回路">基本回路・受動回路</button>
+        <button type="button" class="circuit-category-tab" data-category="交流・共振回路">交流・共振回路</button>
+        <button type="button" class="circuit-category-tab" data-category="半導体・能動素子">半導体・能動素子</button>
+      </div>
+
+      <div class="modal-content-area">
+        <div id="circuit-library-card-grid" class="card-grid"></div>
+        <div id="circuit-library-empty-message" class="empty-message" style="display: none;">
+          一致する回路が見つかりませんでした
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="circuit-modal-close-footer" class="modal-btn-secondary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- タイミングチャート（波形）ライブラリ モーダル -->
+  <div id="timing-library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="timing-modal-title">
+      <div class="modal-header">
+        <h2 id="timing-modal-title">タイミングチャート（波形）ライブラリ</h2>
+        <button type="button" id="timing-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="modal-search-area">
+        <input type="text" id="timing-library-search-input" placeholder="プロトコル名、信号名、キーワードで検索..." autocomplete="off">
+      </div>
+
+      <div class="modal-category-tabs" id="timing-library-category-tabs">
+        <button type="button" class="timing-category-tab active" data-category="すべて">すべて</button>
+        <button type="button" class="timing-category-tab" data-category="基本ロジック・同期回路">基本ロジック・同期回路</button>
+        <button type="button" class="timing-category-tab" data-category="シリアル通信">シリアル通信</button>
+        <button type="button" class="timing-category-tab" data-category="バス制御・メモリ">バス制御・メモリ</button>
+      </div>
+
+      <div class="modal-content-area">
+        <div id="timing-library-card-grid" class="card-grid"></div>
+        <div id="timing-library-empty-message" class="empty-message" style="display: none;">
+          一致するタイミングチャートが見つかりませんでした
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="timing-modal-close-footer" class="modal-btn-secondary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 状態遷移図（オートマトン）ライブラリ モーダル -->
+  <div id="fsm-library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="fsm-modal-title">
+      <div class="modal-header">
+        <h2 id="fsm-modal-title">状態遷移図（オートマトン）ライブラリ</h2>
+        <button type="button" id="fsm-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="modal-search-area">
+        <input type="text" id="fsm-library-search-input" placeholder="モデル名、状態名、キーワードで検索..." autocomplete="off">
+      </div>
+
+      <div class="modal-category-tabs" id="fsm-library-category-tabs">
+        <button type="button" class="fsm-category-tab active" data-category="すべて">すべて</button>
+        <button type="button" class="fsm-category-tab" data-category="有限オートマトン(DFA/NFA)">有限オートマトン(DFA/NFA)</button>
+        <button type="button" class="fsm-category-tab" data-category="論理回路・順序回路">論理回路・順序回路</button>
+        <button type="button" class="fsm-category-tab" data-category="システム・制御モデル">システム・制御モデル</button>
+      </div>
+
+      <div class="modal-content-area">
+        <div id="fsm-library-card-grid" class="card-grid"></div>
+        <div id="fsm-library-empty-message" class="empty-message" style="display: none;">
+          一致する状態遷移図が見つかりませんでした
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="fsm-modal-close-footer" class="modal-btn-secondary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ファインマン・ダイアグラム ライブラリ モーダル -->
+  <div id="feynman-library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="feynman-modal-title">
+      <div class="modal-header">
+        <h2 id="feynman-modal-title">ファインマン・ダイアグラム（素粒子）ライブラリ</h2>
+        <button type="button" id="feynman-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="modal-search-area">
+        <input type="text" id="feynman-library-search-input" placeholder="相互作用名、素粒子名、キーワードで検索..." autocomplete="off">
+      </div>
+
+      <div class="modal-category-tabs" id="feynman-library-category-tabs">
+        <button type="button" class="feynman-category-tab active" data-category="すべて">すべて</button>
+        <button type="button" class="feynman-category-tab" data-category="電磁相互作用(QED)">電磁相互作用(QED)</button>
+        <button type="button" class="feynman-category-tab" data-category="弱相互作用(Electroweak)">弱相互作用(Electroweak)</button>
+        <button type="button" class="feynman-category-tab" data-category="強い相互作用(QCD)・ヒッグス">強い相互作用(QCD)・ヒッグス</button>
+      </div>
+
+      <div class="modal-content-area">
+        <div id="feynman-library-card-grid" class="card-grid"></div>
+        <div id="feynman-library-empty-message" class="empty-message" style="display: none;">
+          一致するファインマン図が見つかりませんでした
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="feynman-modal-close-footer" class="modal-btn-secondary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- サンキーダイアグラム ライブラリ モーダル -->
+  <div id="sankey-library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="sankey-modal-title">
+      <div class="modal-header">
+        <h2 id="sankey-modal-title">サンキーダイアグラム（エネルギー・物質収支）ライブラリ</h2>
+        <button type="button" id="sankey-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="modal-search-area">
+        <input type="text" id="sankey-library-search-input" placeholder="プロセス名、エネルギー源、キーワードで検索..." autocomplete="off">
+      </div>
+
+      <div class="modal-category-tabs" id="sankey-library-category-tabs">
+        <button type="button" class="sankey-category-tab active" data-category="すべて">すべて</button>
+        <button type="button" class="sankey-category-tab" data-category="熱機関・エネルギー収支">熱機関・エネルギー収支</button>
+        <button type="button" class="sankey-category-tab" data-category="電力・発電システム">電力・発電システム</button>
+        <button type="button" class="sankey-category-tab" data-category="化学・プロセス工学">化学・プロセス工学</button>
+      </div>
+
+      <div class="modal-content-area">
+        <div id="sankey-library-card-grid" class="card-grid"></div>
+        <div id="sankey-library-empty-message" class="empty-message" style="display: none;">
+          一致するサンキー図が見つかりませんでした
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="sankey-modal-close-footer" class="modal-btn-secondary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 画像出力設定 モーダル -->
+  <div id="export-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog export-dialog" role="dialog" aria-labelledby="export-modal-title">
+      <div class="modal-header">
+        <h2 id="export-modal-title">画像ファイル出力設定</h2>
+        <button type="button" id="export-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="export-controls-container">
+        <!-- 記号・画像サイズ（拡大縮小）設定 -->
+        <div class="export-control-group">
+          <label for="export-size-slider" class="export-control-label">
+            記号サイズ（倍率）: <span id="export-size-value">100%</span>
+          </label>
+          <input type="range" id="export-size-slider" min="50" max="200" value="100" step="5">
+        </div>
+
+        <!-- 余白設定 -->
+        <div class="export-control-group">
+          <label for="export-padding-slider" class="export-control-label">
+            余白（パディング）: <span id="export-padding-value">24px</span>
+          </label>
+          <input type="range" id="export-padding-slider" min="0" max="64" value="24" step="4">
+        </div>
+
+        <!-- 解像度（スケール）設定 -->
+        <div class="export-control-group">
+          <span class="export-control-label">解像度（画質）:</span>
+          <div class="export-radio-group">
+            <label class="export-radio-label">
+              <input type="radio" name="export-scale" value="1"> 1x（標準）
+            </label>
+            <label class="export-radio-label">
+              <input type="radio" name="export-scale" value="2" checked> 2x（高画質・note推奨）
+            </label>
+            <label class="export-radio-label">
+              <input type="radio" name="export-scale" value="3"> 3x（超高解像度）
+            </label>
+          </div>
+        </div>
+
+        <!-- 背景色設定 -->
+        <div class="export-control-group">
+          <span class="export-control-label">背景色:</span>
+          <div class="export-radio-group">
+            <label class="export-radio-label">
+              <input type="radio" name="export-bg" value="white" checked> 白（不透明）
+            </label>
+            <label class="export-radio-label">
+              <input type="radio" name="export-bg" value="transparent"> 透過（透明）
+            </label>
+          </div>
+        </div>
+
+        <!-- 配色設定（カラー / モノクロ） -->
+        <div class="export-control-group">
+          <span class="export-control-label">配色:</span>
+          <div class="export-radio-group">
+            <label class="export-radio-label">
+              <input type="radio" name="export-color-mode" value="color" checked> カラー
+            </label>
+            <label class="export-radio-label">
+              <input type="radio" name="export-color-mode" value="monochrome"> モノクロ（白黒）
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 画像出力用プレビュー -->
+      <div class="export-preview-wrapper">
+        <div class="export-preview-label">プレビュー</div>
+        <div class="export-preview-board" id="export-preview-board">
+          <div id="export-target" class="export-target">
+            <!-- レンダリングされた数式がここにクローン・配置される -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="export-modal-close-footer" class="modal-btn-secondary">キャンセル</button>
+        <button type="button" id="export-download-btn" class="modal-btn-primary">
+          <span class="icon">💾</span> PNG画像を保存
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 記号用フローティングツールチップ -->
+  <div id="symbol-tooltip" class="floating-symbol-tooltip" aria-hidden="true"></div>
+
+  <script src="main.js" defer></script>
+</body>
+</html>

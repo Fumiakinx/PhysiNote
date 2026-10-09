@@ -1,0 +1,1479 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 32px;
+  background-color: #f1f5f9;
+  color: #1e293b;
+  line-height: 1.6;
+}
+
+.editor-card {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+h1 {
+  margin-top: 0;
+  font-size: 24px;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.instruction {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+/* 数式ライブラリ & 画像出力 トリガーボタン */
+.library-trigger-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.library-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #0284c7;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);
+}
+
+.library-trigger-btn:hover {
+  background-color: #0369a1;
+}
+
+.library-trigger-btn:active {
+  transform: translateY(1px);
+}
+
+.chem-library-trigger-btn {
+  background-color: #7c3aed;
+  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
+}
+
+.chem-library-trigger-btn:hover {
+  background-color: #6d28d9;
+}
+
+.circuit-library-trigger-btn {
+  background-color: #d97706;
+  box-shadow: 0 2px 4px rgba(217, 119, 6, 0.2);
+}
+
+.circuit-library-trigger-btn:hover {
+  background-color: #b45309;
+}
+
+.timing-library-trigger-btn {
+  background-color: #0d9488;
+  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
+}
+
+.timing-library-trigger-btn:hover {
+  background-color: #0f766e;
+}
+
+.fsm-library-trigger-btn {
+  background-color: #6366f1;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+}
+
+.fsm-library-trigger-btn:hover {
+  background-color: #4f46e5;
+}
+
+.feynman-library-trigger-btn {
+  background-color: #be185d;
+  box-shadow: 0 2px 4px rgba(190, 24, 93, 0.2);
+}
+
+.feynman-library-trigger-btn:hover {
+  background-color: #9d174d;
+}
+
+.sankey-library-trigger-btn {
+  background-color: #0891b2;
+  box-shadow: 0 2px 4px rgba(8, 145, 178, 0.2);
+}
+
+.sankey-library-trigger-btn:hover {
+  background-color: #0e7490;
+}
+
+.export-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #059669;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.export-trigger-btn:hover {
+  background-color: #047857;
+}
+
+.export-trigger-btn:active {
+  transform: translateY(1px);
+}
+
+textarea {
+  width: 100%;
+  height: 90px;
+  font-size: 16px;
+  font-family: monospace;
+  padding: 12px;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #0f172a;
+  resize: vertical;
+}
+textarea:focus {
+  outline: none;
+  border-color: #0284c7;
+}
+
+/* プレビューコンテナ */
+.preview-container {
+  position: relative;
+  margin-top: 24px;
+}
+
+/* 数式全体のカード枠 */
+.preview-box {
+  padding: 0;
+  min-height: 70px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background-color: #f8fafc;
+  transition: opacity 0.2s, border-color 0.2s;
+  position: relative;
+  cursor: help;
+}
+.preview-box:hover {
+  border-color: #0284c7;
+}
+
+/* 数式描画コンテナ */
+.formula-preview-scroll {
+  width: 100%;
+  overflow-x: hidden;
+  padding: 2.5rem 1.5rem 1.5rem 1.5rem;
+  box-sizing: border-box;
+  font-size: 26px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.formula-preview-scroll .katex-display {
+  margin: 0;
+  max-width: 100%;
+  text-align: center;
+}
+
+.formula-preview-scroll .katex-display > .katex {
+  display: inline-block;
+  transform-origin: center center;
+  transition: transform 0.1s ease;
+}
+
+/* 数式全体の意味を表示するツールチップ */
+.preview-box::before {
+  content: none;
+}
+.preview-box[data-formula-tip]:hover::before {
+  content: attr(data-formula-tip);
+  position: absolute;
+  top: -38px;
+  left: 16px;
+  background-color: #0284c7;
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 20;
+}
+
+/* 記号要素 */
+.symbol-tip {
+  position: relative;
+  cursor: pointer;
+  padding-bottom: 2px;
+  font-weight: bold;
+}
+
+/* フローティングツールチップ（重なり順やクリッピングに影響されない最前面表示） */
+.floating-symbol-tooltip {
+  position: fixed;
+  background-color: #1e293b;
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  transform: translate(-50%, -100%);
+  margin-top: -8px;
+}
+
+.floating-symbol-tooltip.visible {
+  opacity: 1;
+}
+
+/* --- カテゴリ別シンタックスカラー --- */
+/* 力・加速度などの力学量：イエロー/アンバー */
+.color-force {
+  color: #f59e0b !important;
+  border-bottom: 2px dashed #f59e0b;
+}
+
+/* 質量・物質量：スレートグレー */
+.color-mass {
+  color: #94a3b8 !important;
+  border-bottom: 2px dashed #94a3b8;
+}
+
+/* 速度・流れ：エメラルドグリーン */
+.color-velocity {
+  color: #10b981 !important;
+  border-bottom: 2px dashed #10b981;
+}
+
+/* 空間・位置・距離：シアン/水色 */
+.color-space {
+  color: #38bdf8 !important;
+  border-bottom: 2px dashed #38bdf8;
+}
+
+/* 時間：パープル/紫 */
+.color-time {
+  color: #c084fc !important;
+  border-bottom: 2px dashed #c084fc;
+}
+
+/* 熱・エネルギー：レッド/オレンジ */
+.color-thermal {
+  color: #f87171 !important;
+  border-bottom: 2px dashed #f87171;
+}
+
+/* 物理定数：ゴールド */
+.color-const {
+  color: #fbbf24 !important;
+  border-bottom: 2px dashed #fbbf24;
+}
+
+/* 演算記号・微分作用素：インディゴ */
+.color-operator {
+  color: #6366f1 !important;
+  border-bottom: 2px dashed #6366f1;
+}
+
+/* 構文エラー警告バッジ（右上配置・ホバーで詳細エラーTips表示） */
+.syntax-warning {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: help;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  z-index: 25;
+}
+.syntax-warning:hover::after {
+  content: attr(data-error-detail);
+  position: absolute;
+  top: 110%;
+  right: 0;
+  background-color: #78350f;
+  color: #fef3c7;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* モーダル表示中の背景スクロール抑制 */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* モーダルオーバーレイ */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* モーダルダイアログ */
+.modal-dialog {
+  background: #ffffff;
+  width: 100%;
+  max-width: 860px;
+  max-height: 85vh;
+  border-radius: 12px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(12px);
+  transition: transform 0.2s ease;
+}
+
+.modal-overlay.active .modal-dialog {
+  transform: translateY(0);
+}
+
+/* モーダルヘッダー */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.modal-close-icon {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.modal-close-icon:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+/* 検索エリア */
+.modal-search-area {
+  padding: 12px 20px 8px 20px;
+}
+
+.modal-search-area input {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.modal-search-area input:focus {
+  border-color: #0284c7;
+}
+
+/* カテゴリ切り替えタブ */
+.modal-category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 20px 12px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.category-tab.active {
+  background-color: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+}
+
+.chem-category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.chem-category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.chem-category-tab.active {
+  background-color: #7c3aed;
+  border-color: #7c3aed;
+  color: #ffffff;
+}
+
+.formula-card.chem-card:hover {
+  border-color: #7c3aed;
+}
+
+.chem-card-tag {
+  background-color: #f3e8ff;
+  color: #7c3aed;
+}
+
+.chem-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 8px;
+}
+
+.chem-card-preview svg {
+  max-width: 100%;
+  max-height: 80px;
+  height: auto;
+}
+
+.circuit-category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.circuit-category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.circuit-category-tab.active {
+  background-color: #d97706;
+  border-color: #d97706;
+  color: #ffffff;
+}
+
+.formula-card.circuit-card:hover {
+  border-color: #d97706;
+}
+
+.circuit-card-tag {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.circuit-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+}
+
+.circuit-card-preview svg,
+.circuit-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.circuit-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+}
+
+.export-target .circuit-preview-container {
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.export-target .circuit-preview-container .chem-structure-label {
+  display: none;
+}
+
+.timing-category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.timing-category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.timing-category-tab.active {
+  background-color: #0d9488;
+  border-color: #0d9488;
+  color: #ffffff;
+}
+
+.formula-card.timing-card:hover {
+  border-color: #0d9488;
+}
+
+.timing-card-tag {
+  background-color: #ccfbf1;
+  color: #0f766e;
+}
+
+.timing-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow-x: auto;
+}
+
+.timing-card-preview svg,
+.timing-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.timing-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+.export-target .timing-preview-container {
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.export-target .timing-preview-container .chem-structure-label {
+  display: none;
+}
+
+.fsm-category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.fsm-category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.fsm-category-tab.active {
+  background-color: #6366f1;
+  border-color: #6366f1;
+  color: #ffffff;
+}
+
+.formula-card.fsm-card:hover {
+  border-color: #6366f1;
+}
+
+.fsm-card-tag {
+  background-color: #e0e7ff;
+  color: #4338ca;
+}
+
+.fsm-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow-x: auto;
+}
+
+.fsm-card-preview svg,
+.fsm-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.fsm-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+.export-target .fsm-preview-container {
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.export-target .fsm-preview-container .chem-structure-label {
+  display: none;
+}
+
+.feynman-category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.feynman-category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.feynman-category-tab.active {
+  background-color: #be185d;
+  border-color: #be185d;
+  color: #ffffff;
+}
+
+.formula-card.feynman-card:hover {
+  border-color: #be185d;
+}
+
+.feynman-card-tag {
+  background-color: #fce7f3;
+  color: #9d174d;
+}
+
+.feynman-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow-x: auto;
+}
+
+.feynman-card-preview svg,
+.feynman-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.feynman-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+.export-target .feynman-preview-container {
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.export-target .feynman-preview-container .chem-structure-label {
+  display: none;
+}
+
+.sankey-category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.sankey-category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.sankey-category-tab.active {
+  background-color: #0891b2;
+  border-color: #0891b2;
+  color: #ffffff;
+}
+
+.formula-card.sankey-card:hover {
+  border-color: #0891b2;
+}
+
+.sankey-card-tag {
+  background-color: #cffafe;
+  color: #0e7490;
+}
+
+.sankey-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow-x: auto;
+}
+
+.sankey-card-preview svg,
+.sankey-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.sankey-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+.export-target .sankey-preview-container {
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.export-target .sankey-preview-container .chem-structure-label {
+  display: none;
+}
+
+
+/* コンテンツエリア（カード一覧） */
+.modal-content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  background-color: #f8fafc;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+/* 各数式カード */
+.formula-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.formula-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  border-color: #0284c7;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.card-tag {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.card-preview {
+  padding: 10px 8px;
+  background-color: #f1f5f9;
+  border-radius: 6px;
+  max-width: 100%;
+  overflow-x: auto;
+  text-align: center;
+  font-size: 0.9em;
+  line-height: 1.5;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-preview .katex-display {
+  margin: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.card-preview .katex {
+  line-height: 1.4;
+}
+
+.card-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 一致なしメッセージ */
+.empty-message {
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  padding: 40px 0;
+}
+
+/* モーダルフッター */
+.modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  background-color: #ffffff;
+}
+
+.modal-btn-secondary {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-btn-secondary:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+/* 物理的解説パネル（有効範囲・限界境界・時間発展） */
+.explanation-card {
+  margin-top: 20px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.explanation-header {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+}
+
+.explanation-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.explanation-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.explanation-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.explanation-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.label-purpose {
+  background-color: #ecfdf5;
+  color: #047857;
+}
+
+.label-elements {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+.label-range {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.label-limit {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.label-time {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+
+.explanation-body {
+  font-size: 13.5px;
+  color: #334155;
+  line-height: 1.6;
+  padding-left: 4px;
+}
+
+.explanation-body .katex {
+  font-size: 1.05em;
+}
+
+.explanation-elements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  padding-left: 0;
+}
+
+.element-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #ffffff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-size: 13px;
+  line-height: 1.5;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.element-row:hover {
+  border-color: #cbd5e1;
+}
+
+.element-info {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.element-symbol {
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+.element-symbol .katex {
+  font-size: 1.05em;
+}
+
+.element-desc {
+  color: #334155;
+}
+
+.element-calc-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.element-input {
+  width: 96px;
+  height: 28px;
+  padding: 2px 8px;
+  font-size: 12.5px;
+  font-family: monospace;
+  font-weight: 600;
+  color: #0f172a;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  text-align: right;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.element-input:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.element-input[readonly] {
+  background-color: #f8fafc;
+  color: #64748b;
+  border-color: #e2e8f0;
+  cursor: default;
+}
+
+.element-input.computed-target {
+  background-color: #f0fdf4;
+  border-color: #22c55e;
+  color: #15803d;
+  font-weight: 700;
+}
+
+.element-unit {
+  font-size: 12px;
+  color: #64748b;
+  min-width: 32px;
+  font-family: sans-serif;
+}
+
+.constant-tag {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .element-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .element-calc-control {
+    justify-content: flex-end;
+  }
+}
+
+/* 画像ファイル出力設定モーダル */
+.export-dialog {
+  max-width: 620px;
+}
+
+.export-controls-container {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background-color: #ffffff;
+}
+
+.export-control-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.export-control-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+#export-padding-slider {
+  flex: 1;
+  max-width: 200px;
+  cursor: pointer;
+}
+
+.export-radio-group {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.export-radio-label {
+  font-size: 13px;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.export-radio-label input {
+  cursor: pointer;
+}
+
+/* 画像出力用プレビュー領域 */
+.export-preview-wrapper {
+  padding: 16px 20px;
+  background-color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.export-preview-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.export-preview-board {
+  min-height: 140px;
+  max-height: 380px;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background-color: #f1f5f9;
+  background-image: 
+    linear-gradient(45deg, #e2e8f0 25%, transparent 25%), 
+    linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #e2e8f0 75%), 
+    linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.export-target {
+  display: inline-block;
+  margin: auto;
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+  transition: padding 0.15s ease, background-color 0.15s ease;
+}
+
+.export-target svg {
+  max-width: none !important;
+}
+
+.export-target .chem-structure-svg {
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.export-target.transparent-bg {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 透過出力モード時の回路ラベル・座布団の完全透過化 */
+.export-target.transparent-bg .circuit-label-mask {
+  display: none !important;
+}
+
+.export-target.transparent-bg .circuit-label-text {
+  stroke: none !important;
+}
+
+/* 透過出力モード時のFSMラベル・座布団の完全透過化 */
+.export-target.transparent-bg .fsm-label-mask {
+  display: none !important;
+}
+
+.export-target.transparent-bg .fsm-label-text {
+  stroke: none !important;
+}
+
+/* 透過出力モード時のファインマン図ラベル・座布団の完全透過化 */
+.export-target.transparent-bg .feynman-label-mask {
+  display: none !important;
+}
+
+.export-target.transparent-bg .feynman-label-text {
+  stroke: none !important;
+}
+
+.export-target .katex-display {
+  margin: 0 !important;
+}
+
+/* 画像出力時はツールチップ用の破線下線を非表示化 */
+.export-target .symbol-tip {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+}
+
+.modal-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #0284c7;
+  color: #ffffff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);
+}
+
+.modal-btn-primary:hover {
+  background-color: #0369a1;
+}
+
+.modal-btn-primary:active {
+  transform: translateY(1px);
+}
+
+/* 化学構造式表示用スタイル */
+.chem-structure-container {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 18px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-sizing: border-box;
+  margin: 6px auto;
+  text-align: center;
+}
+
+.chem-structure-svg {
+  width: 220px;
+  height: 160px;
+  max-width: 260px;
+  max-height: 200px;
+  display: block;
+  margin: 0 auto;
+}
+
+.chem-structure-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 6px;
+  letter-spacing: 0.02em;
+}
+
+.chem-structure-slot {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 8px;
+}
+
+/* モノクロ（白黒）出力モード用スタイル */
+.export-target.monochrome-mode {
+  filter: grayscale(100%);
+}
+
+.export-target.monochrome-mode,
+.export-target.monochrome-mode * {
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+
+.export-target.monochrome-mode .symbol-tip {
+  color: #000000 !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.export-target.monochrome-mode svg text {
+  fill: #000000 !important;
+}
+
+.export-target.monochrome-mode svg line,
+.export-target.monochrome-mode svg path,
+.export-target.monochrome-mode svg polygon {
+  stroke: #000000 !important;
+}
+
+.export-target.monochrome-mode svg circle {
+  fill: #ffffff !important;
+  stroke: #000000 !important;
+}
+
+.export-target.monochrome-mode .chem-structure-label {
+  color: #000000 !important;
+}
