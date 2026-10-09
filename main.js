@@ -5504,3 +5504,12 @@ if (exportDownloadBtn) {
     }
   });
 }
+
+// 🏠 ローカル環境でのポータル戻るリンクの切り替え
+window.addEventListener('DOMContentLoaded', () => {
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocal) {
+    const portalLink = document.getElementById('portalTopLink');
+    if (portalLink) portalLink.href = "../FumiPortal/index.html";
+  }
+});
