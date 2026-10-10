@@ -117,6 +117,24 @@ h1 {
   background-color: #0e7490;
 }
 
+.flowchart-library-trigger-btn {
+  background-color: #2563eb;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.flowchart-library-trigger-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.table-library-trigger-btn {
+  background-color: #475569;
+  box-shadow: 0 2px 4px rgba(71, 85, 105, 0.2);
+}
+
+.table-library-trigger-btn:hover {
+  background-color: #334155;
+}
+
 .export-trigger-btn {
   display: inline-flex;
   align-items: center;
@@ -143,9 +161,11 @@ h1 {
 
 textarea {
   width: 100%;
-  height: 90px;
-  font-size: 16px;
-  font-family: monospace;
+  min-height: 96px;
+  max-height: 420px;
+  font-size: 15px;
+  line-height: 1.5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   padding: 12px;
   box-sizing: border-box;
   border: 1px solid #cbd5e1;
@@ -153,6 +173,8 @@ textarea {
   background-color: #ffffff;
   color: #0f172a;
   resize: vertical;
+  overflow-y: auto;
+  transition: border-color 0.15s ease;
 }
 textarea:focus {
   outline: none;
@@ -889,6 +911,148 @@ body.modal-open {
 .export-target .sankey-preview-container .chem-structure-label {
   display: none;
 }
+
+/* フローチャート用スタイル */
+.flowchart-card-tag {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.flowchart-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow-x: auto;
+}
+
+.flowchart-card-preview svg,
+.flowchart-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.flowchart-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+.export-target .flowchart-preview-container {
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.export-target .flowchart-preview-container .chem-structure-label {
+  display: none;
+}
+
+/* 表（テーブル）用スタイル */
+.table-card-tag {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.table-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow-x: auto;
+}
+
+.table-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+  width: 100%;
+}
+
+.physi-table {
+  border-collapse: collapse;
+  width: auto;
+  max-width: 100%;
+  font-size: 14px;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.physi-table th {
+  background-color: #f8fafc;
+  color: #1e293b;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-bottom: 2px solid #cbd5e1;
+  border-right: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.physi-table th:last-child {
+  border-right: none;
+}
+
+.physi-table td {
+  padding: 9px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.physi-table td:last-child {
+  border-right: none;
+}
+
+.physi-table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.physi-table tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+.physi-table .katex {
+  font-size: 1.05em;
+}
+
+.export-target .table-preview-container {
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.export-target .table-preview-container .chem-structure-label {
+  display: none;
+}
+
+
 
 
 /* コンテンツエリア（カード一覧） */

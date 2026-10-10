@@ -2819,7 +2819,713 @@ function drawSankeySvg(sankeyText, container, labelText) {
   }
 }
 
+// ==========================================
+// フローチャート構文パーサー & SVG描画エンジン
+// ==========================================
+function parseFlowchart(flowText) {
+  const lines = flowText.split(/[\n;]+/).map((l) => l.trim()).filter(Boolean);
+  const nodesMap = new Map();
+  const edges = [];
+
+  lines.forEach((line) => {
+    // 1. コネクタ（接続）行: A -> B
+    if (line.includes('->')) {
+      const arrowIdx = line.indexOf('->');
+      const from = line.substring(0, arrowIdx).trim();
+      let rest = line.substring(arrowIdx + 2).trim();
+
+      let opts = '';
+      const optMatch = rest.match(/\[(.*)\]$/);
+      if (optMatch) {
+        opts = optMatch[1].toLowerCase();
+        rest = rest.substring(0, optMatch.index).trim();
+      }
+
+      let label = '';
+      const colonIdx = rest.indexOf(':');
+      let to = rest;
+      if (colonIdx !== -1) {
+        to = rest.substring(0, colonIdx).trim();
+        label = rest.substring(colonIdx + 1).trim().replace(/^["']|["']$/g, '');
+      }
+
+      if (from && to) {
+        edges.push({ from, to, label, opts });
+
+        if (!nodesMap.has(from)) {
+          nodesMap.set(from, { id: from, text: from, x: null, y: null, type: 'proc' });
+        }
+        if (!nodesMap.has(to)) {
+          nodesMap.set(to, { id: to, text: to, x: null, y: null, type: 'proc' });
+        }
+      }
+    } else {
+      // 2. ノード定義行
+      let cleaned = line;
+      let nodeType = 'proc';
+
+      // タイプ [start / cond / io / proc / end / sub] の抽出
+      const typeMatch = cleaned.match(/\[([a-zA-Z0-9_\-]+)\]/);
+      if (typeMatch) {
+        const t = typeMatch[1].toLowerCase();
+        if (/start|begin|terminal/i.test(t)) nodeType = 'start';
+        else if (/end|finish|stop/i.test(t)) nodeType = 'end';
+        else if (/cond|branch|decision|if|diamond/i.test(t)) nodeType = 'cond';
+        else if (/io|input|output|data|parallelogram/i.test(t)) nodeType = 'io';
+        else if (/sub|subroutine|prep/i.test(t)) nodeType = 'sub';
+        else nodeType = 'proc';
+        cleaned = cleaned.replace(typeMatch[0], '').trim();
+      }
+
+      // 座標 (x, y) の抽出
+      let posX = null;
+      let posY = null;
+      const coordMatch = cleaned.match(/\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/);
+      if (coordMatch) {
+        posX = parseFloat(coordMatch[1]);
+        posY = parseFloat(coordMatch[2]);
+        cleaned = cleaned.replace(coordMatch[0], '').trim();
+      }
+
+      // プレフィックス (node: や state:) の除去
+      cleaned = cleaned.replace(/^(?:node|state|box|step):\s*/i, '').trim();
+
+      // ID と 表示ラベルの分離: 例 ID: "ラベル" または ID
+      let id = cleaned;
+      let label = cleaned;
+      const colonIdx = cleaned.indexOf(':');
+      if (colonIdx !== -1) {
+        id = cleaned.substring(0, colonIdx).trim();
+        label = cleaned.substring(colonIdx + 1).trim();
+      }
+      label = label.replace(/^["']|["']$/g, '');
+
+      if (id) {
+        const existing = nodesMap.get(id) || {};
+        nodesMap.set(id, {
+          id,
+          text: label || existing.text || id,
+          x: posX !== null ? posX : (existing.x ?? null),
+          y: posY !== null ? posY : (existing.y ?? null),
+          type: nodeType !== 'proc' ? nodeType : (existing.type || 'proc')
+        });
+      }
+    }
+  });
+
+  const nodes = Array.from(nodesMap.values());
+
+  // 自動レイアウト（座標未指定ノードがある場合）
+  let needsLayout = nodes.some((n) => n.x === null || n.y === null);
+  if (needsLayout) {
+    const inDegrees = new Map();
+    const childrenMap = new Map();
+    nodes.forEach((n) => {
+      inDegrees.set(n.id, 0);
+      childrenMap.set(n.id, []);
+    });
+
+    edges.forEach((e) => {
+      if (inDegrees.has(e.to)) {
+        inDegrees.set(e.to, inDegrees.get(e.to) + 1);
+      }
+      if (childrenMap.has(e.from)) {
+        childrenMap.get(e.from).push(e.to);
+      }
+    });
+
+    const levels = new Map();
+    const queue = [];
+    nodes.forEach((n) => {
+      if (inDegrees.get(n.id) === 0 || n.type === 'start') {
+        levels.set(n.id, 0);
+        queue.push(n.id);
+      }
+    });
+
+    if (queue.length === 0 && nodes.length > 0) {
+      levels.set(nodes[0].id, 0);
+      queue.push(nodes[0].id);
+    }
+
+    const visited = new Set();
+    while (queue.length > 0) {
+      const curr = queue.shift();
+      visited.add(curr);
+      const currLevel = levels.get(curr) || 0;
+      const children = childrenMap.get(curr) || [];
+      children.forEach((chId) => {
+        const chLevel = levels.get(chId);
+        if (chLevel === undefined || chLevel <= currLevel) {
+          levels.set(chId, currLevel + 1);
+        }
+        if (!visited.has(chId) && !queue.includes(chId)) {
+          queue.push(chId);
+        }
+      });
+    }
+
+    let maxAssignedLevel = 0;
+    levels.forEach((l) => { if (l > maxAssignedLevel) maxAssignedLevel = l; });
+    nodes.forEach((n) => {
+      if (!levels.has(n.id)) {
+        maxAssignedLevel++;
+        levels.set(n.id, maxAssignedLevel);
+      }
+    });
+
+    const levelGroups = new Map();
+    nodes.forEach((n) => {
+      const l = levels.get(n.id);
+      if (!levelGroups.has(l)) levelGroups.set(l, []);
+      levelGroups.get(l).push(n);
+    });
+
+    levelGroups.forEach((groupNodes, lvl) => {
+      const count = groupNodes.length;
+      groupNodes.forEach((n, idx) => {
+        if (n.x === null) {
+          n.x = Math.round((idx - (count - 1) / 2) * 160);
+        }
+        if (n.y === null) {
+          n.y = lvl * 85;
+        }
+      });
+    });
+  }
+
+  return { nodes, edges };
+}
+
+function drawFlowchartSvg(flowText, container, labelText) {
+  container.innerHTML = '';
+  const { nodes, edges } = parseFlowchart(flowText);
+
+  if (nodes.length === 0) {
+    container.innerHTML = '<span style="color:#ef4444; font-size:12px;">フローチャートの構文を解析できませんでした（例: \\flowchart{ 開始 [start]; 処理 [proc]; 開始 -> 処理; }）</span>';
+    return;
+  }
+
+  const nodeLookup = new Map();
+  nodes.forEach((n) => {
+    let w, h;
+    const rawStr = n.text || n.id;
+    const textLines = rawStr.split(/\\n|\n/);
+    n.textLines = textLines;
+    const maxLineLen = Math.max(...textLines.map((l) => l.length));
+    const extraH = (textLines.length - 1) * 16;
+
+    if (n.type === 'start' || n.type === 'end') {
+      w = Math.max(110, maxLineLen * 9 + 36);
+      h = 38 + extraH;
+    } else if (n.type === 'cond') {
+      w = Math.max(124, maxLineLen * 8.5 + 56);
+      h = 48 + extraH * 1.2;
+    } else if (n.type === 'io') {
+      w = Math.max(120, maxLineLen * 9 + 40);
+      h = 40 + extraH;
+    } else if (n.type === 'sub') {
+      w = Math.max(130, maxLineLen * 9 + 42);
+      h = 42 + extraH;
+    } else {
+      w = Math.max(120, maxLineLen * 9 + 32);
+      h = 42 + extraH;
+    }
+    n.w = w;
+    n.h = h;
+    nodeLookup.set(n.id, n);
+  });
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.style.overflow = 'visible';
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  marker.setAttribute('id', 'flowchart-arrow');
+  marker.setAttribute('viewBox', '0 0 10 10');
+  marker.setAttribute('refX', '7');
+  marker.setAttribute('refY', '5');
+  marker.setAttribute('markerWidth', '6');
+  marker.setAttribute('markerHeight', '6');
+  marker.setAttribute('orient', 'auto-start-reverse');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0 1.5 L 8 5 L 0 8.5 z');
+  path.setAttribute('fill', '#475569');
+  marker.appendChild(path);
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  const pts = [];
+
+  const edgesG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  edgesG.setAttribute('class', 'flowchart-edges');
+
+  edges.forEach((e) => {
+    const s1 = nodeLookup.get(e.from);
+    const s2 = nodeLookup.get(e.to);
+    if (!s1 || !s2) return;
+
+    let pathD = '';
+    let labelPos = null;
+
+    const dx = s2.x - s1.x;
+    const dy = s2.y - s1.y;
+
+    if (dy > 0 && Math.abs(dx) < 40) {
+      const startX = s1.x;
+      const startY = s1.y + s1.h / 2;
+      const endX = s2.x;
+      const endY = s2.y - s2.h / 2;
+      pathD = `M ${startX} ${startY} L ${endX} ${endY}`;
+      labelPos = { x: (startX + endX) / 2 + 14, y: (startY + endY) / 2 };
+    } else if (dy > 0) {
+      if (s1.type === 'cond') {
+        const isRight = dx > 0;
+        const startX = isRight ? (s1.x + s1.w / 2) : (s1.x - s1.w / 2);
+        const startY = s1.y;
+        const endX = s2.x;
+        const endY = s2.y - s2.h / 2;
+        pathD = `M ${startX} ${startY} H ${endX} V ${endY}`;
+        labelPos = { x: (startX + endX) / 2, y: startY - 10 };
+      } else {
+        const startX = s1.x;
+        const startY = s1.y + s1.h / 2;
+        const midY = (startY + (s2.y - s2.h / 2)) / 2;
+        const endX = s2.x;
+        const endY = s2.y - s2.h / 2;
+        pathD = `M ${startX} ${startY} V ${midY} H ${endX} V ${endY}`;
+        labelPos = { x: (startX + endX) / 2, y: midY - 10 };
+      }
+    } else {
+      const outerX = Math.min(s1.x - s1.w / 2, s2.x - s2.w / 2) - 45;
+      const startX = s1.x - s1.w / 2;
+      const startY = s1.y;
+      const endX = s2.x - s2.w / 2;
+      const endY = s2.y;
+      pathD = `M ${startX} ${startY} H ${outerX} V ${endY} H ${endX}`;
+      labelPos = { x: outerX - 16, y: (startY + endY) / 2 };
+      pts.push({ x: outerX - 25, y: startY });
+      pts.push({ x: outerX, y: endY });
+    }
+
+    const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    pathEl.setAttribute('d', pathD);
+    pathEl.setAttribute('fill', 'none');
+    pathEl.setAttribute('stroke', '#475569');
+    pathEl.setAttribute('stroke-width', '2');
+    pathEl.setAttribute('marker-end', 'url(#flowchart-arrow)');
+    edgesG.appendChild(pathEl);
+
+    if (e.label && labelPos) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const tw = Math.max(e.label.length * 8 + 10, 24);
+      const th = 16;
+      const rx = labelPos.x - tw / 2;
+      const ry = labelPos.y - th / 2;
+
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bg.setAttribute('x', rx);
+      bg.setAttribute('y', ry);
+      bg.setAttribute('width', tw);
+      bg.setAttribute('height', th);
+      bg.setAttribute('rx', '3');
+      bg.setAttribute('ry', '3');
+      bg.setAttribute('fill', '#ffffff');
+      bg.setAttribute('stroke', '#cbd5e1');
+      bg.setAttribute('stroke-width', '1');
+      g.appendChild(bg);
+
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', labelPos.x);
+      txt.setAttribute('y', labelPos.y + 4.5);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('font-size', '11');
+      txt.setAttribute('font-weight', '700');
+      txt.setAttribute('font-family', 'ui-monospace, monospace');
+      txt.setAttribute('fill', '#0284c7');
+      txt.textContent = e.label;
+      g.appendChild(txt);
+
+      edgesG.appendChild(g);
+      pts.push({ x: rx, y: ry });
+      pts.push({ x: rx + tw, y: ry + th });
+    }
+  });
+
+  svg.appendChild(edgesG);
+
+  const nodesG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  nodesG.setAttribute('class', 'flowchart-nodes');
+
+  nodes.forEach((n) => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const x0 = n.x - n.w / 2;
+    const y0 = n.y - n.h / 2;
+
+    pts.push({ x: x0, y: y0 });
+    pts.push({ x: x0 + n.w, y: y0 + n.h });
+
+    let shapeEl;
+    let fill = '#eff6ff';
+    let stroke = '#3b82f6';
+    let textColor = '#1e40af';
+
+    if (n.type === 'start' || n.type === 'end') {
+      fill = '#ecfdf5';
+      stroke = '#10b981';
+      textColor = '#065f46';
+      shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      shapeEl.setAttribute('x', x0);
+      shapeEl.setAttribute('y', y0);
+      shapeEl.setAttribute('width', n.w);
+      shapeEl.setAttribute('height', n.h);
+      shapeEl.setAttribute('rx', n.h / 2);
+      shapeEl.setAttribute('ry', n.h / 2);
+    } else if (n.type === 'cond') {
+      fill = '#fffbeb';
+      stroke = '#f59e0b';
+      textColor = '#92400e';
+      shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      const topP = `${n.x},${y0}`;
+      const rightP = `${n.x + n.w / 2},${n.y}`;
+      const bottomP = `${n.x},${y0 + n.h}`;
+      const leftP = `${n.x - n.w / 2},${n.y}`;
+      shapeEl.setAttribute('points', `${topP} ${rightP} ${bottomP} ${leftP}`);
+    } else if (n.type === 'io') {
+      fill = '#f5f3ff';
+      stroke = '#8b5cf6';
+      textColor = '#5b21b6';
+      shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      const skew = 14;
+      const p1 = `${x0 + skew},${y0}`;
+      const p2 = `${x0 + n.w},${y0}`;
+      const p3 = `${x0 + n.w - skew},${y0 + n.h}`;
+      const p4 = `${x0},${y0 + n.h}`;
+      shapeEl.setAttribute('points', `${p1} ${p2} ${p3} ${p4}`);
+    } else if (n.type === 'sub') {
+      fill = '#f0fdfa';
+      stroke = '#14b8a6';
+      textColor = '#115e59';
+      shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      shapeEl.setAttribute('x', x0);
+      shapeEl.setAttribute('y', y0);
+      shapeEl.setAttribute('width', n.w);
+      shapeEl.setAttribute('height', n.h);
+      shapeEl.setAttribute('rx', '4');
+      shapeEl.setAttribute('ry', '4');
+    } else {
+      shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      shapeEl.setAttribute('x', x0);
+      shapeEl.setAttribute('y', y0);
+      shapeEl.setAttribute('width', n.w);
+      shapeEl.setAttribute('height', n.h);
+      shapeEl.setAttribute('rx', '5');
+      shapeEl.setAttribute('ry', '5');
+    }
+
+    shapeEl.setAttribute('fill', fill);
+    shapeEl.setAttribute('stroke', stroke);
+    shapeEl.setAttribute('stroke-width', '2');
+    g.appendChild(shapeEl);
+
+    if (n.type === 'sub') {
+      const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line1.setAttribute('x1', x0 + 10);
+      line1.setAttribute('y1', y0);
+      line1.setAttribute('x2', x0 + 10);
+      line1.setAttribute('y2', y0 + n.h);
+      line1.setAttribute('stroke', stroke);
+      line1.setAttribute('stroke-width', '1.5');
+      g.appendChild(line1);
+
+      const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line2.setAttribute('x1', x0 + n.w - 10);
+      line2.setAttribute('y1', y0);
+      line2.setAttribute('x2', x0 + n.w - 10);
+      line2.setAttribute('y2', y0 + n.h);
+      line2.setAttribute('stroke', stroke);
+      line2.setAttribute('stroke-width', '1.5');
+      g.appendChild(line2);
+    }
+
+    const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textEl.setAttribute('x', n.x);
+    textEl.setAttribute('text-anchor', 'middle');
+    textEl.setAttribute('font-size', '12');
+    textEl.setAttribute('font-weight', '600');
+    textEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+    textEl.setAttribute('fill', textColor);
+
+    const tLines = n.textLines || [n.text || n.id];
+    if (tLines.length === 1) {
+      textEl.setAttribute('y', n.y + 4.5);
+      textEl.textContent = tLines[0];
+    } else {
+      const lineH = 15;
+      const startY = n.y - ((tLines.length - 1) * lineH) / 2 + 4.5;
+      textEl.setAttribute('y', startY.toFixed(1));
+      tLines.forEach((lineText, idx) => {
+        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        tspan.setAttribute('x', n.x);
+        if (idx > 0) {
+          tspan.setAttribute('dy', lineH);
+        }
+        tspan.textContent = lineText;
+        textEl.appendChild(tspan);
+      });
+    }
+    g.appendChild(textEl);
+
+    nodesG.appendChild(g);
+  });
+
+  svg.appendChild(nodesG);
+
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  pts.forEach((p) => {
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+  });
+
+  const padX = 18;
+  const padY = 12;
+  const vbX = minX - padX;
+  const vbY = minY - padY;
+  const vbW = Math.max(120, maxX - minX + padX * 2);
+  const vbH = Math.max(60, maxY - minY + padY * 2);
+
+  svg.setAttribute('viewBox', `${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`);
+  svg.setAttribute('width', vbW.toFixed(1));
+  svg.setAttribute('height', vbH.toFixed(1));
+  svg.style.maxWidth = '100%';
+  svg.style.height = 'auto';
+
+  container.innerHTML = '';
+  container.appendChild(svg);
+
+  if (labelText) {
+    const lbl = document.createElement('div');
+    lbl.className = 'chem-structure-label';
+    lbl.textContent = labelText;
+    container.appendChild(lbl);
+  }
+}
+
+// ==========================================
+// 表（テーブル：LaTeX tabular / Markdown / CSV / TSV）パーサー & レンダラー
+// ==========================================
+function parseAnyTable(rawText) {
+  if (!rawText || typeof rawText !== 'string') return null;
+  let text = rawText.trim();
+
+  // \table{...} ラッパーのアンラップ
+  const tableWrapperMatch = text.match(/^\\table\{([\s\S]*)\}$/i);
+  if (tableWrapperMatch) {
+    text = tableWrapperMatch[1].trim();
+  }
+
+  // 1. LaTeX tabular / array 環境の判定
+  const latexMatch = text.match(/\\begin\{(tabular|array)\}(?:\{([^}]*)\})?([\s\S]*?)\\end\{(tabular|array)\}/i);
+  if (latexMatch) {
+    const colSpec = latexMatch[2] || '';
+    const body = latexMatch[3] || '';
+    const aligns = [];
+    for (const ch of colSpec) {
+      if (ch === 'l') aligns.push('left');
+      else if (ch === 'c') aligns.push('center');
+      else if (ch === 'r') aligns.push('right');
+    }
+
+    const rawRows = body.split(/\\\\/).map((r) => r.trim()).filter((r) => r.length > 0 && !/^\\(hline|toprule|midrule|bottomrule)/.test(r));
+    if (rawRows.length > 0) {
+      const parsedRows = rawRows.map((r) => {
+        const cleaned = r.replace(/\\(hline|toprule|midrule|bottomrule)/g, '').trim();
+        return cleaned.split('&').map((cell) => cell.trim());
+      }).filter((r) => r.length > 0);
+
+      if (parsedRows.length > 0) {
+        const headers = parsedRows[0];
+        const rows = parsedRows.slice(1);
+        return { headers, rows, aligns };
+      }
+    }
+  }
+
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length < 2) return null;
+
+  // 2. Markdown 表の判定
+  const isMdLike = lines.every((l) => l.includes('|'));
+  if (isMdLike) {
+    const splitMdRow = (line) => {
+      let trimmed = line;
+      if (trimmed.startsWith('|')) trimmed = trimmed.substring(1);
+      if (trimmed.endsWith('|')) trimmed = trimmed.substring(0, trimmed.length - 1);
+      return trimmed.split('|').map((c) => c.trim());
+    };
+
+    const firstRow = splitMdRow(lines[0]);
+    if (firstRow.length >= 2) {
+      let aligns = [];
+      let rowsStartIndex = 1;
+
+      if (lines.length >= 2 && /^\|?(\s*:?-+:?\s*\|?)+$/.test(lines[1])) {
+        const sepCols = splitMdRow(lines[1]);
+        aligns = sepCols.map((c) => {
+          const l = c.startsWith(':');
+          const r = c.endsWith(':');
+          if (l && r) return 'center';
+          if (r) return 'right';
+          if (l) return 'left';
+          return 'left';
+        });
+        rowsStartIndex = 2;
+      }
+
+      const headers = firstRow;
+      const rows = [];
+      for (let i = rowsStartIndex; i < lines.length; i++) {
+        rows.push(splitMdRow(lines[i]));
+      }
+      return { headers, rows, aligns };
+    }
+  }
+
+  // 3. CSV / TSV の判定
+  const delimiter = lines[0].includes('\t') ? '\t' : (lines[0].includes(',') ? ',' : null);
+  if (delimiter) {
+    const parseCsvLine = (line, delim) => {
+      const result = [];
+      let current = '';
+      let inQuote = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          inQuote = !inQuote;
+        } else if (ch === delim && !inQuote) {
+          result.push(current.trim().replace(/^["']|["']$/g, ''));
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+      result.push(current.trim().replace(/^["']|["']$/g, ''));
+      return result;
+    };
+
+    const firstRow = parseCsvLine(lines[0], delimiter);
+    if (firstRow.length >= 2) {
+      const rows = [];
+      let valid = true;
+      for (let i = 1; i < lines.length; i++) {
+        const row = parseCsvLine(lines[i], delimiter);
+        if (row.length >= 2) {
+          rows.push(row);
+        } else {
+          valid = false;
+          break;
+        }
+      }
+      if (valid && rows.length > 0) {
+        return { headers: firstRow, rows, aligns: [] };
+      }
+    }
+  }
+
+  return null;
+}
+
+function renderTableCellHtml(rawCellText) {
+  if (!rawCellText) return '';
+  let str = rawCellText.trim();
+
+  // $式$ のインライン数式置換
+  const mathRegex = /\$([^$]+)\$/g;
+  if (mathRegex.test(str)) {
+    return str.replace(mathRegex, (_, expr) => {
+      if (typeof katex !== 'undefined') {
+        try {
+          return katex.renderToString(expr.trim(), { throwOnError: false });
+        } catch {
+          return expr;
+        }
+      }
+      return expr;
+    });
+  }
+
+  // 先頭が LaTeX コマンドの場合
+  if (/^\\(text|frac|sqrt|vec|dot|theta|alpha|beta|omega|mu|sigma|lambda|Delta|nabla|partial|approx|pm|times|div)/i.test(str)) {
+    if (typeof katex !== 'undefined') {
+      try {
+        return katex.renderToString(str, { throwOnError: false });
+      } catch {
+        // fallback
+      }
+    }
+  }
+
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function renderTableElement(tableData, container, labelText) {
+  container.innerHTML = '';
+  if (!tableData || !tableData.headers || tableData.headers.length === 0) return;
+
+  const table = document.createElement('table');
+  table.className = 'physi-table';
+
+  const thead = document.createElement('thead');
+  const headTr = document.createElement('tr');
+  tableData.headers.forEach((hText, colIdx) => {
+    const th = document.createElement('th');
+    th.innerHTML = renderTableCellHtml(hText);
+    const align = (tableData.aligns && tableData.aligns[colIdx]) || 'left';
+    th.style.textAlign = align;
+    headTr.appendChild(th);
+  });
+  thead.appendChild(headTr);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  tableData.rows.forEach((row) => {
+    const tr = document.createElement('tr');
+    row.forEach((cText, colIdx) => {
+      const td = document.createElement('td');
+      td.innerHTML = renderTableCellHtml(cText);
+      const align = (tableData.aligns && tableData.aligns[colIdx]) || 'left';
+      td.style.textAlign = align;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  container.appendChild(table);
+
+  if (labelText) {
+    const lbl = document.createElement('div');
+    lbl.className = 'chem-structure-label';
+    lbl.textContent = labelText;
+    container.appendChild(lbl);
+  }
+}
+
+function autoResizeInput() {
+  if (!inputArea) return;
+  inputArea.style.height = 'auto';
+  const nextH = Math.min(Math.max(inputArea.scrollHeight, 96), 420);
+  inputArea.style.height = `${nextH}px`;
+}
+
 function updatePreview() {
+  autoResizeInput();
   hideSymbolTooltip();
   if (typeof katex === 'undefined') {
     return;
@@ -2965,9 +3671,37 @@ function updatePreview() {
     sankeyMatches.push({ raw: sankeyMatch[0], content: sankeyMatch[1], label: 'サンキーダイアグラム' });
   }
 
+  // ==========================================
+  // フローチャート (\flowchart / \flow) の検出と処理
+  // ==========================================
+  const flowchartRegex = /\\(flowchart|flow)\{((?:[^{}]|\{[^{}]*\})*)\}/g;
+  const flowchartMatches = [];
+  let flowchartMatch;
+  while ((flowchartMatch = flowchartRegex.exec(text)) !== null) {
+    flowchartMatches.push({ raw: flowchartMatch[0], content: flowchartMatch[2], label: 'フローチャート' });
+  }
+
+  // 入力がフローチャートのみの場合：直接SVG描画
+  const textWithoutFlowchart = text.replace(flowchartRegex, '').trim();
+  if (flowchartMatches.length > 0 && textWithoutFlowchart === '' && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0 && sankeyMatches.length === 0) {
+    previewArea.innerHTML = '';
+    flowchartMatches.forEach((item) => {
+      const container = document.createElement('div');
+      container.className = 'flowchart-preview-container';
+      drawFlowchartSvg(item.content, container, item.label);
+      previewArea.appendChild(container);
+    });
+
+    warningBadge.style.display = 'none';
+    previewBox.style.opacity = '1.0';
+    previewBox.removeAttribute('data-formula-tip');
+    if (explanationCard) explanationCard.style.display = 'none';
+    return;
+  }
+
   // 入力がサンキー図のみの場合：直接SVG描画
   const textWithoutSankey = text.replace(sankeyRegex, '').trim();
-  if (sankeyMatches.length > 0 && textWithoutSankey === '' && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0) {
+  if (sankeyMatches.length > 0 && textWithoutSankey === '' && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0 && flowchartMatches.length === 0) {
     previewArea.innerHTML = '';
     sankeyMatches.forEach((item) => {
       const container = document.createElement('div');
@@ -2975,6 +3709,24 @@ function updatePreview() {
       drawSankeySvg(item.content, container, item.label);
       previewArea.appendChild(container);
     });
+
+    warningBadge.style.display = 'none';
+    previewBox.style.opacity = '1.0';
+    previewBox.removeAttribute('data-formula-tip');
+    if (explanationCard) explanationCard.style.display = 'none';
+    return;
+  }
+
+  // ==========================================
+  // 表（テーブル：Markdown / CSV / TSV / LaTeX tabular）の検出と処理
+  // ==========================================
+  const tableData = parseAnyTable(text);
+  if (tableData && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0 && sankeyMatches.length === 0 && flowchartMatches.length === 0) {
+    previewArea.innerHTML = '';
+    const container = document.createElement('div');
+    container.className = 'table-preview-container';
+    renderTableElement(tableData, container, 'データ表');
+    previewArea.appendChild(container);
 
     warningBadge.style.display = 'none';
     previewBox.style.opacity = '1.0';
@@ -5194,6 +5946,369 @@ sankeyCategoryTabs.forEach((tab) => {
   });
 });
 
+// ==========================================
+// フローチャート ライブラリ データ & モーダル制御
+// ==========================================
+const flowchartLibrary = [
+  {
+    id: 'flow-max-val',
+    name: '2値の最大値判定（基本条件分岐）',
+    category: '基本アルゴリズム',
+    description: '2つの数値 a, b を入力し、条件分岐で大きい方の値を最大値として出力する基本的なアルゴリズム。',
+    code: '\\flowchart{\n  node: 開始 [start];\n  node: 入力: a, b [io];\n  node: a > b ? [cond];\n  node: max = a [proc];\n  node: max = b [proc];\n  node: 出力: max [io];\n  node: 終了 [end];\n\n  開始 -> 入力: a, b;\n  入力: a, b -> a > b ?;\n  a > b ? -> max = a: "Yes";\n  a > b ? -> max = b: "No";\n  max = a -> 出力: max;\n  max = b -> 出力: max;\n  出力: max -> 終了;\n}',
+    tags: ['最大値', '条件分岐', 'if文', '基本']
+  },
+  {
+    id: 'flow-sum-loop',
+    name: '1からNまでの整数の総和（ループ計算）',
+    category: 'ループ・反復処理',
+    description: 'カウンタ変数 i を 1 から N までインクリメントしながら、合計値 sum に累積加算する反復構造。',
+    code: '\\flowchart{\n  node: 開始 (0, 0) [start];\n  node: 入力: N (0, 70) [io];\n  node: sum = 0, i = 1 (0, 140) [proc];\n  node: i <= N ? (0, 220) [cond];\n  node: sum += i, i++ (150, 300) [proc];\n  node: 出力: sum (0, 310) [io];\n  node: 終了 (0, 380) [end];\n\n  開始 -> 入力: N;\n  入力: N -> sum = 0, i = 1;\n  sum = 0, i = 1 -> i <= N ?;\n  i <= N ? -> sum += i, i++: "Yes";\n  sum += i, i++ -> i <= N ?;\n  i <= N ? -> 出力: sum: "No";\n  出力: sum -> 終了;\n}',
+    tags: ['ループ', 'for文', 'while文', '累積加算', '反復']
+  },
+  {
+    id: 'flow-binary-search',
+    name: '二分探索アルゴリズム（Binary Search）',
+    category: '基本アルゴリズム',
+    description: 'ソート済み配列の中央値と比較しながら探索範囲を半分に絞り込む高速検索アルゴリズム。',
+    code: '\\flowchart{\n  node: 開始 (0, 0) [start];\n  node: low=0, high=N-1 (0, 70) [proc];\n  node: low <= high ? (0, 150) [cond];\n  node: mid = (low+high)/2 (0, 230) [proc];\n  node: arr[mid] == key ? (0, 310) [cond];\n  node: midを返す (160, 310) [proc];\n  node: arr[mid] < key ? (0, 400) [cond];\n  node: low = mid + 1 (140, 470) [proc];\n  node: high = mid - 1 (-140, 470) [proc];\n  node: -1 (見つからず) (-180, 200) [proc];\n  node: 終了 (0, 560) [end];\n\n  開始 -> low=0, high=N-1;\n  low=0, high=N-1 -> low <= high ?;\n  low <= high ? -> mid = (low+high)/2: "Yes";\n  low <= high ? -> -1 (見つからず): "No";\n  mid = (low+high)/2 -> arr[mid] == key ?;\n  arr[mid] == key ? -> midを返す: "Yes";\n  arr[mid] == key ? -> arr[mid] < key ?: "No";\n  arr[mid] < key ? -> low = mid + 1: "Yes";\n  arr[mid] < key ? -> high = mid - 1: "No";\n  low = mid + 1 -> low <= high ?;\n  high = mid - 1 -> low <= high ?;\n  midを返す -> 終了;\n  -1 (見つからず) -> 終了;\n}',
+    tags: ['二分探索', 'バイナリサーチ', '検索', 'O(log N)']
+  },
+  {
+    id: 'flow-login-auth',
+    name: 'ユーザー認証・ログイン判定フロー',
+    category: 'システム・制御ロジック',
+    description: 'パスワード照合、エラー回数カウント、およびアカウントロック（凍結）を含むセキュアログイン処理。',
+    code: '\\flowchart{\n  node: 開始 (0, 0) [start];\n  node: ID・PW入力 (0, 70) [io];\n  node: パスワード検証 (0, 150) [sub];\n  node: 認証成功 ? (0, 230) [cond];\n  node: セッション発行 (140, 310) [proc];\n  node: マイページ表示 (140, 380) [proc];\n  node: 失敗回数++ (-140, 310) [proc];\n  node: 失敗 >= 5回 ? (-140, 380) [cond];\n  node: アカウント凍結 (-140, 460) [proc];\n  node: 終了 (0, 530) [end];\n\n  開始 -> ID・PW入力;\n  ID・PW入力 -> パスワード検証;\n  パスワード検証 -> 認証成功 ?;\n  認証成功 ? -> セッション発行: "Yes";\n  認証成功 ? -> 失敗回数++: "No";\n  セッション発行 -> マイページ表示;\n  失敗回数++ -> 失敗 >= 5回 ?;\n  失敗 >= 5回 ? -> アカウント凍結: "Yes";\n  失敗 >= 5回 ? -> ID・PW入力: "No";\n  マイページ表示 -> 終了;\n  アカウント凍結 -> 終了;\n}',
+    tags: ['ログイン', '認証', 'セキュリティ', 'Webシステム']
+  },
+  {
+    id: 'flow-vending-machine',
+    name: '自動販売機 購入・返金フロー',
+    category: 'システム・制御ロジック',
+    description: '硬貨投入から投入金額判定、商品選択、商品排出、おつり計算・返却までの一連の組み込み制御ロジック。',
+    code: '\\flowchart{\n  node: 開始 (0, 0) [start];\n  node: 硬貨投入 (0, 70) [io];\n  node: 金額 >= 価格 ? (0, 150) [cond];\n  node: ランプ点灯 (0, 230) [proc];\n  node: ボタン押下 (0, 300) [io];\n  node: 商品排出 & おつり計算 (0, 380) [proc];\n  node: おつり > 0 ? (0, 460) [cond];\n  node: おつり返却 (140, 530) [io];\n  node: 終了 (0, 600) [end];\n\n  開始 -> 硬貨投入;\n  硬貨投入 -> 金額 >= 価格 ?;\n  金額 >= 価格 ? -> ランプ点灯: "Yes";\n  金額 >= 価格 ? -> 硬貨投入: "No";\n  ランプ点灯 -> ボタン押下;\n  ボタン押下 -> 商品排出 & おつり計算;\n  商品排出 & おつり計算 -> おつり > 0 ?;\n  おつり > 0 ? -> おつり返却: "Yes";\n  おつり > 0 ? -> 終了: "No";\n  おつり返却 -> 終了;\n}',
+    tags: ['自動販売機', '組込み', '制御フロー', 'ステート']
+  },
+  {
+    id: 'flow-euclid-gcd',
+    name: 'ユークリッドの互除法（最大公約数 GCD）',
+    category: 'ループ・反復処理',
+    description: '剰余計算を繰り返すことで2つの整数 a, b の最大公約数を高速に求める古典的アルゴリズム。',
+    code: '\\flowchart{\n  node: 開始 (0, 0) [start];\n  node: 入力: a, b (0, 70) [io];\n  node: b == 0 ? (0, 150) [cond];\n  node: GCD = a (140, 230) [proc];\n  node: r = a % b (0, 230) [proc];\n  node: a = b, b = r (0, 300) [proc];\n  node: 出力: GCD (140, 370) [io];\n  node: 終了 (140, 440) [end];\n\n  開始 -> 入力: a, b;\n  入力: a, b -> b == 0 ?;\n  b == 0 ? -> GCD = a: "Yes";\n  b == 0 ? -> r = a % b: "No";\n  r = a % b -> a = b, b = r;\n  a = b, b = r -> b == 0 ?;\n  GCD = a -> 出力: GCD;\n  出力: GCD -> 終了;\n}',
+    tags: ['ユークリッド', '互除法', 'GCD', '最大公約数', '数学']
+  },
+  {
+    id: 'flow-note-support-branch',
+    name: '記事サポート・リアクション判定フロー',
+    category: '基本アルゴリズム',
+    description: '「この文章にチップを出しますか？」の条件分岐に応じ、感謝メッセージまたはスキのお願いへ分岐して合流・終了するインタラクションフロー。',
+    code: '\\flowchart{\n  node: 開始 (0, 0) [start];\n  node: この文章にチップを\\n出しますか？ (0, 80) [cond];\n  node: ありがとうございます (-120, 170) [proc];\n  node: スキは押してね (120, 170) [proc];\n  node: 終了 (0, 250) [end];\n\n  開始 -> この文章にチップを\\n出しますか？;\n  この文章にチップを\\n出しますか？ -> ありがとうございます: "Yes";\n  この文章にチップを\\n出しますか？ -> スキは押してね: "No";\n  ありがとうございます -> 終了;\n  スキは押してね -> 終了;\n}',
+    tags: ['チップ', 'サポート', 'note', '条件分岐', 'インタラクション', '合流']
+  }
+];
+
+// フローチャート ライブラリモーダルの制御
+const flowchartLibraryModal = document.getElementById('flowchart-library-modal');
+const openFlowchartLibraryBtn = document.getElementById('open-flowchart-library-btn');
+const closeFlowchartLibraryXBtn = document.getElementById('flowchart-modal-close-x');
+const closeFlowchartLibraryFooterBtn = document.getElementById('flowchart-modal-close-footer');
+const flowchartSearchInput = document.getElementById('flowchart-library-search-input');
+const flowchartCategoryTabs = document.querySelectorAll('.flowchart-category-tab');
+const flowchartCardGrid = document.getElementById('flowchart-library-card-grid');
+const flowchartEmptyMessage = document.getElementById('flowchart-library-empty-message');
+
+let currentFlowchartCategory = 'すべて';
+
+function openFlowchartModal() {
+  if (!flowchartLibraryModal) return;
+  flowchartLibraryModal.classList.add('active');
+  flowchartLibraryModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+  if (flowchartSearchInput) flowchartSearchInput.value = '';
+  currentFlowchartCategory = 'すべて';
+  flowchartCategoryTabs.forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.category === 'すべて');
+  });
+  renderFlowchartCards();
+  if (flowchartSearchInput) flowchartSearchInput.focus();
+}
+
+function closeFlowchartModal() {
+  if (!flowchartLibraryModal) return;
+  flowchartLibraryModal.classList.remove('active');
+  flowchartLibraryModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+}
+
+function renderFlowchartCards() {
+  if (!flowchartCardGrid || !flowchartSearchInput) return;
+  const query = flowchartSearchInput.value.trim().toLowerCase();
+  flowchartCardGrid.innerHTML = '';
+
+  const filtered = flowchartLibrary.filter((item) => {
+    const matchCategory = currentFlowchartCategory === 'すべて' || item.category === currentFlowchartCategory;
+    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
+    const matchQuery =
+      !query ||
+      item.name.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query) ||
+      matchTags;
+    return matchCategory && matchQuery;
+  });
+
+  if (filtered.length === 0) {
+    if (flowchartEmptyMessage) flowchartEmptyMessage.style.display = 'block';
+  } else {
+    if (flowchartEmptyMessage) flowchartEmptyMessage.style.display = 'none';
+    filtered.forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'formula-card flowchart-card';
+
+      const top = document.createElement('div');
+      top.className = 'card-top';
+
+      const name = document.createElement('span');
+      name.className = 'card-name';
+      name.textContent = item.name;
+
+      const tag = document.createElement('span');
+      tag.className = 'card-tag flowchart-card-tag';
+      tag.textContent = item.category;
+
+      top.appendChild(name);
+      top.appendChild(tag);
+
+      const preview = document.createElement('div');
+      preview.className = 'card-preview flowchart-card-preview';
+      drawFlowchartSvg(item.code, preview, null);
+
+      const desc = document.createElement('p');
+      desc.className = 'card-desc';
+      desc.textContent = item.description;
+
+      card.appendChild(top);
+      card.appendChild(preview);
+      card.appendChild(desc);
+
+      card.addEventListener('click', () => {
+        inputArea.value = item.code;
+        closeFlowchartModal();
+        updatePreview();
+      });
+
+      flowchartCardGrid.appendChild(card);
+    });
+  }
+}
+
+if (openFlowchartLibraryBtn) openFlowchartLibraryBtn.addEventListener('click', openFlowchartModal);
+if (closeFlowchartLibraryXBtn) closeFlowchartLibraryXBtn.addEventListener('click', closeFlowchartModal);
+if (closeFlowchartLibraryFooterBtn) closeFlowchartLibraryFooterBtn.addEventListener('click', closeFlowchartModal);
+
+if (flowchartLibraryModal) {
+  flowchartLibraryModal.addEventListener('click', (e) => {
+    if (e.target === flowchartLibraryModal) {
+      closeFlowchartModal();
+    }
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && flowchartLibraryModal && flowchartLibraryModal.classList.contains('active')) {
+    closeFlowchartModal();
+  }
+});
+
+if (flowchartSearchInput) {
+  flowchartSearchInput.addEventListener('input', renderFlowchartCards);
+}
+
+flowchartCategoryTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    flowchartCategoryTabs.forEach((t) => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentFlowchartCategory = tab.dataset.category;
+    renderFlowchartCards();
+  });
+});
+
+// ==========================================
+// 表（テーブル）ライブラリ データ & モーダル制御
+// ==========================================
+const tableLibrary = [
+  {
+    id: 'table-si-base-csv',
+    name: 'SI基本単位一覧表（CSV形式）',
+    category: 'SI単位・標準規格',
+    description: 'カンマ区切り（CSV）で記述された国際単位系（SI）の7つの基本物理量と単位記号。',
+    code: '物理量,記号,SI基本単位,単位記号\n長さ,L,メートル,m\n質量,M,キログラム,kg\n時間,T,秒,s\n電流,I,アンペア,A\n熱力学温度,Θ,ケルビン,K\n物質量,N,モル,mol\n光度,J,カンデラ,cd',
+    tags: ['SI基本単位', 'CSV', '国際単位系', '物理量']
+  },
+  {
+    id: 'table-si-base-md',
+    name: 'SI基本単位一覧表（Markdown数式形式）',
+    category: 'SI単位・標準規格',
+    description: 'Markdownテーブル構文とLaTeXインライン数式（$L$, $\\text{kg}$等）を組み合わせた美麗な一覧表。',
+    code: '| 物理量 | 記号 | SI基本単位 | 単位記号 |\n| :--- | :---: | :--- | :---: |\n| 長さ | $L$ | メートル | $\\text{m}$ |\n| 質量 | $M$ | キログラム | $\\text{kg}$ |\n| 時間 | $T$ | 秒 | $\\text{s}$ |\n| 電流 | $I$ | アンペア | $\\text{A}$ |\n| 熱力学温度 | $\\Theta$ | ケルビン | $\\text{K}$ |\n| 物質量 | $N$ | モル | $\\text{mol}$ |\n| 光度 | $J$ | カンデラ | $\\text{cd}$ |',
+    tags: ['SI基本単位', 'Markdown', '数式', 'KaTeX']
+  },
+  {
+    id: 'table-constants-tabular',
+    name: '主要な基礎物理定数表（LaTeX tabular形式）',
+    category: '物理定数・定数表',
+    description: 'LaTeXのtabular環境で記述された真空中の光速度、プランク定数、電気素量などの基礎物理定数。',
+    code: '\\begin{tabular}{|l|c|l|l|}\n\\hline\n物理定数名 & 記号 & 数値 & 単位 \\\\\n\\hline\n真空中の光速度 & $c$ & $2.9979 \\times 10^8$ & $\\text{m/s}$ \\\\\nプランク定数 & $h$ & $6.6261 \\times 10^{-34}$ & $\\text{J}\\cdot\\text{s}$ \\\\\n電気素量 & $e$ & $1.6022 \\times 10^{-19}$ & $\\text{C}$ \\\\\n万有引力定数 & $G$ & $6.6743 \\times 10^{-11}$ & $\\text{N}\\cdot\\text{m}^2/\\text{kg}^2$ \\\\\nボルツマン定数 & $k_B$ & $1.3806 \\times 10^{-23}$ & $\\text{J/K}$ \\\\\nアボガドロ定数 & $N_A$ & $6.0221 \\times 10^{23}$ & $\\text{mol}^{-1}$ \\\\\n\\hline\n\\end{tabular}',
+    tags: ['物理定数', 'LaTeX', 'tabular', '光速', 'プランク定数']
+  },
+  {
+    id: 'table-si-derived',
+    name: '主要なSI組立単位（固有の名称を持つ単位）',
+    category: 'SI単位・標準規格',
+    description: 'ニュートン、ジュール、ワット、パスカル、ボルトなど他のSI単位・基本単位との対応関係。',
+    code: '| 組立量 | 単位名称 | 記号 | 他のSI単位 | SI基本単位による表式 |\n| :--- | :--- | :---: | :--- | :--- |\n| 周波数 | ヘルツ | $\\text{Hz}$ | $-$ | $\\text{s}^{-1}$ |\n| 力 | ニュートン | $\\text{N}$ | $-$ | $\\text{m}\\cdot\\text{kg}\\cdot\\text{s}^{-2}$ |\n| 圧力・応力 | パスカル | $\\text{Pa}$ | $\\text{N/m}^2$ | $\\text{m}^{-1}\\cdot\\text{kg}\\cdot\\text{s}^{-2}$ |\n| エネルギー・仕事 | ジュール | $\\text{J}$ | $\\text{N}\\cdot\\text{m}$ | $\\text{m}^2\\cdot\\text{kg}\\cdot\\text{s}^{-2}$ |\n| 仕事率・電力 | ワット | $\\text{W}$ | $\\text{J/s}$ | $\\text{m}^2\\cdot\\text{kg}\\cdot\\text{s}^{-3}$ |\n| 電位・起電力 | ボルト | $\\text{V}$ | $\\text{W/A}$ | $\\text{m}^2\\cdot\\text{kg}\\cdot\\text{s}^{-3}\\cdot\\text{A}^{-1}$ |',
+    tags: ['SI組立単位', 'ニュートン', 'ジュール', 'ワット', 'パスカル']
+  },
+  {
+    id: 'table-elementary-particles',
+    name: '素粒子物理学・標準模型粒子分類表',
+    category: '素粒子・物質一覧',
+    description: '物質を構成する基本粒子（第1〜第3世代のクォーク、レプトン）の電荷と質量の一覧。',
+    code: '| 世代 | クォーク (Q) | 電荷 | 質量目安 | レプトン (L) | 電荷 |\n| :---: | :--- | :---: | :--- | :--- | :---: |\n| 第1世代 | アップ ($u$) | $+2/3$ | $\\approx 2.2\\text{ MeV}$ | 電子 ($e^-$) | $-1$ |\n| 第1世代 | ダウン ($d$) | $-1/3$ | $\\approx 4.7\\text{ MeV}$ | 電子ニュートリノ ($\\nu_e$) | $0$ |\n| 第2世代 | チャーム ($c$) | $+2/3$ | $\\approx 1.27\\text{ GeV}$ | ミューオン ($\\mu^-$) | $-1$ |\n| 第2世代 | ストレンジ ($s$) | $-1/3$ | $\\approx 96\\text{ MeV}$ | ミューニュートリノ ($\\nu_\\mu$) | $0$ |\n| 第3世代 | トップ ($t$) | $+2/3$ | $\\approx 173\\text{ GeV}$ | タウ ($ \\tau^-$) | $-1$ |\n| 第3世代 | ボトム ($b$) | $-1/3$ | $\\approx 4.18\\text{ GeV}$ | タウニュートリノ ($\\nu_\\tau$) | $0$ |',
+    tags: ['素粒子', 'クォーク', 'レプトン', '標準模型', '高エネルギー物理学']
+  }
+];
+
+// 表（テーブル）ライブラリモーダルの制御
+const tableLibraryModal = document.getElementById('table-library-modal');
+const openTableLibraryBtn = document.getElementById('open-table-library-btn');
+const closeTableLibraryXBtn = document.getElementById('table-modal-close-x');
+const closeTableLibraryFooterBtn = document.getElementById('table-modal-close-footer');
+const tableSearchInput = document.getElementById('table-library-search-input');
+const tableCategoryTabs = document.querySelectorAll('.table-category-tab');
+const tableCardGrid = document.getElementById('table-library-card-grid');
+const tableEmptyMessage = document.getElementById('table-library-empty-message');
+
+let currentTableCategory = 'すべて';
+
+function openTableModal() {
+  if (!tableLibraryModal) return;
+  tableLibraryModal.classList.add('active');
+  tableLibraryModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+  if (tableSearchInput) tableSearchInput.value = '';
+  currentTableCategory = 'すべて';
+  tableCategoryTabs.forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.category === 'すべて');
+  });
+  renderTableCards();
+  if (tableSearchInput) tableSearchInput.focus();
+}
+
+function closeTableModal() {
+  if (!tableLibraryModal) return;
+  tableLibraryModal.classList.remove('active');
+  tableLibraryModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+}
+
+function renderTableCards() {
+  if (!tableCardGrid || !tableSearchInput) return;
+  const query = tableSearchInput.value.trim().toLowerCase();
+  tableCardGrid.innerHTML = '';
+
+  const filtered = tableLibrary.filter((item) => {
+    const matchCategory = currentTableCategory === 'すべて' || item.category === currentTableCategory;
+    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
+    const matchQuery =
+      !query ||
+      item.name.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query) ||
+      matchTags;
+    return matchCategory && matchQuery;
+  });
+
+  if (filtered.length === 0) {
+    if (tableEmptyMessage) tableEmptyMessage.style.display = 'block';
+  } else {
+    if (tableEmptyMessage) tableEmptyMessage.style.display = 'none';
+    filtered.forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'formula-card table-card';
+
+      const top = document.createElement('div');
+      top.className = 'card-top';
+
+      const name = document.createElement('span');
+      name.className = 'card-name';
+      name.textContent = item.name;
+
+      const tag = document.createElement('span');
+      tag.className = 'card-tag table-card-tag';
+      tag.textContent = item.category;
+
+      top.appendChild(name);
+      top.appendChild(tag);
+
+      const preview = document.createElement('div');
+      preview.className = 'card-preview table-card-preview';
+      const parsedData = parseAnyTable(item.code);
+      if (parsedData) {
+        renderTableElement(parsedData, preview, null);
+      } else {
+        preview.textContent = item.code.substring(0, 50);
+      }
+
+      const desc = document.createElement('p');
+      desc.className = 'card-desc';
+      desc.textContent = item.description;
+
+      card.appendChild(top);
+      card.appendChild(preview);
+      card.appendChild(desc);
+
+      card.addEventListener('click', () => {
+        inputArea.value = item.code;
+        closeTableModal();
+        updatePreview();
+      });
+
+      tableCardGrid.appendChild(card);
+    });
+  }
+}
+
+if (openTableLibraryBtn) openTableLibraryBtn.addEventListener('click', openTableModal);
+if (closeTableLibraryXBtn) closeTableLibraryXBtn.addEventListener('click', closeTableModal);
+if (closeTableLibraryFooterBtn) closeTableLibraryFooterBtn.addEventListener('click', closeTableModal);
+
+if (tableLibraryModal) {
+  tableLibraryModal.addEventListener('click', (e) => {
+    if (e.target === tableLibraryModal) {
+      closeTableModal();
+    }
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && tableLibraryModal && tableLibraryModal.classList.contains('active')) {
+    closeTableModal();
+  }
+});
+
+if (tableSearchInput) {
+  tableSearchInput.addEventListener('input', renderTableCards);
+}
+
+tableCategoryTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    tableCategoryTabs.forEach((t) => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentTableCategory = tab.dataset.category;
+    renderTableCards();
+  });
+});
+
 // ペースト時に円記号（半角・全角）を強制的に半角バックスラッシュへ置換する処理
 inputArea.addEventListener('paste', (event) => {
   event.preventDefault(); // 通常の貼り付けを一旦キャンセル
@@ -5257,36 +6372,49 @@ function openExportModal() {
   const fsmSources = previewArea.querySelectorAll('.fsm-preview-container');
   const feynmanSources = previewArea.querySelectorAll('.feynman-preview-container');
   const sankeySources = previewArea.querySelectorAll('.sankey-preview-container');
+  const flowchartSources = previewArea.querySelectorAll('.flowchart-preview-container');
+  const tableSources = previewArea.querySelectorAll('.table-preview-container');
 
-  if (katexSource) {
-    const clone = katexSource.cloneNode(true);
-    clone.style.transform = 'none';
-    clone.dataset.baseFontSize = '1.21';
-    exportTarget.appendChild(clone);
-  } else if (chemSources.length > 0) {
-    chemSources.forEach((chemEl) => {
-      exportTarget.appendChild(chemEl.cloneNode(true));
+  if (tableSources.length > 0) {
+    tableSources.forEach((tblEl) => {
+      exportTarget.appendChild(tblEl.cloneNode(true));
     });
-  } else if (circuitSources.length > 0) {
-    circuitSources.forEach((circEl) => {
-      exportTarget.appendChild(circEl.cloneNode(true));
-    });
-  } else if (timingSources.length > 0) {
-    timingSources.forEach((timEl) => {
-      exportTarget.appendChild(timEl.cloneNode(true));
-    });
-  } else if (fsmSources.length > 0) {
-    fsmSources.forEach((fsmEl) => {
-      exportTarget.appendChild(fsmEl.cloneNode(true));
-    });
-  } else if (feynmanSources.length > 0) {
-    feynmanSources.forEach((feyEl) => {
-      exportTarget.appendChild(feyEl.cloneNode(true));
+  } else if (flowchartSources.length > 0) {
+    flowchartSources.forEach((flowEl) => {
+      exportTarget.appendChild(flowEl.cloneNode(true));
     });
   } else if (sankeySources.length > 0) {
     sankeySources.forEach((sanEl) => {
       exportTarget.appendChild(sanEl.cloneNode(true));
     });
+  } else if (feynmanSources.length > 0) {
+    feynmanSources.forEach((feyEl) => {
+      exportTarget.appendChild(feyEl.cloneNode(true));
+    });
+  } else if (fsmSources.length > 0) {
+    fsmSources.forEach((fsmEl) => {
+      exportTarget.appendChild(fsmEl.cloneNode(true));
+    });
+  } else if (timingSources.length > 0) {
+    timingSources.forEach((timEl) => {
+      exportTarget.appendChild(timEl.cloneNode(true));
+    });
+  } else if (circuitSources.length > 0) {
+    circuitSources.forEach((circEl) => {
+      exportTarget.appendChild(circEl.cloneNode(true));
+    });
+  } else if (chemSources.length > 0) {
+    chemSources.forEach((chemEl) => {
+      exportTarget.appendChild(chemEl.cloneNode(true));
+    });
+  } else if (katexSource) {
+    const clone = katexSource.cloneNode(true);
+    clone.style.transform = 'none';
+    clone.querySelectorAll('*').forEach((el) => {
+      if (el.style.transform) el.style.transform = 'none';
+    });
+    clone.dataset.baseFontSize = '26';
+    exportTarget.appendChild(clone);
   } else {
     const fallback = document.createElement('div');
     fallback.textContent = inputArea.value || '数式が入力されていません';
@@ -5298,8 +6426,10 @@ function openExportModal() {
 
   // クローン内のSVGの初期基準寸法を退避
   exportTarget.querySelectorAll('svg').forEach((svg) => {
-    let baseW = parseFloat(svg.getAttribute('width'));
-    let baseH = parseFloat(svg.getAttribute('height'));
+    const rawW = svg.getAttribute('width') || '';
+    const rawH = svg.getAttribute('height') || '';
+    let baseW = (!rawW.includes('%') && rawW) ? parseFloat(rawW) : null;
+    let baseH = (!rawH.includes('%') && rawH) ? parseFloat(rawH) : null;
     if (!baseW || !baseH) {
       const vb = svg.getAttribute('viewBox');
       if (vb) {
@@ -5343,10 +6473,11 @@ function updateExportStyle() {
       }
     });
 
-    // KaTeX数式の文字サイズ変倍
+    // KaTeX数式の文字サイズ変倍（最外層のみに適用し累積縮小を防止）
     exportTarget.querySelectorAll('.katex').forEach((kEl) => {
-      const baseFs = parseFloat(kEl.dataset.baseFontSize || '1.21');
-      kEl.style.fontSize = `${(baseFs * scale).toFixed(3)}em`;
+      if (kEl.parentElement && kEl.parentElement.closest('.katex')) return;
+      const baseFs = parseFloat(kEl.dataset.baseFontSize || '26');
+      kEl.style.fontSize = `${(baseFs * scale).toFixed(1)}px`;
     });
 
     // テキスト・フォールバックの文字サイズ変倍
@@ -5355,6 +6486,11 @@ function updateExportStyle() {
         const baseFs = parseFloat(el.dataset.baseFontSize);
         el.style.fontSize = `${(baseFs * scale).toFixed(1)}px`;
       }
+    });
+
+    // 表（テーブル）の文字サイズ変倍
+    exportTarget.querySelectorAll('.physi-table').forEach((tbl) => {
+      tbl.style.fontSize = `${(14 * scale).toFixed(1)}px`;
     });
   }
 

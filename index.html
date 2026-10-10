@@ -46,6 +46,12 @@
       <button type="button" id="open-sankey-library-btn" class="library-trigger-btn sankey-library-trigger-btn">
         <span class="icon">🔀</span> サンキー図ライブラリを開く
       </button>
+      <button type="button" id="open-flowchart-library-btn" class="library-trigger-btn flowchart-library-trigger-btn">
+        <span class="icon">📊</span> フローチャートライブラリを開く
+      </button>
+      <button type="button" id="open-table-library-btn" class="library-trigger-btn table-library-trigger-btn">
+        <span class="icon">📋</span> 表ライブラリを開く
+      </button>
       <button type="button" id="open-export-btn" class="export-trigger-btn">
         <span class="icon">🖼️</span> 画像ファイル出力
       </button>
@@ -335,6 +341,70 @@
 
       <div class="modal-footer">
         <button type="button" id="sankey-modal-close-footer" class="modal-btn-secondary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- フローチャート ライブラリ モーダル -->
+  <div id="flowchart-library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="flowchart-modal-title">
+      <div class="modal-header">
+        <h2 id="flowchart-modal-title">フローチャート（アルゴリズム・処理手順）ライブラリ</h2>
+        <button type="button" id="flowchart-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="modal-search-area">
+        <input type="text" id="flowchart-library-search-input" placeholder="アルゴリズム名、処理名、キーワードで検索..." autocomplete="off">
+      </div>
+
+      <div class="modal-category-tabs" id="flowchart-library-category-tabs">
+        <button type="button" class="flowchart-category-tab active" data-category="すべて">すべて</button>
+        <button type="button" class="flowchart-category-tab" data-category="基本アルゴリズム">基本アルゴリズム</button>
+        <button type="button" class="flowchart-category-tab" data-category="ループ・反復処理">ループ・反復処理</button>
+        <button type="button" class="flowchart-category-tab" data-category="システム・制御ロジック">システム・制御ロジック</button>
+      </div>
+
+      <div class="modal-content-area">
+        <div id="flowchart-library-card-grid" class="card-grid"></div>
+        <div id="flowchart-library-empty-message" class="empty-message" style="display: none;">
+          一致するフローチャートが見つかりませんでした
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="flowchart-modal-close-footer" class="modal-btn-secondary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 表（データ・単位・定数） ライブラリ モーダル -->
+  <div id="table-library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="table-modal-title">
+      <div class="modal-header">
+        <h2 id="table-modal-title">表（データ・単位・物理定数）ライブラリ</h2>
+        <button type="button" id="table-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="modal-search-area">
+        <input type="text" id="table-library-search-input" placeholder="単位名、物理定数、キーワードで検索..." autocomplete="off">
+      </div>
+
+      <div class="modal-category-tabs" id="table-library-category-tabs">
+        <button type="button" class="table-category-tab active" data-category="すべて">すべて</button>
+        <button type="button" class="table-category-tab" data-category="SI単位・標準規格">SI単位・標準規格</button>
+        <button type="button" class="table-category-tab" data-category="物理定数・定数表">物理定数・定数表</button>
+        <button type="button" class="table-category-tab" data-category="素粒子・物質一覧">素粒子・物質一覧</button>
+      </div>
+
+      <div class="modal-content-area">
+        <div id="table-library-card-grid" class="card-grid"></div>
+        <div id="table-library-empty-message" class="empty-message" style="display: none;">
+          一致する表が見つかりませんでした
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="table-modal-close-footer" class="modal-btn-secondary">閉じる</button>
       </div>
     </div>
   </div>
