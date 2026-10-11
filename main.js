@@ -8573,3 +8573,35 @@ window.addEventListener('DOMContentLoaded', () => {
     if (portalLink) portalLink.href = "../FumiPortal/index.html";
   }
 });
+
+// 昔風アクセスカウンタ（https://fumiakinx.github.io/PhysiNote/ の本番環境のみ表示・カウント）
+(function initRetroCounter() {
+  const isTarget =
+    window.location.hostname === 'fumiakinx.github.io' &&
+    window.location.href.includes('PhysiNote');
+  if (!isTarget) return;
+
+  const counterContainer = document.getElementById('retroAccessCounter');
+  const counterBox = document.getElementById('retroCounterBox');
+  if (!counterContainer || !counterBox) return;
+
+  counterContainer.style.display = 'block';
+
+  fetch('https://countapi.mileshilliard.com/api/v1/hit/fumiakinx_physinote')
+    .then((res) => {
+      if (!res.ok) throw new Error('HTTP error');
+      return res.json();
+    })
+    .then((data) => {
+      const val = typeof data.value === 'number' ? data.value : 1;
+      const strVal = String(val).padStart(6, '0');
+      counterBox.innerHTML = strVal
+        .split('')
+        .map((digit) => `<span class="retro-counter-digit">${digit}</span>`)
+        .join('');
+    })
+    .catch((err) => {
+      console.warn('アクセスカウンタ取得スキップ:', err);
+      counterContainer.style.display = 'none';
+    });
+})();
