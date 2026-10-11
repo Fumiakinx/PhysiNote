@@ -3338,18 +3338,21 @@ function parseAnyTable(rawText) {
       else if (ch === 'r') aligns.push('right');
     }
 
-    const rawRows = body.split(/\\\\/).map((r) => r.trim()).filter((r) => r.length > 0 && !/^\\(hline|toprule|midrule|bottomrule)/.test(r));
-    if (rawRows.length > 0) {
-      const parsedRows = rawRows.map((r) => {
-        const cleaned = r.replace(/\\(hline|toprule|midrule|bottomrule)/g, '').trim();
-        return cleaned.split('&').map((cell) => cell.trim());
-      }).filter((r) => r.length > 0);
-
-      if (parsedRows.length > 0) {
-        const headers = parsedRows[0];
-        const rows = parsedRows.slice(1);
-        return { headers, rows, aligns };
+    const rawRows = body.split(/\\\\/);
+    const parsedRows = [];
+    for (const raw of rawRows) {
+      const cleaned = raw.replace(/\\(hline|toprule|midrule|bottomrule)\b/g, '').trim();
+      if (!cleaned) continue;
+      const cells = cleaned.split('&').map((cell) => cell.trim());
+      if (cells.length > 0 && cells.some((c) => c.length > 0)) {
+        parsedRows.push(cells);
       }
+    }
+
+    if (parsedRows.length > 0) {
+      const headers = parsedRows[0];
+      const rows = parsedRows.slice(1);
+      return { headers, rows, aligns };
     }
   }
 
@@ -3441,10 +3444,10 @@ function renderTableCellHtml(rawCellText) {
   if (!rawCellText) return '';
   let str = rawCellText.trim();
 
-  // $式$ のインライン数式置換
+  // 1. $式$ のインライン数式置換（数式と通常テキスト・改行の混在に対応）
   const mathRegex = /\$([^$]+)\$/g;
   if (mathRegex.test(str)) {
-    return str.replace(mathRegex, (_, expr) => {
+    str = str.replace(mathRegex, (_, expr) => {
       if (typeof katex !== 'undefined') {
         try {
           return katex.renderToString(expr.trim(), { throwOnError: false });
@@ -3454,24 +3457,30 @@ function renderTableCellHtml(rawCellText) {
       }
       return expr;
     });
-  }
-
-  // 先頭が LaTeX コマンドの場合
-  if (/^\\(text|frac|sqrt|vec|dot|theta|alpha|beta|omega|mu|sigma|lambda|Delta|nabla|partial|approx|pm|times|div)/i.test(str)) {
+  } else if (/^\\(text|frac|sqrt|vec|dot|theta|alpha|beta|omega|mu|sigma|lambda|Delta|nabla|partial|approx|pm|times|div)/i.test(str)) {
+    // 先頭が LaTeX コマンドの場合
     if (typeof katex !== 'undefined') {
       try {
-        return katex.renderToString(str, { throwOnError: false });
+        str = katex.renderToString(str, { throwOnError: false });
       } catch {
         // fallback
       }
     }
   }
 
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  // 2. KaTeX 未変換のテキストに対する HTML エスケープ
+  if (!str.includes('<span class="katex">')) {
+    str = str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // 3. セル内改行: \n または <br> を <br> タグへ展開
+  str = str.replace(/\\n/g, '<br>').replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+
+  return str;
 }
 
 function renderTableElement(tableData, container, labelText) {
@@ -3517,6 +3526,693 @@ function renderTableElement(tableData, container, labelText) {
   }
 }
 
+// ==========================================
+// 2軸マップ・マトリクス図（ポジショニングマップ）パーサー & レンダラー
+// ==========================================
+function parseMatrixMap(rawText) {
+  if (!rawText || typeof rawText !== 'string') return null;
+  const lines = rawText.split(/[\n;]+/).map((l) => l.trim()).filter(Boolean);
+
+  let title = '';
+  let axisX = { label: 'X軸', left: '', right: '' };
+  let axisY = { label: 'Y軸', bottom: '', top: '' };
+  const quadrants = { tr: '', tl: '', br: '', bl: '' };
+  const items = [];
+
+  lines.forEach((line) => {
+    // 1. タイトル
+    const titleMatch = line.match(/^title\s*:\s*(.+)$/i);
+    if (titleMatch) {
+      title = titleMatch[1].trim().replace(/^["']|["']$/g, '');
+      return;
+    }
+
+    // 2. X軸 (例: axis-x: 価格帯 (低価格 -> 高価格);)
+    const xMatch = line.match(/^axis-x\s*:\s*(.+)$/i);
+    if (xMatch) {
+      const val = xMatch[1].trim();
+      const parenMatch = val.match(/^([^()]+)\s*(?:\(([^->()]+)\s*->\s*([^()]+)\))?/);
+      if (parenMatch) {
+        axisX.label = parenMatch[1].trim();
+        axisX.left = (parenMatch[2] || '').trim();
+        axisX.right = (parenMatch[3] || '').trim();
+      } else {
+        axisX.label = val;
+      }
+      return;
+    }
+
+    // 3. Y軸 (例: axis-y: 品質 (標準的 -> 高品質);)
+    const yMatch = line.match(/^axis-y\s*:\s*(.+)$/i);
+    if (yMatch) {
+      const val = yMatch[1].trim();
+      const parenMatch = val.match(/^([^()]+)\s*(?:\(([^->()]+)\s*->\s*([^()]+)\))?/);
+      if (parenMatch) {
+        axisY.label = parenMatch[1].trim();
+        axisY.bottom = (parenMatch[2] || '').trim();
+        axisY.top = (parenMatch[3] || '').trim();
+      } else {
+        axisY.label = val;
+      }
+      return;
+    }
+
+    // 4. 象限ラベル
+    const quadMatch = line.match(/^quadrant\s*:\s*(.+)$/i);
+    if (quadMatch) {
+      const val = quadMatch[1];
+      const qTokens = val.split(',').map((t) => t.trim());
+      qTokens.forEach((tok) => {
+        const m = tok.match(/\[([^\]]+)\]\s*(.+)/);
+        if (m) {
+          const pos = m[1].toLowerCase();
+          const name = m[2].trim().replace(/^["']|["']$/g, '');
+          if (/右上|tr|top-right|1|第一/i.test(pos)) quadrants.tr = name;
+          else if (/左上|tl|top-left|2|第二/i.test(pos)) quadrants.tl = name;
+          else if (/左下|bl|bottom-left|3|第三/i.test(pos)) quadrants.bl = name;
+          else if (/右下|br|bottom-right|4|第四/i.test(pos)) quadrants.br = name;
+        }
+      });
+      return;
+    }
+
+    // 5. プロット項目
+    const itemLine = line.replace(/^item\s*:\s*/i, '');
+    const coordMatch = itemLine.match(/^([^()\[\]]+)\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)(?:\s*\[(.*)\])?/);
+    if (coordMatch) {
+      const name = coordMatch[1].trim().replace(/^["']|["']$/g, '');
+      const x = parseFloat(coordMatch[2]);
+      const y = parseFloat(coordMatch[3]);
+      const styleTag = (coordMatch[4] || '').toLowerCase().trim();
+      items.push({ name, x, y, styleTag });
+    }
+  });
+
+  return { title, axisX, axisY, quadrants, items };
+}
+
+function drawMatrixMapSvg(mapText, container, labelText) {
+  container.innerHTML = '';
+  const data = parseMatrixMap(mapText);
+  if (!data) {
+    container.innerHTML = '<span style="color:#ef4444; font-size:12px;">2軸マップの構文を解析できませんでした</span>';
+    return;
+  }
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const svgW = 600;
+  const svgH = 480;
+  svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+  svg.setAttribute('width', `${svgW}`);
+  svg.setAttribute('height', `${svgH}`);
+  svg.style.maxWidth = '100%';
+  svg.style.height = 'auto';
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  marker.setAttribute('id', 'matrix-axis-arrow');
+  marker.setAttribute('viewBox', '0 0 10 10');
+  marker.setAttribute('refX', '6');
+  marker.setAttribute('refY', '5');
+  marker.setAttribute('markerWidth', '6');
+  marker.setAttribute('markerHeight', '6');
+  marker.setAttribute('orient', 'auto-start-reverse');
+  const arrPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  arrPath.setAttribute('d', 'M 0 2 L 7 5 L 0 8 z');
+  arrPath.setAttribute('fill', '#475569');
+  marker.appendChild(arrPath);
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  // プロット幾何領域（上下左右に軸ラベルクリアランスを確保）
+  const plotLeft = 65;
+  const plotRight = 465;
+  const plotTop = 92;
+  const plotBottom = 432;
+  const originX = (plotLeft + plotRight) / 2;
+  const originY = (plotTop + plotBottom) / 2;
+  const halfW = (plotRight - plotLeft) / 2;
+  const halfH = (plotBottom - plotTop) / 2;
+
+  // 1. 象限背景四角形
+  const quadConfigs = [
+    { x: originX, y: plotTop, w: halfW, h: halfH, fill: '#ecfdf5', label: data.quadrants.tr, tx: plotRight - 10, ty: plotTop + 16, anchor: 'end' },
+    { x: plotLeft, y: plotTop, w: halfW, h: halfH, fill: '#f0f9ff', label: data.quadrants.tl, tx: plotLeft + 10, ty: plotTop + 16, anchor: 'start' },
+    { x: plotLeft, y: originY, w: halfW, h: halfH, fill: '#f8fafc', label: data.quadrants.bl, tx: plotLeft + 10, ty: plotBottom - 10, anchor: 'start' },
+    { x: originX, y: originY, w: halfW, h: halfH, fill: '#fffbeb', label: data.quadrants.br, tx: plotRight - 10, ty: plotBottom - 10, anchor: 'end' }
+  ];
+
+  const quadG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  quadConfigs.forEach((q) => {
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('class', 'matrix-quadrant-bg');
+    rect.setAttribute('x', q.x);
+    rect.setAttribute('y', q.y);
+    rect.setAttribute('width', q.w);
+    rect.setAttribute('height', q.h);
+    rect.setAttribute('fill', q.fill);
+    rect.setAttribute('stroke', '#e2e8f0');
+    rect.setAttribute('stroke-width', '1');
+    quadG.appendChild(rect);
+
+    if (q.label) {
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', q.tx);
+      txt.setAttribute('y', q.ty);
+      txt.setAttribute('text-anchor', q.anchor);
+      txt.setAttribute('font-size', '10.5');
+      txt.setAttribute('font-weight', '700');
+      txt.setAttribute('fill', '#94a3b8');
+      txt.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+      txt.textContent = q.label;
+      quadG.appendChild(txt);
+    }
+  });
+  svg.appendChild(quadG);
+
+  // 2. グリッド目盛り（補助点線）
+  const gridG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  [-0.5, 0.5].forEach((frac) => {
+    const gx = originX + frac * halfW;
+    const gy = originY - frac * halfH;
+
+    const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    vLine.setAttribute('x1', gx);
+    vLine.setAttribute('y1', plotTop);
+    vLine.setAttribute('x2', gx);
+    vLine.setAttribute('y2', plotBottom);
+    vLine.setAttribute('stroke', '#cbd5e1');
+    vLine.setAttribute('stroke-dasharray', '3,3');
+    vLine.setAttribute('stroke-width', '1');
+    gridG.appendChild(vLine);
+
+    const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    hLine.setAttribute('x1', plotLeft);
+    hLine.setAttribute('y1', gy);
+    hLine.setAttribute('x2', plotRight);
+    hLine.setAttribute('y2', gy);
+    hLine.setAttribute('stroke', '#cbd5e1');
+    hLine.setAttribute('stroke-dasharray', '3,3');
+    hLine.setAttribute('stroke-width', '1');
+    gridG.appendChild(hLine);
+  });
+  svg.appendChild(gridG);
+
+  // 3. メイン十字軸（矢印線）
+  const axisG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  xAxis.setAttribute('x1', plotLeft - 12);
+  xAxis.setAttribute('y1', originY);
+  xAxis.setAttribute('x2', plotRight + 14);
+  xAxis.setAttribute('y2', originY);
+  xAxis.setAttribute('stroke', '#475569');
+  xAxis.setAttribute('stroke-width', '2');
+  xAxis.setAttribute('marker-end', 'url(#matrix-axis-arrow)');
+  axisG.appendChild(xAxis);
+
+  const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  yAxis.setAttribute('x1', originX);
+  yAxis.setAttribute('y1', plotBottom + 12);
+  yAxis.setAttribute('x2', originX);
+  yAxis.setAttribute('y2', plotTop - 12);
+  yAxis.setAttribute('stroke', '#475569');
+  yAxis.setAttribute('stroke-width', '2');
+  yAxis.setAttribute('marker-end', 'url(#matrix-axis-arrow)');
+  axisG.appendChild(yAxis);
+
+  svg.appendChild(axisG);
+
+  // 4. 軸タイトル & 端点ラベル
+  const labelG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  labelG.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+
+  if (data.title) {
+    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    tEl.setAttribute('x', originX);
+    tEl.setAttribute('y', 30);
+    tEl.setAttribute('text-anchor', 'middle');
+    tEl.setAttribute('font-size', '16');
+    tEl.setAttribute('font-weight', '700');
+    tEl.setAttribute('fill', '#0f172a');
+    tEl.textContent = data.title;
+    labelG.appendChild(tEl);
+  }
+
+  const xTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  xTitle.setAttribute('x', plotRight + 28);
+  xTitle.setAttribute('y', originY + 4);
+  xTitle.setAttribute('text-anchor', 'start');
+  xTitle.setAttribute('font-size', '12');
+  xTitle.setAttribute('font-weight', '700');
+  xTitle.setAttribute('fill', '#1e293b');
+  xTitle.textContent = data.axisX.label;
+  labelG.appendChild(xTitle);
+
+  if (data.axisX.right) {
+    const xr = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    xr.setAttribute('x', plotRight + 28);
+    xr.setAttribute('y', originY + 18);
+    xr.setAttribute('text-anchor', 'start');
+    xr.setAttribute('font-size', '10.5');
+    xr.setAttribute('fill', '#64748b');
+    xr.textContent = `[${data.axisX.right}]`;
+    labelG.appendChild(xr);
+  }
+  if (data.axisX.left) {
+    const xl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    xl.setAttribute('x', plotLeft - 22);
+    xl.setAttribute('y', originY + 4);
+    xl.setAttribute('text-anchor', 'end');
+    xl.setAttribute('font-size', '10.5');
+    xl.setAttribute('fill', '#64748b');
+    xl.textContent = data.axisX.left;
+    labelG.appendChild(xl);
+  }
+
+  const yTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  yTitle.setAttribute('x', originX);
+  yTitle.setAttribute('y', 50);
+  yTitle.setAttribute('text-anchor', 'middle');
+  yTitle.setAttribute('font-size', '12');
+  yTitle.setAttribute('font-weight', '700');
+  yTitle.setAttribute('fill', '#1e293b');
+  yTitle.textContent = data.axisY.label;
+  labelG.appendChild(yTitle);
+
+  if (data.axisY.top) {
+    const yt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    yt.setAttribute('x', originX);
+    yt.setAttribute('y', 66);
+    yt.setAttribute('text-anchor', 'middle');
+    yt.setAttribute('font-size', '10.5');
+    yt.setAttribute('fill', '#64748b');
+    yt.textContent = `[${data.axisY.top}]`;
+    labelG.appendChild(yt);
+  }
+  if (data.axisY.bottom) {
+    const yb = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    yb.setAttribute('x', originX);
+    yb.setAttribute('y', plotBottom + 28);
+    yb.setAttribute('text-anchor', 'middle');
+    yb.setAttribute('font-size', '10.5');
+    yb.setAttribute('fill', '#64748b');
+    yb.textContent = data.axisY.bottom;
+    labelG.appendChild(yb);
+  }
+
+  svg.appendChild(labelG);
+
+  // 5. プロットアイテムの描画（スマート衝突回避 + レイヤー順最適化）
+  const labelsG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  const dotsG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+  const resolvedItems = data.items.map((item) => {
+    const cx = originX + Math.max(-1.0, Math.min(1.0, item.x)) * halfW;
+    const cy = originY - Math.max(-1.0, Math.min(1.0, item.y)) * halfH;
+
+    let color = '#2563eb';
+    let isAccent = false;
+    if (/accent|highlight|red|pink/i.test(item.styleTag)) {
+      color = '#e11d48';
+      isAccent = true;
+    } else if (/warning|orange|yellow/i.test(item.styleTag)) {
+      color = '#f59e0b';
+    } else if (/success|green/i.test(item.styleTag)) {
+      color = '#10b981';
+    } else if (/danger|alert/i.test(item.styleTag)) {
+      color = '#dc2626';
+    } else if (/muted|gray/i.test(item.styleTag)) {
+      color = '#64748b';
+    }
+
+    const tw = Math.max(item.name.length * 11 + 14, 32);
+    const th = 20;
+
+    return {
+      raw: item,
+      name: item.name,
+      x: item.x,
+      y: item.y,
+      cx,
+      cy,
+      color,
+      isAccent,
+      tw,
+      th
+    };
+  });
+
+  const placedLabels = [];
+
+  resolvedItems.forEach((item, i) => {
+    const { cx, cy, tw, th } = item;
+
+    // 基本Y座標（上部・下部の初期退避）
+    let baseLy = cy - 10;
+    if (item.y > 0.45) {
+      baseLy = cy + 8;
+    } else if (item.y < -0.7) {
+      baseLy = cy - 26;
+    }
+
+    // 4方向の配置候補
+    const candidates = [
+      { lx: cx + 8, ly: baseLy, cost: 0 }, // 右
+      { lx: cx - tw - 8, ly: baseLy, cost: 10 }, // 左
+      { lx: Math.max(plotLeft - 10, Math.min(plotRight - tw + 10, cx - tw / 2)), ly: cy + 10, cost: 25 }, // 下中央
+      { lx: Math.max(plotLeft - 10, Math.min(plotRight - tw + 10, cx - tw / 2)), ly: cy - th - 10, cost: 35 } // 上中央
+    ];
+
+    let bestCand = candidates[0];
+    let minPenalty = Infinity;
+
+    candidates.forEach((cand) => {
+      let penalty = cand.cost;
+      const x1 = cand.lx;
+      const x2 = cand.lx + tw;
+      const y1 = cand.ly;
+      const y2 = cand.ly + th;
+
+      // 1. 他の全ドットとの衝突ペナルティ（最優先で回避）
+      resolvedItems.forEach((other, j) => {
+        if (i === j) return;
+        if (x1 - 6 <= other.cx && other.cx <= x2 + 6 && y1 - 6 <= other.cy && other.cy <= y2 + 6) {
+          penalty += 1200;
+        }
+      });
+
+      // 2. 既に配置された他ラベルとの重なりペナルティ
+      placedLabels.forEach((placed) => {
+        const overlap = !(x2 < placed.x1 || x1 > placed.x2 || y2 < placed.y1 || y1 > placed.y2);
+        if (overlap) {
+          penalty += 500;
+        }
+      });
+
+      // 3. マップ境界はみ出しペナルティ
+      if (x2 > plotRight + 15) penalty += 200;
+      if (x1 < plotLeft - 25) penalty += 200;
+      if (y1 < plotTop - 5) penalty += 300; // 上部象限名との重複防止
+      if (y2 > plotBottom + 15) penalty += 150;
+
+      if (penalty < minPenalty) {
+        minPenalty = penalty;
+        bestCand = cand;
+      }
+    });
+
+    // 決定した配置を保存
+    const finalLx = bestCand.lx;
+    const finalLy = bestCand.ly;
+    placedLabels.push({ x1: finalLx, x2: finalLx + tw, y1: finalLy, y2: finalLy + th });
+
+    // ラベル背景
+    const labelBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    labelBg.setAttribute('x', finalLx);
+    labelBg.setAttribute('y', finalLy);
+    labelBg.setAttribute('width', tw);
+    labelBg.setAttribute('height', th);
+    labelBg.setAttribute('rx', '4');
+    labelBg.setAttribute('fill', item.isAccent ? '#ffe4e6' : '#ffffff');
+    labelBg.setAttribute('stroke', item.isAccent ? '#fda4af' : '#cbd5e1');
+    labelBg.setAttribute('stroke-width', '1');
+    labelsG.appendChild(labelBg);
+
+    // ラベルテキスト
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.setAttribute('x', finalLx + tw / 2);
+    txt.setAttribute('y', finalLy + 14);
+    txt.setAttribute('text-anchor', 'middle');
+    txt.setAttribute('font-size', '11');
+    txt.setAttribute('font-weight', item.isAccent ? '700' : '600');
+    txt.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+    txt.setAttribute('fill', item.isAccent ? '#9f1239' : '#1e293b');
+    txt.textContent = item.name;
+    labelsG.appendChild(txt);
+
+    // ドット（丸）とアクセントリング（最前面レイヤーへ配置）
+    if (item.isAccent) {
+      const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      ring.setAttribute('cx', cx);
+      ring.setAttribute('cy', cy);
+      ring.setAttribute('r', '10');
+      ring.setAttribute('fill', 'none');
+      ring.setAttribute('stroke', item.color);
+      ring.setAttribute('stroke-width', '1.5');
+      ring.setAttribute('opacity', '0.5');
+      dotsG.appendChild(ring);
+    }
+
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', cx);
+    dot.setAttribute('cy', cy);
+    dot.setAttribute('r', item.isAccent ? '6' : '5');
+    dot.setAttribute('fill', item.color);
+    dot.setAttribute('stroke', '#ffffff');
+    dot.setAttribute('stroke-width', '2');
+    dotsG.appendChild(dot);
+  });
+
+  svg.appendChild(labelsG);
+  svg.appendChild(dotsG);
+
+  container.appendChild(svg);
+
+  if (labelText) {
+    const lbl = document.createElement('div');
+    lbl.className = 'chem-structure-label';
+    lbl.textContent = labelText;
+    container.appendChild(lbl);
+  }
+}
+
+// ==========================================
+// ピラミッド図・階層図 パーサー & レンダラー
+// ==========================================
+function parsePyramid(rawText) {
+  if (!rawText || typeof rawText !== 'string') return null;
+  const lines = rawText.split(/[\n;]+/).map((l) => l.trim()).filter(Boolean);
+
+  let title = '';
+  const layers = [];
+
+  lines.forEach((line) => {
+    // 1. タイトル
+    const titleMatch = line.match(/^title\s*:\s*(.+)$/i);
+    if (titleMatch) {
+      title = titleMatch[1].trim().replace(/^["']|["']$/g, '');
+      return;
+    }
+
+    // 2. 階層定義 (例: layer: ジョックス & クイーンビーズ [gold] (運動部花形スター...);)
+    let rest = line.replace(/^(?:layer|level|step)\s*:\s*/i, '').trim();
+    let styleTag = '';
+
+    // 角括弧 [color/style] の抽出（位置に依存せず抽出して除去）
+    const tagMatch = rest.match(/\[([^\]]+)\]/);
+    if (tagMatch) {
+      styleTag = tagMatch[1].toLowerCase().trim();
+      rest = rest.replace(/\[([^\]]+)\]/, '').trim();
+    }
+
+    // 丸括弧 (note/description) の抽出
+    let note = '';
+    const noteMatch = rest.match(/\(([^)]+)\)/);
+    if (noteMatch) {
+      note = noteMatch[1].trim().replace(/^["']|["']$/g, '');
+      rest = rest.replace(/\(([^)]+)\)/, '').trim();
+    }
+
+    const name = rest.trim().replace(/^["']|["']$/g, '');
+    if (name) {
+      layers.push({ name, note, styleTag });
+    }
+  });
+
+  return { title, layers };
+}
+
+function drawPyramidSvg(pyramidText, container, labelText) {
+  container.innerHTML = '';
+  const data = parsePyramid(pyramidText);
+  if (!data || data.layers.length === 0) {
+    container.innerHTML = '<span style="color:#ef4444; font-size:12px;">ピラミッド図の構文を解析できませんでした（例: \\pyramid{ layer: 頂点 [gold]; layer: 底辺 [primary]; }）</span>';
+    return;
+  }
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const svgW = 600;
+  const svgH = 460;
+  svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+  svg.setAttribute('width', `${svgW}`);
+  svg.setAttribute('height', `${svgH}`);
+  svg.style.maxWidth = '100%';
+  svg.style.height = 'auto';
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  svg.appendChild(defs);
+
+  // ピラミッド幾何パラメータ（左寄りに配置し、右側に引き出し線＋テキストを展開）
+  const pyrCenterX = 180;
+  const topY = 70;
+  const bottomY = 425;
+  const totalH = bottomY - topY; // 355
+  const baseW = 260; // 底辺の全幅（左右130ずつ: X=50〜310）
+  const N = data.layers.length;
+  const layerH = totalH / N;
+  const gap = N > 5 ? 2.5 : 3.5;
+
+  // デフォルトパレット
+  const defaultColors = [
+    '#f59e0b', // ゴールド/アンバー
+    '#ea580c', // オレンジ
+    '#2563eb', // ブルー
+    '#0891b2', // シアン
+    '#059669', // エメラルド
+    '#6366f1', // インディゴ
+    '#64748b'  // スレート
+  ];
+
+  // タイトル描画
+  if (data.title) {
+    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    tEl.setAttribute('x', svgW / 2);
+    tEl.setAttribute('y', 36);
+    tEl.setAttribute('text-anchor', 'middle');
+    tEl.setAttribute('font-size', '16');
+    tEl.setAttribute('font-weight', '700');
+    tEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+    tEl.setAttribute('fill', '#0f172a');
+    tEl.textContent = data.title;
+    svg.appendChild(tEl);
+  }
+
+  const layersG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  const labelsG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+  data.layers.forEach((layer, i) => {
+    const t0 = i / N;
+    const t1 = (i + 1) / N;
+
+    const y0 = topY + t0 * totalH + (i > 0 ? gap / 2 : 0);
+    const y1 = topY + t1 * totalH - (i < N - 1 ? gap / 2 : 0);
+    const w0 = t0 * baseW;
+    const w1 = t1 * baseW;
+
+    // カラー判定
+    let color = defaultColors[i % defaultColors.length];
+    if (/gold|yellow/i.test(layer.styleTag)) color = '#f59e0b';
+    else if (/accent|red|rose|danger/i.test(layer.styleTag)) color = '#e11d48';
+    else if (/primary|blue/i.test(layer.styleTag)) color = '#2563eb';
+    else if (/success|green|emerald/i.test(layer.styleTag)) color = '#059669';
+    else if (/warning|orange/i.test(layer.styleTag)) color = '#ea580c';
+    else if (/purple|violet/i.test(layer.styleTag)) color = '#8b5cf6';
+    else if (/muted|gray|slate/i.test(layer.styleTag)) color = '#64748b';
+    else if (/cyan|teal/i.test(layer.styleTag)) color = '#0891b2';
+
+    // パス生成
+    const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    let d = '';
+    let rightEdgeX = 0;
+    if (i === 0) {
+      // 頂点三角形
+      d = `M ${pyrCenterX} ${y0.toFixed(1)} L ${(pyrCenterX + w1 / 2).toFixed(1)} ${y1.toFixed(1)} L ${(pyrCenterX - w1 / 2).toFixed(1)} ${y1.toFixed(1)} Z`;
+      rightEdgeX = pyrCenterX + w1 / 4;
+    } else {
+      // 台形
+      d = `M ${(pyrCenterX - w0 / 2).toFixed(1)} ${y0.toFixed(1)} L ${(pyrCenterX + w0 / 2).toFixed(1)} ${y0.toFixed(1)} L ${(pyrCenterX + w1 / 2).toFixed(1)} ${y1.toFixed(1)} L ${(pyrCenterX - w1 / 2).toFixed(1)} ${y1.toFixed(1)} Z`;
+      rightEdgeX = pyrCenterX + (w0 + w1) / 4;
+    }
+    pathEl.setAttribute('d', d);
+    pathEl.setAttribute('fill', color);
+    pathEl.setAttribute('stroke', '#ffffff');
+    pathEl.setAttribute('stroke-width', '1.5');
+    layersG.appendChild(pathEl);
+
+    const midY = (y0 + y1) / 2;
+
+    // ピラミッド内の階層番号バッジ（白文字）
+    const badgeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    badgeText.setAttribute('x', pyrCenterX);
+    badgeText.setAttribute('y', (midY + 4.5).toFixed(1));
+    badgeText.setAttribute('text-anchor', 'middle');
+    badgeText.setAttribute('fill', '#ffffff');
+    badgeText.setAttribute('font-weight', '800');
+    badgeText.setAttribute('font-size', N > 5 ? '12' : '13');
+    badgeText.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+    badgeText.textContent = (i + 1).toString();
+    layersG.appendChild(badgeText);
+
+    // 右側への引き出し線（アノテーション）
+    const lineX0 = rightEdgeX + 8;
+    const lineX1 = 330;
+    const textStartX = 340;
+
+    // ガイド引き出し線
+    const guideLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    guideLine.setAttribute('x1', lineX0.toFixed(1));
+    guideLine.setAttribute('y1', midY.toFixed(1));
+    guideLine.setAttribute('x2', lineX1.toFixed(1));
+    guideLine.setAttribute('y2', midY.toFixed(1));
+    guideLine.setAttribute('stroke', '#cbd5e1');
+    guideLine.setAttribute('stroke-width', '1.2');
+    guideLine.setAttribute('stroke-dasharray', '2 2');
+    labelsG.appendChild(guideLine);
+
+    // 引き出し線端点の丸ドット
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', lineX0.toFixed(1));
+    dot.setAttribute('cy', midY.toFixed(1));
+    dot.setAttribute('r', '2.5');
+    dot.setAttribute('fill', color);
+    labelsG.appendChild(dot);
+
+    // 右側のテキストグループ
+    const textG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    textG.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+
+    const nameEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    nameEl.setAttribute('x', textStartX);
+    nameEl.setAttribute('text-anchor', 'start');
+    nameEl.setAttribute('font-weight', '700');
+    nameEl.setAttribute('fill', '#0f172a');
+    nameEl.setAttribute('font-size', N > 5 ? '12' : '13');
+
+    if (layer.note && layerH >= 32) {
+      nameEl.setAttribute('y', (midY - 3).toFixed(1));
+      nameEl.textContent = layer.name;
+      textG.appendChild(nameEl);
+
+      const noteEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      noteEl.setAttribute('x', textStartX);
+      noteEl.setAttribute('y', (midY + 13).toFixed(1));
+      noteEl.setAttribute('text-anchor', 'start');
+      noteEl.setAttribute('fill', '#64748b');
+      noteEl.setAttribute('font-size', N > 5 ? '10.5' : '11.5');
+      noteEl.setAttribute('font-weight', '500');
+      noteEl.textContent = layer.note;
+      textG.appendChild(noteEl);
+    } else {
+      nameEl.setAttribute('y', (midY + 4.5).toFixed(1));
+      nameEl.textContent = layer.note ? `${layer.name} (${layer.note})` : layer.name;
+      textG.appendChild(nameEl);
+    }
+
+    labelsG.appendChild(textG);
+  });
+
+  svg.appendChild(layersG);
+  svg.appendChild(labelsG);
+  container.appendChild(svg);
+
+  if (labelText) {
+    const lbl = document.createElement('div');
+    lbl.className = 'chem-structure-label';
+    lbl.textContent = labelText;
+    container.appendChild(lbl);
+  }
+}
+
 function autoResizeInput() {
   if (!inputArea) return;
   inputArea.style.height = 'auto';
@@ -3524,9 +4220,102 @@ function autoResizeInput() {
   inputArea.style.height = `${nextH}px`;
 }
 
+// ==========================================
+// 入力欄の構文書式 リアルタイム判定インジケーター
+// ==========================================
+function updateSyntaxIndicator(rawText) {
+  const badgeEl = document.getElementById('syntax-type-badge');
+  const descEl = document.getElementById('syntax-type-desc');
+  if (!badgeEl || !descEl) return;
+
+  const trimmed = (rawText || '').trim();
+  if (!trimmed) {
+    badgeEl.textContent = '未入力';
+    badgeEl.className = 'syntax-badge badge-empty';
+    descEl.textContent = '数式・表・図表のコードを入力してください';
+    return;
+  }
+
+  // 1. 独自書式（PhysiNote DSL）の検出
+  if (/\\(matrixmap|positioning|matrix)\{/i.test(trimmed)) {
+    badgeEl.textContent = '独自書式 (2軸マップ)';
+    badgeEl.className = 'syntax-badge badge-custom';
+    descEl.textContent = '\\matrixmap{ title: ...; axis-x: ...; axis-y: ...; quadrant: ...; item: 名前(x, y); }';
+    return;
+  }
+  if (/\\(pyramid|hierarchy)\{/i.test(trimmed)) {
+    badgeEl.textContent = '独自書式 (ピラミッド図)';
+    badgeEl.className = 'syntax-badge badge-custom';
+    descEl.textContent = '\\pyramid{ title: ...; layer: 項目名 [色] (説明); }';
+    return;
+  }
+  if (/\\(flowchart|flow)\{/i.test(trimmed)) {
+    badgeEl.textContent = '独自書式 (フローチャート)';
+    badgeEl.className = 'syntax-badge badge-custom';
+    descEl.textContent = '\\flowchart{ ノード名 [種類]; ノードA -> ノードB; }';
+    return;
+  }
+  if (/\\sankey\{/i.test(trimmed)) {
+    badgeEl.textContent = '独自書式 (サンキー図)';
+    badgeEl.className = 'syntax-badge badge-custom';
+    descEl.textContent = '\\sankey{ 流量: 起点 -> 終点; }';
+    return;
+  }
+  if (/\\(fsm|automaton)\{/i.test(trimmed)) {
+    badgeEl.textContent = '独自書式 (状態遷移図)';
+    badgeEl.className = 'syntax-badge badge-custom';
+    descEl.textContent = '\\fsm{ 状態A -> 状態B: イベント; }';
+    return;
+  }
+  if (/\\timing\{/i.test(trimmed)) {
+    badgeEl.textContent = '独自書式 (波形チャート)';
+    badgeEl.className = 'syntax-badge badge-custom';
+    descEl.textContent = '\\timing{ 信号名: H.L...; }';
+    return;
+  }
+  if (/\\circuit\{/i.test(trimmed)) {
+    badgeEl.textContent = '独自書式 (電気回路図)';
+    badgeEl.className = 'syntax-badge badge-custom';
+    descEl.textContent = '\\circuit{ R1 [resistor]; ノードA -- ノードB; }';
+    return;
+  }
+  if (/\\feynman\{/i.test(trimmed)) {
+    badgeEl.textContent = '独自書式 (ファインマン図)';
+    badgeEl.className = 'syntax-badge badge-custom';
+    descEl.textContent = '\\feynman{ 粒子 [fermion]; 光子 [photon]; }';
+    return;
+  }
+  if (/\\(chemfig|smiles)\{/i.test(trimmed)) {
+    badgeEl.textContent = '化学構造式 (平面構造式)';
+    badgeEl.className = 'syntax-badge badge-chem-struct';
+    descEl.textContent = 'SMILES / ChemFig (例: \\smiles{...})';
+    return;
+  }
+  if (/\\ce\{/i.test(trimmed)) {
+    badgeEl.textContent = '化学式 (分子式・反応式)';
+    badgeEl.className = 'syntax-badge badge-chem-formula';
+    descEl.textContent = 'mhchem準拠 (例: \\ce{H2O}, \\ce{C8H10N4O2}, \\ce{2H2 + O2 -> 2H2O})';
+    return;
+  }
+
+  // 2. 表形式の検出 (parseAnyTable で判定)
+  if (typeof parseAnyTable === 'function' && parseAnyTable(trimmed) !== null) {
+    badgeEl.textContent = '表形式 (Table)';
+    badgeEl.className = 'syntax-badge badge-table';
+    descEl.textContent = 'Markdown表 (| a | b |)、CSV、TSV、または LaTeX tabular環境';
+    return;
+  }
+
+  // 3. デフォルトは LaTeX数式
+  badgeEl.textContent = 'LaTeX数式';
+  badgeEl.className = 'syntax-badge badge-latex';
+  descEl.textContent = 'KaTeX準拠 (例: F = m * a, \\frac{a}{b}, \\int, 行列)';
+}
+
 function updatePreview() {
   autoResizeInput();
   hideSymbolTooltip();
+  updateSyntaxIndicator(inputArea ? inputArea.value : '');
   if (typeof katex === 'undefined') {
     return;
   }
@@ -3718,10 +4507,66 @@ function updatePreview() {
   }
 
   // ==========================================
+  // 2軸マップ・マトリクス図 (\matrixmap / \positioning) の検出と処理
+  // ==========================================
+  const matrixRegex = /\\(matrixmap|positioning|matrix)\{((?:[^{}]|\{[^{}]*\})*)\}/g;
+  const matrixMatches = [];
+  let matrixMatch;
+  while ((matrixMatch = matrixRegex.exec(text)) !== null) {
+    matrixMatches.push({ raw: matrixMatch[0], content: matrixMatch[2], label: '2軸マップ' });
+  }
+
+  // 入力が2軸マップのみの場合：直接SVG描画
+  const textWithoutMatrix = text.replace(matrixRegex, '').trim();
+  if (matrixMatches.length > 0 && textWithoutMatrix === '' && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0 && sankeyMatches.length === 0 && flowchartMatches.length === 0) {
+    previewArea.innerHTML = '';
+    matrixMatches.forEach((item) => {
+      const container = document.createElement('div');
+      container.className = 'matrix-preview-container';
+      drawMatrixMapSvg(item.content, container, item.label);
+      previewArea.appendChild(container);
+    });
+
+    warningBadge.style.display = 'none';
+    previewBox.style.opacity = '1.0';
+    previewBox.removeAttribute('data-formula-tip');
+    if (explanationCard) explanationCard.style.display = 'none';
+    return;
+  }
+
+  // ==========================================
+  // ピラミッド図・階層図 (\pyramid / \hierarchy) の検出と処理
+  // ==========================================
+  const pyramidRegex = /\\(pyramid|hierarchy)\{((?:[^{}]|\{[^{}]*\})*)\}/g;
+  const pyramidMatches = [];
+  let pyramidMatch;
+  while ((pyramidMatch = pyramidRegex.exec(text)) !== null) {
+    pyramidMatches.push({ raw: pyramidMatch[0], content: pyramidMatch[2], label: 'ピラミッド図' });
+  }
+
+  // 入力がピラミッド図のみの場合：直接SVG描画
+  const textWithoutPyramid = text.replace(pyramidRegex, '').trim();
+  if (pyramidMatches.length > 0 && textWithoutPyramid === '' && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0 && sankeyMatches.length === 0 && flowchartMatches.length === 0 && matrixMatches.length === 0) {
+    previewArea.innerHTML = '';
+    pyramidMatches.forEach((item) => {
+      const container = document.createElement('div');
+      container.className = 'pyramid-preview-container';
+      drawPyramidSvg(item.content, container, item.label);
+      previewArea.appendChild(container);
+    });
+
+    warningBadge.style.display = 'none';
+    previewBox.style.opacity = '1.0';
+    previewBox.removeAttribute('data-formula-tip');
+    if (explanationCard) explanationCard.style.display = 'none';
+    return;
+  }
+
+  // ==========================================
   // 表（テーブル：Markdown / CSV / TSV / LaTeX tabular）の検出と処理
   // ==========================================
   const tableData = parseAnyTable(text);
-  if (tableData && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0 && sankeyMatches.length === 0 && flowchartMatches.length === 0) {
+  if (tableData && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0 && sankeyMatches.length === 0 && flowchartMatches.length === 0 && matrixMatches.length === 0 && pyramidMatches.length === 0) {
     previewArea.innerHTML = '';
     const container = document.createElement('div');
     container.className = 'table-preview-container';
@@ -4381,7 +5226,6 @@ const formulaLibrary = [
 
 // 数式ライブラリモーダルの制御
 const libraryModal = document.getElementById('library-modal');
-const openLibraryBtn = document.getElementById('open-library-btn');
 const closeLibraryXBtn = document.getElementById('modal-close-x');
 const closeLibraryFooterBtn = document.getElementById('modal-close-footer');
 const searchInput = document.getElementById('library-search-input');
@@ -4482,9 +5326,8 @@ function renderFormulaCards() {
   }
 }
 
-openLibraryBtn.addEventListener('click', openModal);
-closeLibraryXBtn.addEventListener('click', closeModal);
-closeLibraryFooterBtn.addEventListener('click', closeModal);
+if (closeLibraryXBtn) closeLibraryXBtn.addEventListener('click', closeModal);
+if (closeLibraryFooterBtn) closeLibraryFooterBtn.addEventListener('click', closeModal);
 
 libraryModal.addEventListener('click', (e) => {
   if (e.target === libraryModal) {
@@ -4510,7 +5353,352 @@ categoryTabs.forEach((tab) => {
 });
 
 // ==========================================
-// 化学式ライブラリ データ
+// 化学式（分子式・反応式）ライブラリ データ
+// ==========================================
+const chemFormulaLibrary = [
+  // --- 無機物質・単体 ---
+  {
+    id: 'cf-water',
+    name: '水（Water）',
+    category: '無機物質・単体',
+    description: '常温常圧で液体。強い水素結合を持ち、極性溶媒として生命活動の基盤となる。',
+    code: '\\ce{H2O}',
+    tags: ['水', 'H2O', '酸化二水素', '無機物質']
+  },
+  {
+    id: 'cf-carbon-dioxide',
+    name: '二酸化炭素（Carbon Dioxide）',
+    category: '無機物質・単体',
+    description: '直線形分子。炭素の完全燃焼や生物の呼吸によって生じる温室効果ガス。',
+    code: '\\ce{CO2}',
+    tags: ['二酸化炭素', 'CO2', '炭酸ガス', '無機物質']
+  },
+  {
+    id: 'cf-ammonia',
+    name: 'アンモニア（Ammonia）',
+    category: '無機物質・単体',
+    description: '三角錐形の極性分子。刺激臭を持つ弱塩基性気体。窒素肥料の原料。',
+    code: '\\ce{NH3}',
+    tags: ['アンモニア', 'NH3', '無機物質', '塩基']
+  },
+  {
+    id: 'cf-oxygen-ozone',
+    name: '酸素とオゾン（同素体）',
+    category: '無機物質・単体',
+    description: '酸素原子の同素体。常磁性を持つ二酸素と酸化力の強い淡青色の三酸素。',
+    code: '\\ce{O2 \\quad \\text{と} \\quad O3}',
+    tags: ['酸素', 'オゾン', 'O2', 'O3', '同素体']
+  },
+  {
+    id: 'cf-hydrogen-peroxide',
+    name: '過酸化水素（Hydrogen Peroxide）',
+    category: '無機物質・単体',
+    description: 'ヒドロペルオキシド結合を持つ不安定な酸化剤。消毒薬（オキシドール）や漂白剤。',
+    code: '\\ce{H2O2}',
+    tags: ['過酸化水素', 'H2O2', '酸化剤']
+  },
+
+  // --- 有機化合物 ---
+  {
+    id: 'cf-methane',
+    name: 'メタン（Methane）',
+    category: '有機化合物',
+    description: '正四面体構造を持つ最も単純なアルカン。天然ガスの主成分。',
+    code: '\\ce{CH4}',
+    tags: ['メタン', 'CH4', 'アルカン', '天然ガス']
+  },
+  {
+    id: 'cf-ethanol',
+    name: 'エタノール（Ethanol）',
+    category: '有機化合物',
+    description: 'ヒドロキシ基を持つ一価アルコール。酒類の主成分、消毒用アルコール。',
+    code: '\\ce{C2H5OH}',
+    tags: ['エタノール', 'C2H5OH', 'アルコール', '有機化合物']
+  },
+  {
+    id: 'cf-acetic-acid',
+    name: '酢酸（Acetic Acid）',
+    category: '有機化合物',
+    description: 'カルボキシ基を持つ代表的なカルボン酸。食酢の酸味成分。',
+    code: '\\ce{CH3COOH}',
+    tags: ['酢酸', 'CH3COOH', 'カルボン酸', '食酢']
+  },
+  {
+    id: 'cf-benzene',
+    name: 'ベンゼン（Benzene）',
+    category: '有機化合物',
+    description: '6個の炭素原子が平面正六角形を形成する代表的芳香族炭化水素。共鳴安定化。',
+    code: '\\ce{C6H6}',
+    tags: ['ベンゼン', 'C6H6', '芳香族', '亀の甲']
+  },
+  {
+    id: 'cf-glucose',
+    name: 'グルコース（ブドウ糖）',
+    category: '有機化合物',
+    description: '六炭糖（ヘキソース）のアルドース。生体の主要なエネルギー代謝源。',
+    code: '\\ce{C6H12O6}',
+    tags: ['グルコース', 'ブドウ糖', '糖質', '炭水化物']
+  },
+  {
+    id: 'cf-caffeine',
+    name: 'カフェイン（分子式）',
+    category: '有機化合物',
+    description: 'プリン環骨格を持つ中枢神経興奮性アルカロイド。コーヒーや緑茶に含まれる。',
+    code: '\\ce{C8H10N4O2}',
+    tags: ['カフェイン', 'C8H10N4O2', 'アルカロイド', '分子式']
+  },
+  {
+    id: 'cf-aspirin',
+    name: 'アスピリン（アセチルサリチル酸）',
+    category: '有機化合物',
+    description: 'サリチル酸のアセチル化誘導体。解熱・鎮痛・抗炎症作用。',
+    code: '\\ce{C9H8O4}',
+    tags: ['アスピリン', 'アセチルサリチル酸', '医薬品', '分子式']
+  },
+
+  // --- イオン・酸・塩 ---
+  {
+    id: 'cf-sulfuric-acid',
+    name: '硫酸（Sulfuric Acid）',
+    category: 'イオン・酸・塩',
+    description: '二価の不揮発性強酸。吸湿性・脱水作用を持ち化学工業の最重要基礎原料。',
+    code: '\\ce{H2SO4}',
+    tags: ['硫酸', 'H2SO4', '強酸', '不揮発性']
+  },
+  {
+    id: 'cf-hydrochloric-acid',
+    name: '塩酸（塩化水素水溶液）',
+    category: 'イオン・酸・塩',
+    description: '塩化水素の水溶液。揮発性の代表的一価強酸。胃液に含まれる。',
+    code: '\\ce{HCl}',
+    tags: ['塩酸', '塩化水素', 'HCl', '強酸']
+  },
+  {
+    id: 'cf-sodium-hydroxide',
+    name: '水酸化ナトリウム（苛性ソーダ）',
+    category: 'イオン・酸・塩',
+    description: '潮解性を持つ代表的一価強塩基。二酸化炭素を吸収しやすい。',
+    code: '\\ce{NaOH}',
+    tags: ['水酸化ナトリウム', 'NaOH', '強塩基', '苛性ソーダ']
+  },
+  {
+    id: 'cf-sodium-chloride',
+    name: '塩化ナトリウム（食塩）',
+    category: 'イオン・酸・塩',
+    description: '面心立方格子構造をとる典型的なイオン結晶。食塩の主成分。',
+    code: '\\ce{NaCl}',
+    tags: ['塩化ナトリウム', 'NaCl', '食塩', '塩']
+  },
+  {
+    id: 'cf-copper-sulfate-hydrate',
+    name: '硫酸銅(II)五水和物',
+    category: 'イオン・酸・塩',
+    description: '青色の三斜晶系結晶。加熱すると無水物（白色粉末）となる。',
+    code: '\\ce{CuSO4 . 5H2O}',
+    tags: ['硫酸銅', '水和物', '無水物', '銅']
+  },
+  {
+    id: 'cf-water-ionization',
+    name: '水の自己電離（オキソニウムイオン）',
+    category: 'イオン・酸・塩',
+    description: '極微量の水分子がプロトン移動により解離して生成するイオン平衡。',
+    code: '\\ce{2H2O <=> H3O+ + OH-}',
+    tags: ['自己電離', '電離平衡', 'pH', 'オキソニウム']
+  },
+
+  // --- 化学反応式 ---
+  {
+    id: 'cf-water-synthesis',
+    name: '水の生成反応（燃焼）',
+    category: '化学反応式',
+    description: '水素と酸素が爆鳴気を形成して発熱的に化合し、水を生成する基本反応。',
+    code: '\\ce{2H2 + O2 -> 2H2O}',
+    tags: ['水の生成', '水素燃焼', '発熱反応', '酸化還元']
+  },
+  {
+    id: 'cf-methane-combustion',
+    name: 'メタンの完全燃焼反応',
+    category: '化学反応式',
+    description: '都市ガスの主成分メタンが酸素と反応し、二酸化炭素と水を生じる酸化反応。',
+    code: '\\ce{CH4 + 2O2 -> CO2 + 2H2O}',
+    tags: ['メタン燃焼', '完全燃焼', '炭化水素', '発熱']
+  },
+  {
+    id: 'cf-neutralization',
+    name: '中和反応（塩酸と水酸化ナトリウム）',
+    category: '化学反応式',
+    description: '酸と塩基が反応して塩と水を生じる典型的な中和反応式。',
+    code: '\\ce{HCl + NaOH -> NaCl + H2O}',
+    tags: ['中和反応', '酸塩基', '塩']
+  },
+  {
+    id: 'cf-photosynthesis',
+    name: '光合成の全体化学反応式',
+    category: '化学反応式',
+    description: '植物が光エネルギーを用いて二酸化炭素と水からグルコースと酸素を合成。',
+    code: '\\ce{6CO2 + 6H2O -> C6H12O6 + 6O2}',
+    tags: ['光合成', '炭酸固定', '生化学', '葉緑体']
+  },
+  {
+    id: 'cf-gas-evolution-caco3',
+    name: '炭酸カルシウムと塩酸の気体発生反応',
+    category: '化学反応式',
+    description: '弱酸の塩に強酸を加えることで、二酸化炭素の気体が発生する弱酸遊離反応。',
+    code: '\\ce{CaCO3 + 2HCl -> CaCl2 + H2O + CO2 ^}',
+    tags: ['気体発生', '二酸化炭素発生', '弱酸の遊離', '石灰石']
+  },
+  {
+    id: 'cf-haber-bosch',
+    name: 'ハーバー・ボッシュ法（アンモニア合成平衡）',
+    category: '化学反応式',
+    description: '鉄触媒・高温高圧下で窒素と水素からアンモニアを合成する可逆発熱平衡反応。',
+    code: '\\ce{N2 + 3H2 <=> 2NH3}',
+    tags: ['ハーバーボッシュ法', 'アンモニア合成', '化学平衡', 'ルシャトリエ']
+  },
+  {
+    id: 'cf-esterification',
+    name: 'エステル化反応（酢酸エチル合成）',
+    category: '化学反応式',
+    description: 'カルボン酸とアルコールから酸触媒下でエステルと水が可逆的に生成。',
+    code: '\\ce{CH3COOH + C2H5OH <=> CH3COOC2H5 + H2O}',
+    tags: ['エステル化', '酢酸エチル', '可逆反応', '有機化学']
+  }
+];
+
+// 化学式（分子式・反応式）ライブラリモーダルの制御
+const chemFormulaLibraryModal = document.getElementById('chem-formula-library-modal');
+const closeChemFormulaXBtn = document.getElementById('chem-formula-modal-close-x');
+const closeChemFormulaFooterBtn = document.getElementById('chem-formula-modal-close-footer');
+const chemFormulaSearchInput = document.getElementById('chem-formula-library-search-input');
+const chemFormulaCategoryTabs = document.querySelectorAll('.chem-formula-category-tab');
+const chemFormulaCardGrid = document.getElementById('chem-formula-library-card-grid');
+const chemFormulaEmptyMessage = document.getElementById('chem-formula-library-empty-message');
+
+let currentChemFormulaCategory = 'すべて';
+
+function openChemFormulaModal() {
+  if (!chemFormulaLibraryModal) return;
+  chemFormulaLibraryModal.classList.add('active');
+  chemFormulaLibraryModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+  if (chemFormulaSearchInput) chemFormulaSearchInput.value = '';
+  currentChemFormulaCategory = 'すべて';
+  chemFormulaCategoryTabs.forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.category === 'すべて');
+  });
+  renderChemFormulaCards();
+  if (chemFormulaSearchInput) chemFormulaSearchInput.focus();
+}
+
+function closeChemFormulaModal() {
+  if (!chemFormulaLibraryModal) return;
+  chemFormulaLibraryModal.classList.remove('active');
+  chemFormulaLibraryModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+}
+
+function renderChemFormulaCards() {
+  if (!chemFormulaCardGrid || !chemFormulaSearchInput) return;
+  const query = chemFormulaSearchInput.value.trim().toLowerCase();
+  chemFormulaCardGrid.innerHTML = '';
+
+  const filtered = chemFormulaLibrary.filter((item) => {
+    const matchCategory = currentChemFormulaCategory === 'すべて' || item.category === currentChemFormulaCategory;
+    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
+    const matchQuery =
+      !query ||
+      item.name.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query) ||
+      item.code.toLowerCase().includes(query) ||
+      matchTags;
+    return matchCategory && matchQuery;
+  });
+
+  if (filtered.length === 0) {
+    if (chemFormulaEmptyMessage) chemFormulaEmptyMessage.style.display = 'block';
+  } else {
+    if (chemFormulaEmptyMessage) chemFormulaEmptyMessage.style.display = 'none';
+    filtered.forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'formula-card chem-formula-card';
+
+      const top = document.createElement('div');
+      top.className = 'card-top';
+
+      const name = document.createElement('span');
+      name.className = 'card-name';
+      name.textContent = item.name;
+
+      const tag = document.createElement('span');
+      tag.className = 'card-tag chem-formula-card-tag';
+      tag.textContent = item.category;
+
+      top.appendChild(name);
+      top.appendChild(tag);
+
+      const preview = document.createElement('div');
+      preview.className = 'card-preview';
+      if (typeof katex !== 'undefined') {
+        try {
+          katex.render(item.code, preview, { throwOnError: false, displayMode: true });
+        } catch {
+          preview.textContent = item.code;
+        }
+      } else {
+        preview.textContent = item.code;
+      }
+
+      const desc = document.createElement('p');
+      desc.className = 'card-desc';
+      desc.textContent = item.description;
+
+      card.appendChild(top);
+      card.appendChild(preview);
+      card.appendChild(desc);
+
+      card.addEventListener('click', () => {
+        inputArea.value = item.code;
+        closeChemFormulaModal();
+        updatePreview();
+      });
+
+      chemFormulaCardGrid.appendChild(card);
+    });
+  }
+}
+
+if (closeChemFormulaXBtn) closeChemFormulaXBtn.addEventListener('click', closeChemFormulaModal);
+if (closeChemFormulaFooterBtn) closeChemFormulaFooterBtn.addEventListener('click', closeChemFormulaModal);
+
+if (chemFormulaLibraryModal) {
+  chemFormulaLibraryModal.addEventListener('click', (e) => {
+    if (e.target === chemFormulaLibraryModal) {
+      closeChemFormulaModal();
+    }
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && chemFormulaLibraryModal && chemFormulaLibraryModal.classList.contains('active')) {
+    closeChemFormulaModal();
+  }
+});
+
+if (chemFormulaSearchInput) {
+  chemFormulaSearchInput.addEventListener('input', renderChemFormulaCards);
+}
+
+chemFormulaCategoryTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    chemFormulaCategoryTabs.forEach((t) => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentChemFormulaCategory = tab.dataset.category;
+    renderChemFormulaCards();
+  });
+});
+
+// ==========================================
+// 化学構造式（平面構造式）ライブラリ データ
 // ==========================================
 const chemLibrary = [
   // --- 医薬品・生体分子 ---
@@ -4827,7 +6015,6 @@ const chemLibrary = [
 
 // 化学式ライブラリモーダルの制御
 const chemLibraryModal = document.getElementById('chem-library-modal');
-const openChemLibraryBtn = document.getElementById('open-chem-library-btn');
 const closeChemLibraryXBtn = document.getElementById('chem-modal-close-x');
 const closeChemLibraryFooterBtn = document.getElementById('chem-modal-close-footer');
 const chemSearchInput = document.getElementById('chem-library-search-input');
@@ -4937,7 +6124,6 @@ function renderChemCards() {
   }
 }
 
-if (openChemLibraryBtn) openChemLibraryBtn.addEventListener('click', openChemModal);
 if (closeChemLibraryXBtn) closeChemLibraryXBtn.addEventListener('click', closeChemModal);
 if (closeChemLibraryFooterBtn) closeChemLibraryFooterBtn.addEventListener('click', closeChemModal);
 
@@ -5037,7 +6223,6 @@ const circuitLibrary = [
 
 // 電子回路ライブラリモーダルの制御
 const circuitLibraryModal = document.getElementById('circuit-library-modal');
-const openCircuitLibraryBtn = document.getElementById('open-circuit-library-btn');
 const closeCircuitLibraryXBtn = document.getElementById('circuit-modal-close-x');
 const closeCircuitLibraryFooterBtn = document.getElementById('circuit-modal-close-footer');
 const circuitSearchInput = document.getElementById('circuit-library-search-input');
@@ -5131,7 +6316,6 @@ function renderCircuitCards() {
   }
 }
 
-if (openCircuitLibraryBtn) openCircuitLibraryBtn.addEventListener('click', openCircuitModal);
 if (closeCircuitLibraryXBtn) closeCircuitLibraryXBtn.addEventListener('click', closeCircuitModal);
 if (closeCircuitLibraryFooterBtn) closeCircuitLibraryFooterBtn.addEventListener('click', closeCircuitModal);
 
@@ -5223,7 +6407,6 @@ const timingLibrary = [
 
 // タイミングチャートライブラリモーダルの制御
 const timingLibraryModal = document.getElementById('timing-library-modal');
-const openTimingLibraryBtn = document.getElementById('open-timing-library-btn');
 const closeTimingLibraryXBtn = document.getElementById('timing-modal-close-x');
 const closeTimingLibraryFooterBtn = document.getElementById('timing-modal-close-footer');
 const timingSearchInput = document.getElementById('timing-library-search-input');
@@ -5317,7 +6500,6 @@ function renderTimingCards() {
   }
 }
 
-if (openTimingLibraryBtn) openTimingLibraryBtn.addEventListener('click', openTimingModal);
 if (closeTimingLibraryXBtn) closeTimingLibraryXBtn.addEventListener('click', closeTimingModal);
 if (closeTimingLibraryFooterBtn) closeTimingLibraryFooterBtn.addEventListener('click', closeTimingModal);
 
@@ -5409,7 +6591,6 @@ const fsmLibrary = [
 
 // 状態遷移図（オートマトン）ライブラリモーダルの制御
 const fsmLibraryModal = document.getElementById('fsm-library-modal');
-const openFsmLibraryBtn = document.getElementById('open-fsm-library-btn');
 const closeFsmLibraryXBtn = document.getElementById('fsm-modal-close-x');
 const closeFsmLibraryFooterBtn = document.getElementById('fsm-modal-close-footer');
 const fsmSearchInput = document.getElementById('fsm-library-search-input');
@@ -5503,7 +6684,6 @@ function renderFsmCards() {
   }
 }
 
-if (openFsmLibraryBtn) openFsmLibraryBtn.addEventListener('click', openFsmModal);
 if (closeFsmLibraryXBtn) closeFsmLibraryXBtn.addEventListener('click', closeFsmModal);
 if (closeFsmLibraryFooterBtn) closeFsmLibraryFooterBtn.addEventListener('click', closeFsmModal);
 
@@ -5603,7 +6783,6 @@ const feynmanLibrary = [
 
 // ファインマン・ダイアグラム ライブラリモーダルの制御
 const feynmanLibraryModal = document.getElementById('feynman-library-modal');
-const openFeynmanLibraryBtn = document.getElementById('open-feynman-library-btn');
 const closeFeynmanLibraryXBtn = document.getElementById('feynman-modal-close-x');
 const closeFeynmanLibraryFooterBtn = document.getElementById('feynman-modal-close-footer');
 const feynmanSearchInput = document.getElementById('feynman-library-search-input');
@@ -5697,7 +6876,6 @@ function renderFeynmanCards() {
   }
 }
 
-if (openFeynmanLibraryBtn) openFeynmanLibraryBtn.addEventListener('click', openFeynmanModal);
 if (closeFeynmanLibraryXBtn) closeFeynmanLibraryXBtn.addEventListener('click', closeFeynmanModal);
 if (closeFeynmanLibraryFooterBtn) closeFeynmanLibraryFooterBtn.addEventListener('click', closeFeynmanModal);
 
@@ -5821,7 +6999,6 @@ const sankeyLibrary = [
 
 // サンキーダイアグラム ライブラリモーダルの制御
 const sankeyLibraryModal = document.getElementById('sankey-library-modal');
-const openSankeyLibraryBtn = document.getElementById('open-sankey-library-btn');
 const closeSankeyLibraryXBtn = document.getElementById('sankey-modal-close-x');
 const closeSankeyLibraryFooterBtn = document.getElementById('sankey-modal-close-footer');
 const sankeySearchInput = document.getElementById('sankey-library-search-input');
@@ -5915,7 +7092,6 @@ function renderSankeyCards() {
   }
 }
 
-if (openSankeyLibraryBtn) openSankeyLibraryBtn.addEventListener('click', openSankeyModal);
 if (closeSankeyLibraryXBtn) closeSankeyLibraryXBtn.addEventListener('click', closeSankeyModal);
 if (closeSankeyLibraryFooterBtn) closeSankeyLibraryFooterBtn.addEventListener('click', closeSankeyModal);
 
@@ -6010,7 +7186,6 @@ const flowchartLibrary = [
 
 // フローチャート ライブラリモーダルの制御
 const flowchartLibraryModal = document.getElementById('flowchart-library-modal');
-const openFlowchartLibraryBtn = document.getElementById('open-flowchart-library-btn');
 const closeFlowchartLibraryXBtn = document.getElementById('flowchart-modal-close-x');
 const closeFlowchartLibraryFooterBtn = document.getElementById('flowchart-modal-close-footer');
 const flowchartSearchInput = document.getElementById('flowchart-library-search-input');
@@ -6102,7 +7277,6 @@ function renderFlowchartCards() {
   }
 }
 
-if (openFlowchartLibraryBtn) openFlowchartLibraryBtn.addEventListener('click', openFlowchartModal);
 if (closeFlowchartLibraryXBtn) closeFlowchartLibraryXBtn.addEventListener('click', closeFlowchartModal);
 if (closeFlowchartLibraryFooterBtn) closeFlowchartLibraryFooterBtn.addEventListener('click', closeFlowchartModal);
 
@@ -6181,7 +7355,6 @@ const tableLibrary = [
 
 // 表（テーブル）ライブラリモーダルの制御
 const tableLibraryModal = document.getElementById('table-library-modal');
-const openTableLibraryBtn = document.getElementById('open-table-library-btn');
 const closeTableLibraryXBtn = document.getElementById('table-modal-close-x');
 const closeTableLibraryFooterBtn = document.getElementById('table-modal-close-footer');
 const tableSearchInput = document.getElementById('table-library-search-input');
@@ -6278,7 +7451,6 @@ function renderTableCards() {
   }
 }
 
-if (openTableLibraryBtn) openTableLibraryBtn.addEventListener('click', openTableModal);
 if (closeTableLibraryXBtn) closeTableLibraryXBtn.addEventListener('click', closeTableModal);
 if (closeTableLibraryFooterBtn) closeTableLibraryFooterBtn.addEventListener('click', closeTableModal);
 
@@ -6306,6 +7478,352 @@ tableCategoryTabs.forEach((tab) => {
     tab.classList.add('active');
     currentTableCategory = tab.dataset.category;
     renderTableCards();
+  });
+});
+
+// ==========================================
+// 2軸マップ・マトリクス図 ライブラリ データ & モーダル制御
+// ==========================================
+const matrixLibrary = [
+  {
+    id: 'matrix-eisenhower',
+    name: 'アイゼンハワーマトリクス（時間管理・優先度）',
+    category: 'タスク・優先度',
+    description: '緊急度と重要度の2軸でタスクを4領域に分類し、直ちに行うべきことや削減すべきことを明確化する時間管理手法。',
+    code: '\\matrixmap{\n  title: アイゼンハワーマトリクス（時間管理・タスク優先度）;\n  axis-x: 緊急度 (低い -> 高い);\n  axis-y: 重要度 (低い -> 高い);\n  quadrant: [右上] すぐ実行（危機・重要課題）, [左上] 計画・自己投資（第2領域）, [右下] 他者へ委任, [左下] 削減・やめる;\n  item: 緊急トラブル対応 (0.75, 0.85) [danger];\n  item: 健康・スキル学習 (-0.6, 0.8) [accent];\n  item: 重要プロジェクト進行 (-0.2, 0.7) [primary];\n  item: 急な頼まれ仕事 (0.65, -0.4) [warning];\n  item: 目的のないスマホ閲覧 (-0.7, -0.7) [muted];\n}',
+    tags: ['時間管理', '優先順位', 'アイゼンハワー', 'タスク', '重要度', '緊急度']
+  },
+  {
+    id: 'matrix-market-positioning',
+    name: '市場ポジショニングマップ（価格 vs 品質）',
+    category: 'ビジネス・戦略',
+    description: '競合製品と自社製品の立ち位置を価格帯と品質・独自性の2軸で可視化し、差別化要因やブルーオーシャンを特定するマップ。',
+    code: '\\matrixmap{\n  title: 市場ポジショニングマップ（価格帯 vs 品質・独自性）;\n  axis-x: 価格帯 (低価格 -> 高価格);\n  axis-y: 品質・独自性 (大衆的・コモディティ -> 高品質・独自);\n  quadrant: [右上] プレミアム・高付加価値, [左上] コスパ最強・破壊的価値, [右下] ハイエンド専門, [左下] エントリー・大衆向け;\n  item: 自社新製品 (-0.4, 0.75) [accent];\n  item: 競合A社 (0.8, 0.85) [primary];\n  item: 競合B社 (-0.7, -0.5) [muted];\n  item: 競合C社 (0.6, -0.2) [warning];\n}',
+    tags: ['ポジショニング', 'マーケティング', '価格', '品質', '競合分析', '戦略']
+  },
+  {
+    id: 'matrix-project-priority',
+    name: '施策・機能優先度マトリクス（工数 vs インパクト）',
+    category: 'タスク・優先度',
+    description: '開発施策やアイデアを実装難易度（工数）と期待効果（インパクト）で評価し、最優先で取り組む「Quick Win」を特定。',
+    code: '\\matrixmap{\n  title: 施策優先度マトリクス（工数難易度 vs 効果インパクト）;\n  axis-x: 実装難易度・工数 (容易・低工数 -> 困難・高工数);\n  axis-y: 期待効果・インパクト (小さい -> 大きい);\n  quadrant: [左上] Quick Win（最優先・即実行）, [右上] 戦略的重点施策（要計画）, [左下] 隙間時間対応, [右下] 再検討・見送り;\n  item: UI改善・導線改修 (-0.7, 0.8) [accent];\n  item: 基幹システム刷新 (0.75, 0.85) [primary];\n  item: 文言の微調整 (-0.5, -0.4) [muted];\n  item: 不要機能の複雑改修 (0.8, -0.6) [danger];\n}',
+    tags: ['施策', 'プロダクト開発', 'インパクト', '工数', '優先度', 'Quick Win']
+  },
+  {
+    id: 'matrix-ragone-plot',
+    name: 'ラゴーンプロット（蓄電・電池デバイス比較）',
+    category: '物理・工学比較',
+    description: '電気化学デバイスの性能指標である比出力（急速充放電性能）と比エネルギー（蓄電容量・航続距離）を比較する物理プロット。',
+    code: '\\matrixmap{\n  title: ラゴーンプロット（蓄電デバイス特性比較）;\n  axis-x: 比出力 [W/kg] (低出力 -> 高出力);\n  axis-y: 比エネルギー [Wh/kg] (低容量 -> 高容量);\n  quadrant: [右上] 理想的次世代蓄電, [左上] 高エネルギー型（航続距離重視）, [右下] 高出力型（急速充放電・回生）, [左下] 従来型蓄電;\n  item: リチウムイオン電池 (-0.2, 0.6) [accent];\n  item: 燃料電池 (Fuel Cell) (-0.7, 0.85) [primary];\n  item: 電気二重層キャパシタ (0.8, -0.5) [warning];\n  item: 全固体電池 (次世代目標) (0.5, 0.75) [accent];\n  item: 鉛蓄電池 (-0.6, -0.6) [muted];\n}',
+    tags: ['ラゴーンプロット', 'リチウムイオン電池', 'キャパシタ', '燃料電池', '物理', '電気化学']
+  },
+  {
+    id: 'matrix-skill-will',
+    name: 'ウィル・スキル マトリクス（人材育成・マネジメント）',
+    category: 'ビジネス・戦略',
+    description: 'メンバーの業務習熟度（スキル）と意欲（ウィル）の2軸で状態を把握し、最適なリーダーシップや指示アプローチを選択する枠組み。',
+    code: '\\matrixmap{\n  title: ウィル・スキル マトリクス（人材育成・マネジメント）;\n  axis-x: 業務スキル・習熟度 (未習熟 -> 熟練・自立);\n  axis-y: 意欲・モチベーション (低下 -> 高い);\n  quadrant: [右上] 権限委譲（リーダー育成）, [左上] ガイド・教育（熱意を活かす）, [右下] 動機づけ・対話（環境整備）, [左下] 指示・基本徹底;\n  item: 若手エース (0.7, 0.8) [accent];\n  item: 意欲的な新人 (-0.6, 0.85) [primary];\n  item: 伸び悩むベテラン (0.6, -0.4) [warning];\n  item: 研修受講生 (-0.7, -0.5) [muted];\n}',
+    tags: ['マネジメント', 'ウィルスキル', '人材育成', 'リーダーシップ', '組織']
+  }
+];
+
+// 2軸マップ ライブラリモーダルの制御
+const matrixLibraryModal = document.getElementById('matrix-library-modal');
+const closeMatrixLibraryXBtn = document.getElementById('matrix-modal-close-x');
+const closeMatrixLibraryFooterBtn = document.getElementById('matrix-modal-close-footer');
+const matrixSearchInput = document.getElementById('matrix-library-search-input');
+const matrixCategoryTabs = document.querySelectorAll('.matrix-category-tab');
+const matrixCardGrid = document.getElementById('matrix-library-card-grid');
+const matrixEmptyMessage = document.getElementById('matrix-library-empty-message');
+
+let currentMatrixCategory = 'すべて';
+
+function openMatrixModal() {
+  if (!matrixLibraryModal) return;
+  matrixLibraryModal.classList.add('active');
+  matrixLibraryModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+  if (matrixSearchInput) matrixSearchInput.value = '';
+  currentMatrixCategory = 'すべて';
+  matrixCategoryTabs.forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.category === 'すべて');
+  });
+  renderMatrixCards();
+  if (matrixSearchInput) matrixSearchInput.focus();
+}
+
+function closeMatrixModal() {
+  if (!matrixLibraryModal) return;
+  matrixLibraryModal.classList.remove('active');
+  matrixLibraryModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+}
+
+function renderMatrixCards() {
+  if (!matrixCardGrid || !matrixSearchInput) return;
+  const query = matrixSearchInput.value.trim().toLowerCase();
+  matrixCardGrid.innerHTML = '';
+
+  const filtered = matrixLibrary.filter((item) => {
+    const matchCategory = currentMatrixCategory === 'すべて' || item.category === currentMatrixCategory;
+    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
+    const matchQuery =
+      !query ||
+      item.name.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query) ||
+      matchTags;
+    return matchCategory && matchQuery;
+  });
+
+  if (filtered.length === 0) {
+    if (matrixEmptyMessage) matrixEmptyMessage.style.display = 'block';
+  } else {
+    if (matrixEmptyMessage) matrixEmptyMessage.style.display = 'none';
+    filtered.forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'formula-card matrix-card';
+
+      const top = document.createElement('div');
+      top.className = 'card-top';
+
+      const name = document.createElement('span');
+      name.className = 'card-name';
+      name.textContent = item.name;
+
+      const tag = document.createElement('span');
+      tag.className = 'card-tag matrix-card-tag';
+      tag.textContent = item.category;
+
+      top.appendChild(name);
+      top.appendChild(tag);
+
+      const preview = document.createElement('div');
+      preview.className = 'card-preview matrix-card-preview';
+      drawMatrixMapSvg(item.code, preview, null);
+
+      const desc = document.createElement('p');
+      desc.className = 'card-desc';
+      desc.textContent = item.description;
+
+      card.appendChild(top);
+      card.appendChild(preview);
+      card.appendChild(desc);
+
+      card.addEventListener('click', () => {
+        inputArea.value = item.code;
+        closeMatrixModal();
+        updatePreview();
+      });
+
+      matrixCardGrid.appendChild(card);
+    });
+  }
+}
+
+if (closeMatrixLibraryXBtn) closeMatrixLibraryXBtn.addEventListener('click', closeMatrixModal);
+if (closeMatrixLibraryFooterBtn) closeMatrixLibraryFooterBtn.addEventListener('click', closeMatrixModal);
+
+if (matrixLibraryModal) {
+  matrixLibraryModal.addEventListener('click', (e) => {
+    if (e.target === matrixLibraryModal) {
+      closeMatrixModal();
+    }
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && matrixLibraryModal && matrixLibraryModal.classList.contains('active')) {
+    closeMatrixModal();
+  }
+});
+
+if (matrixSearchInput) {
+  matrixSearchInput.addEventListener('input', renderMatrixCards);
+}
+
+matrixCategoryTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    matrixCategoryTabs.forEach((t) => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentMatrixCategory = tab.dataset.category;
+    renderMatrixCards();
+  });
+});
+
+// ==========================================
+// ピラミッド図・階層図 ライブラリ データ & モーダル制御
+// ==========================================
+const pyramidLibrary = [
+  {
+    id: 'pyramid-school-caste',
+    name: 'アメリカのスクールカースト（学園階層構造）',
+    category: '社会・組織',
+    description: '米国のハイスクール文化における典型的な非公式階層構造。ジョック/チアリーダーの頂点からオタク/ナードまでのステレオタイプ分類。',
+    code: '\\pyramid{\n  title: アメリカのスクールカースト (American High School Hierarchy);\n  layer: ジョックス & クイーンビーズ [gold] (運動部花形スター・チアリーダー頂点);\n  layer: サイドキックス & プリンシパル [warning] (人気者の取り巻き・準人気グループ);\n  layer: フローターズ & ノーマル [primary] (一般生徒・複数のグループを往来);\n  layer: ギークス & バンドギークス [cyan] (文化部・吹奏楽・パソコンオタク);\n  layer: ナード & ターゲット [muted] (いじめの標的・ガリ勉・孤立層);\n}',
+    tags: ['スクールカースト', 'アメリカ', 'ジョック', 'ナード', 'ギーク', '階層', '社会・組織', '学校']
+  },
+  {
+    id: 'pyramid-maslow',
+    name: 'マズローの欲求5段階説（自己実現理論）',
+    category: '心理・思考',
+    description: '人間の動機づけ・心理的欲求を低次（生理的欲求）から高次（自己実現欲求）へと積み上げた心理学の代表的ピラミッドモデル。',
+    code: '\\pyramid{\n  title: マズローの欲求5段階説 (Maslow\'s Hierarchy of Needs);\n  layer: 自己実現の欲求 [gold] (自己の可能性の最大発揮・創造性);\n  layer: 承認・尊重の欲求 [warning] (他者からの評価・名誉・自己肯定感);\n  layer: 社会的欲求・愛 [primary] (集団への帰属・友情・愛情関係);\n  layer: 安全の欲求 [cyan] (身の安全・雇用や生活の安定・健康);\n  layer: 生理的欲求 [emerald] (食欲・睡眠・呼吸・生命維持の根本);\n}',
+    tags: ['マズロー', '欲求5段階', '自己実現', '心理学', '動機づけ', '承認欲求', '心理・思考']
+  },
+  {
+    id: 'pyramid-dikw',
+    name: 'DIKWピラミッド（知の階層モデル）',
+    category: '科学・工学',
+    description: '生のデータ（Data）から文脈を与えた情報（Information）、体系化した知識（Knowledge）、行動指針となる知恵（Wisdom）への進化モデル。',
+    code: '\\pyramid{\n  title: DIKWピラミッド (Data-Information-Knowledge-Wisdom);\n  layer: 知恵 (Wisdom) [gold] (本質的洞察・適切な判断と行動規範);\n  layer: 知識 (Knowledge) [warning] (情報の体系化・応用可能なノウハウ);\n  layer: 情報 (Information) [primary] (文脈・意味付けが与えられたデータ);\n  layer: データ (Data) [slate] (事実・数値・生ログ等の未加工の記号);\n}',
+    tags: ['DIKW', 'データ', '情報', '知識', '知恵', '情報科学', 'ナレッジマネジメント', '科学・工学']
+  },
+  {
+    id: 'pyramid-ecological',
+    name: '生態ピラミッド（生物量・栄養段階）',
+    category: '科学・工学',
+    description: '生態系におけるエネルギー移動と生物量の階層構造。生産者（植物）から高次消費者（肉食動物）へのエネルギー減衰を可視化。',
+    code: '\\pyramid{\n  title: 生態ピラミッド (Ecological Pyramid);\n  layer: 高次消費者 (頂点捕食者) [accent] (大型肉食動物・猛禽類);\n  layer: 二次消費者 [warning] (小型肉食動物・両生類・魚類);\n  layer: 一次消費者 [cyan] (草食動物・昆虫・動物プランクトン);\n  layer: 生産者 [success] (植物・藻類・光合成生物);\n}',
+    tags: ['生態ピラミッド', '栄養段階', '生物', '食物連鎖', '生態系', '生産者', '消費者', '科学・工学']
+  },
+  {
+    id: 'pyramid-test',
+    name: 'テスト自動化ピラミッド（Testing Pyramid）',
+    category: '科学・工学',
+    description: 'ソフトウェア開発における費用対効果の高いテスト配分指針。基底の単体テストを最も多く、高コストなE2Eテストを最小限に抑える設計。',
+    code: '\\pyramid{\n  title: テスト自動化ピラミッド (Testing Pyramid);\n  layer: E2E・UIテスト [danger] (高コスト・低速・保守負荷大);\n  layer: 統合・APIテスト [warning] (サービス間連携・中コスト);\n  layer: 単体・ユニットテスト [primary] (高速・低コスト・高カバレッジの基盤);\n}',
+    tags: ['テスト自動化', 'アジャイル', '単体テスト', 'E2E', 'ソフトウェア工学', 'QA', '科学・工学']
+  },
+  {
+    id: 'pyramid-bloom',
+    name: 'ブルームのタキソノミー（思考力の6段階）',
+    category: '心理・思考',
+    description: '学習者の認知的思考プロセスを低次（記憶）から高次（評価・創造）へと分類した教育・研修の国際的標準フレームワーク。',
+    code: '\\pyramid{\n  title: ブルームのタキソノミー (Bloom\'s Taxonomy);\n  layer: 創造 (Create) [gold] (新たな構造・アイデアの生成);\n  layer: 評価 (Evaluate) [purple] (基準に基づく判断・批評);\n  layer: 分析 (Analyze) [primary] (要素の分解・関係性の特定);\n  layer: 応用 (Apply) [cyan] (具体的事態への知識の適用);\n  layer: 理解 (Understand) [emerald] (意味の把握・説明・要約);\n  layer: 記憶 (Remember) [muted] (事実・用語・定義の想起);\n}',
+    tags: ['ブルーム', 'タキソノミー', '思考力', '教育', '学習', '認知領域', '心理・思考']
+  }
+];
+
+// ピラミッド図 ライブラリモーダルの制御
+const pyramidLibraryModal = document.getElementById('pyramid-library-modal');
+const closePyramidLibraryXBtn = document.getElementById('pyramid-modal-close-x');
+const closePyramidLibraryFooterBtn = document.getElementById('pyramid-modal-close-footer');
+const pyramidSearchInput = document.getElementById('pyramid-library-search-input');
+const pyramidCategoryTabs = document.querySelectorAll('.pyramid-category-tab');
+const pyramidCardGrid = document.getElementById('pyramid-library-card-grid');
+const pyramidEmptyMessage = document.getElementById('pyramid-library-empty-message');
+
+let currentPyramidCategory = 'すべて';
+
+function openPyramidModal() {
+  if (!pyramidLibraryModal) return;
+  pyramidLibraryModal.classList.add('active');
+  pyramidLibraryModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+  if (pyramidSearchInput) pyramidSearchInput.value = '';
+  currentPyramidCategory = 'すべて';
+  pyramidCategoryTabs.forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.category === 'すべて');
+  });
+  renderPyramidCards();
+  if (pyramidSearchInput) pyramidSearchInput.focus();
+}
+
+function closePyramidModal() {
+  if (!pyramidLibraryModal) return;
+  pyramidLibraryModal.classList.remove('active');
+  pyramidLibraryModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+}
+
+function renderPyramidCards() {
+  if (!pyramidCardGrid || !pyramidSearchInput) return;
+  const query = pyramidSearchInput.value.trim().toLowerCase();
+  pyramidCardGrid.innerHTML = '';
+
+  const filtered = pyramidLibrary.filter((item) => {
+    const matchCategory = currentPyramidCategory === 'すべて' || item.category === currentPyramidCategory;
+    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
+    const matchQuery =
+      !query ||
+      item.name.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query) ||
+      matchTags;
+    return matchCategory && matchQuery;
+  });
+
+  if (filtered.length === 0) {
+    if (pyramidEmptyMessage) pyramidEmptyMessage.style.display = 'block';
+  } else {
+    if (pyramidEmptyMessage) pyramidEmptyMessage.style.display = 'none';
+    filtered.forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'formula-card pyramid-card';
+
+      const top = document.createElement('div');
+      top.className = 'card-top';
+
+      const name = document.createElement('span');
+      name.className = 'card-name';
+      name.textContent = item.name;
+
+      const tag = document.createElement('span');
+      tag.className = 'card-tag pyramid-card-tag';
+      tag.textContent = item.category;
+
+      top.appendChild(name);
+      top.appendChild(tag);
+
+      const preview = document.createElement('div');
+      preview.className = 'card-preview pyramid-card-preview';
+      drawPyramidSvg(item.code, preview, null);
+
+      const desc = document.createElement('p');
+      desc.className = 'card-desc';
+      desc.textContent = item.description;
+
+      card.appendChild(top);
+      card.appendChild(preview);
+      card.appendChild(desc);
+
+      card.addEventListener('click', () => {
+        inputArea.value = item.code;
+        closePyramidModal();
+        updatePreview();
+      });
+
+      pyramidCardGrid.appendChild(card);
+    });
+  }
+}
+
+if (closePyramidLibraryXBtn) closePyramidLibraryXBtn.addEventListener('click', closePyramidModal);
+if (closePyramidLibraryFooterBtn) closePyramidLibraryFooterBtn.addEventListener('click', closePyramidModal);
+
+if (pyramidLibraryModal) {
+  pyramidLibraryModal.addEventListener('click', (e) => {
+    if (e.target === pyramidLibraryModal) {
+      closePyramidModal();
+    }
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && pyramidLibraryModal && pyramidLibraryModal.classList.contains('active')) {
+    closePyramidModal();
+  }
+});
+
+if (pyramidSearchInput) {
+  pyramidSearchInput.addEventListener('input', renderPyramidCards);
+}
+
+pyramidCategoryTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    pyramidCategoryTabs.forEach((t) => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentPyramidCategory = tab.dataset.category;
+    renderPyramidCards();
   });
 });
 
@@ -6341,6 +7859,74 @@ window.addEventListener('DOMContentLoaded', updatePreview);
 window.addEventListener('resize', updatePreview);
 
 // ==========================================
+// 統合ライブラリトリガー（表・図作成 / 式作成）の制御
+// ==========================================
+const openDiagramBtn = document.getElementById('open-diagram-btn');
+const diagramLibrarySelect = document.getElementById('diagram-library-select');
+
+if (openDiagramBtn) {
+  openDiagramBtn.addEventListener('click', () => {
+    const val = diagramLibrarySelect ? diagramLibrarySelect.value : 'table';
+    switch (val) {
+      case 'table':
+        if (typeof openTableModal === 'function') openTableModal();
+        break;
+      case 'matrix':
+        if (typeof openMatrixModal === 'function') openMatrixModal();
+        break;
+      case 'pyramid':
+        if (typeof openPyramidModal === 'function') openPyramidModal();
+        break;
+      case 'flowchart':
+        if (typeof openFlowchartModal === 'function') openFlowchartModal();
+        break;
+      case 'sankey':
+        if (typeof openSankeyModal === 'function') openSankeyModal();
+        break;
+      case 'fsm':
+        if (typeof openFsmModal === 'function') openFsmModal();
+        break;
+      case 'timing':
+        if (typeof openTimingModal === 'function') openTimingModal();
+        break;
+      case 'circuit':
+        if (typeof openCircuitModal === 'function') openCircuitModal();
+        break;
+      default:
+        if (typeof openTableModal === 'function') openTableModal();
+        break;
+    }
+  });
+}
+
+const openFormulaBtn = document.getElementById('open-formula-btn');
+const formulaLibrarySelect = document.getElementById('formula-library-select');
+
+if (openFormulaBtn) {
+  openFormulaBtn.addEventListener('click', () => {
+    const val = formulaLibrarySelect ? formulaLibrarySelect.value : 'math';
+    switch (val) {
+      case 'math':
+        if (typeof openModal === 'function') openModal();
+        break;
+      case 'chem-formula':
+        if (typeof openChemFormulaModal === 'function') openChemFormulaModal();
+        break;
+      case 'chem-struct':
+      case 'chem':
+        if (typeof openChemModal === 'function') openChemModal();
+        break;
+      case 'feynman':
+        if (typeof openFeynmanModal === 'function') openFeynmanModal();
+        break;
+      default:
+        if (typeof openModal === 'function') openModal();
+        break;
+    }
+  });
+}
+
+// ==========================================
 // 画像ファイル出力モーダルの制御
 // ==========================================
 const exportModal = document.getElementById('export-modal');
@@ -6356,6 +7942,11 @@ const exportDownloadBtn = document.getElementById('export-download-btn');
 const exportScaleRadios = document.querySelectorAll('input[name="export-scale"]');
 const exportBgRadios = document.querySelectorAll('input[name="export-bg"]');
 const exportColorRadios = document.querySelectorAll('input[name="export-color-mode"]');
+const exportTableOptions = document.getElementById('export-table-options');
+const exportTableThemeGroup = document.getElementById('export-table-theme-group');
+const exportCellPaddingSlider = document.getElementById('export-cell-padding-slider');
+const exportCellPaddingValue = document.getElementById('export-cell-padding-value');
+const exportTableThemeRadios = document.querySelectorAll('input[name="export-table-theme"]');
 
 function openExportModal() {
   if (!exportModal) return;
@@ -6374,10 +7965,20 @@ function openExportModal() {
   const sankeySources = previewArea.querySelectorAll('.sankey-preview-container');
   const flowchartSources = previewArea.querySelectorAll('.flowchart-preview-container');
   const tableSources = previewArea.querySelectorAll('.table-preview-container');
+  const matrixSources = previewArea.querySelectorAll('.matrix-preview-container');
+  const pyramidSources = previewArea.querySelectorAll('.pyramid-preview-container');
 
   if (tableSources.length > 0) {
     tableSources.forEach((tblEl) => {
       exportTarget.appendChild(tblEl.cloneNode(true));
+    });
+  } else if (matrixSources.length > 0) {
+    matrixSources.forEach((matEl) => {
+      exportTarget.appendChild(matEl.cloneNode(true));
+    });
+  } else if (pyramidSources.length > 0) {
+    pyramidSources.forEach((pyrEl) => {
+      exportTarget.appendChild(pyrEl.cloneNode(true));
     });
   } else if (flowchartSources.length > 0) {
     flowchartSources.forEach((flowEl) => {
@@ -6422,6 +8023,12 @@ function openExportModal() {
     fallback.style.color = '#64748b';
     fallback.dataset.baseFontSize = '14';
     exportTarget.appendChild(fallback);
+  }
+
+  // 表専用オプションの表示/非表示（エクスポート対象に表が含まれる場合のみ表示）
+  const hasTable = exportTarget.querySelector('.physi-table') !== null;
+  if (exportTableOptions) {
+    exportTableOptions.style.display = hasTable ? 'block' : 'none';
   }
 
   // クローン内のSVGの初期基準寸法を退避
@@ -6476,6 +8083,11 @@ function updateExportStyle() {
     // KaTeX数式の文字サイズ変倍（最外層のみに適用し累積縮小を防止）
     exportTarget.querySelectorAll('.katex').forEach((kEl) => {
       if (kEl.parentElement && kEl.parentElement.closest('.katex')) return;
+      // 表（テーブル）内のインライン数式はテーブル全体のフォントサイズを継承
+      if (kEl.closest('.physi-table')) {
+        kEl.style.fontSize = '';
+        return;
+      }
       const baseFs = parseFloat(kEl.dataset.baseFontSize || '26');
       kEl.style.fontSize = `${(baseFs * scale).toFixed(1)}px`;
     });
@@ -6511,8 +8123,56 @@ function updateExportStyle() {
   const selectedColorMode = document.querySelector('input[name="export-color-mode"]:checked')?.value || 'color';
   if (selectedColorMode === 'monochrome') {
     exportTarget.classList.add('monochrome-mode');
+    if (exportTableThemeGroup) exportTableThemeGroup.style.display = 'none';
   } else {
     exportTarget.classList.remove('monochrome-mode');
+    if (exportTableThemeGroup) exportTableThemeGroup.style.display = 'block';
+  }
+
+  // 5. 表（テーブル）専用オプションの反映（セル余白割合 & テーマカラー）
+  const tableEl = exportTarget.querySelector('.physi-table');
+  if (tableEl) {
+    // セル余白割合の反映
+    if (exportCellPaddingSlider && exportCellPaddingValue) {
+      const padPercent = parseInt(exportCellPaddingSlider.value, 10) || 100;
+      exportCellPaddingValue.textContent = `${padPercent}%`;
+      const ratio = padPercent / 100;
+
+      // 10%〜200% に応じた上下余白（最小1px）・左右余白（最小3px）の算出
+      const padY = Math.max(1, parseFloat((9 * ratio).toFixed(1)));
+      const padYtd = Math.max(1, parseFloat((8 * ratio).toFixed(1)));
+      const padX = Math.max(3, parseFloat((15 * ratio).toFixed(1)));
+
+      // 余白に連動した行間（line-height）の圧縮（10%で1.15、100%で1.45）
+      const lineH = Math.max(1.15, Math.min(1.6, parseFloat((1.1 + 0.35 * ratio).toFixed(2))));
+
+      tableEl.style.setProperty('--cell-pad-y', `${padY}px`);
+      tableEl.style.setProperty('--cell-pad-x', `${padX}px`);
+      tableEl.style.lineHeight = `${lineH}`;
+
+      tableEl.querySelectorAll('th').forEach((th) => {
+        th.style.padding = `${padY}px ${padX}px`;
+        th.style.lineHeight = `${lineH}`;
+      });
+      tableEl.querySelectorAll('td').forEach((td) => {
+        td.style.padding = `${padYtd}px ${padX}px`;
+        td.style.lineHeight = `${lineH}`;
+      });
+    }
+
+    // テーマカラーの反映
+    const selectedTheme = document.querySelector('input[name="export-table-theme"]:checked')?.value || 'blue';
+    tableEl.classList.remove(
+      'table-theme-blue',
+      'table-theme-slate',
+      'table-theme-emerald',
+      'table-theme-purple',
+      'table-theme-amber',
+      'table-theme-rose',
+      'table-theme-cyan',
+      'table-theme-navy'
+    );
+    tableEl.classList.add(`table-theme-${selectedTheme}`);
   }
 }
 
@@ -6523,8 +8183,12 @@ if (exportSizeSlider) {
 if (exportPaddingSlider) {
   exportPaddingSlider.addEventListener('input', updateExportStyle);
 }
+if (exportCellPaddingSlider) {
+  exportCellPaddingSlider.addEventListener('input', updateExportStyle);
+}
 exportBgRadios.forEach((radio) => radio.addEventListener('change', updateExportStyle));
 exportColorRadios.forEach((radio) => radio.addEventListener('change', updateExportStyle));
+exportTableThemeRadios.forEach((radio) => radio.addEventListener('change', updateExportStyle));
 
 if (openExportBtn) {
   openExportBtn.addEventListener('click', openExportModal);

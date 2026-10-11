@@ -20,41 +20,59 @@
 
   <div class="editor-card">
     <h1>PhysiNote</h1>
-    <div class="instruction">
-      数式を入力すると自動整形されます。枠全体にカーソルを合わせると「数式の物理的意味」、各記号に合わせると「単位・意味」が表示されます。
-    </div>
 
     <div class="library-trigger-container">
-      <button type="button" id="open-library-btn" class="library-trigger-btn">
-        <span class="icon">📖</span> 数式ライブラリを開く
-      </button>
-      <button type="button" id="open-chem-library-btn" class="library-trigger-btn chem-library-trigger-btn">
-        <span class="icon">🧪</span> 化学式ライブラリを開く
-      </button>
-      <button type="button" id="open-circuit-library-btn" class="library-trigger-btn circuit-library-trigger-btn">
-        <span class="icon">⚡</span> 回路ライブラリを開く
-      </button>
-      <button type="button" id="open-timing-library-btn" class="library-trigger-btn timing-library-trigger-btn">
-        <span class="icon">⏱️</span> 波形ライブラリを開く
-      </button>
-      <button type="button" id="open-fsm-library-btn" class="library-trigger-btn fsm-library-trigger-btn">
-        <span class="icon">🔄</span> 状態遷移図ライブラリを開く
-      </button>
-      <button type="button" id="open-feynman-library-btn" class="library-trigger-btn feynman-library-trigger-btn">
-        <span class="icon">⚛️</span> ファインマン図ライブラリを開く
-      </button>
-      <button type="button" id="open-sankey-library-btn" class="library-trigger-btn sankey-library-trigger-btn">
-        <span class="icon">🔀</span> サンキー図ライブラリを開く
-      </button>
-      <button type="button" id="open-flowchart-library-btn" class="library-trigger-btn flowchart-library-trigger-btn">
-        <span class="icon">📊</span> フローチャートライブラリを開く
-      </button>
-      <button type="button" id="open-table-library-btn" class="library-trigger-btn table-library-trigger-btn">
-        <span class="icon">📋</span> 表ライブラリを開く
-      </button>
-      <button type="button" id="open-export-btn" class="export-trigger-btn">
-        <span class="icon">🖼️</span> 画像ファイル出力
-      </button>
+      <!-- 1. 表・図作成プルダウン群（初期値：表） -->
+      <div class="library-control-unit">
+        <label for="diagram-library-select" class="library-unit-label">表・図作成</label>
+        <div class="select-btn-group">
+          <select id="diagram-library-select" class="library-select">
+            <option value="table" selected>📋 表 (Markdown / CSV / LaTeX)</option>
+            <option value="matrix">🎯 2軸マップ・マトリクス図</option>
+            <option value="pyramid">🔺 ピラミッド図・階層図</option>
+            <option value="flowchart">📊 フローチャート</option>
+            <option value="sankey">🔀 サンキー図</option>
+            <option value="fsm">🔄 状態遷移図</option>
+            <option value="timing">⏱️ 波形・タイミング図</option>
+            <option value="circuit">⚡ 回路図</option>
+          </select>
+          <button type="button" id="open-diagram-btn" class="library-action-btn diagram-action-btn">
+            開く
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. 式作成プルダウン群（初期値：物理） -->
+      <div class="library-control-unit">
+        <label for="formula-library-select" class="library-unit-label">式作成</label>
+        <div class="select-btn-group">
+          <select id="formula-library-select" class="library-select">
+            <option value="math" selected>📖 物理・数学の数式</option>
+            <option value="chem-formula">⚗️ 化学式（分子式・反応式）</option>
+            <option value="chem-struct">🧪 化学構造式（平面構造式）</option>
+            <option value="feynman">⚛️ ファインマン図</option>
+          </select>
+          <button type="button" id="open-formula-btn" class="library-action-btn formula-action-btn">
+            開く
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. 画像ファイル出力ボタン -->
+      <div class="library-control-unit library-export-unit">
+        <button type="button" id="open-export-btn" class="export-trigger-btn">
+          <span class="icon">🖼️</span> 画像ファイル出力
+        </button>
+      </div>
+    </div>
+
+    <!-- 構文書式インジケーター（書式説明） -->
+    <div class="syntax-guide-bar" id="syntax-guide-bar">
+      <div class="syntax-guide-left">
+        <span class="syntax-guide-label">構文書式:</span>
+        <span class="syntax-badge badge-latex" id="syntax-type-badge">LaTeX数式</span>
+      </div>
+      <div class="syntax-guide-right" id="syntax-type-desc">KaTeX準拠 (例: F = m * a, \frac{a}{b}, 行列)</div>
     </div>
 
     <textarea id="formula-input" placeholder="例: F = m * a または F = \frac{G \cdot M \cdot m}{r^2}">F = m * a</textarea>
@@ -151,11 +169,44 @@
     </div>
   </div>
 
-  <!-- 化学式ライブラリ モーダル -->
+  <!-- 化学式（分子式・反応式）ライブラリ モーダル -->
+  <div id="chem-formula-library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="chem-formula-modal-title">
+      <div class="modal-header">
+        <h2 id="chem-formula-modal-title">化学式（分子式・反応式）ライブラリ</h2>
+        <button type="button" id="chem-formula-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="modal-search-area">
+        <input type="text" id="chem-formula-library-search-input" placeholder="物質名、化学式、キーワードで検索..." autocomplete="off">
+      </div>
+
+      <div class="modal-category-tabs" id="chem-formula-library-category-tabs">
+        <button type="button" class="chem-formula-category-tab active" data-category="すべて">すべて</button>
+        <button type="button" class="chem-formula-category-tab" data-category="無機物質・単体">無機物質・単体</button>
+        <button type="button" class="chem-formula-category-tab" data-category="有機化合物">有機化合物</button>
+        <button type="button" class="chem-formula-category-tab" data-category="イオン・酸・塩">イオン・酸・塩</button>
+        <button type="button" class="chem-formula-category-tab" data-category="化学反応式">化学反応式</button>
+      </div>
+
+      <div class="modal-content-area">
+        <div id="chem-formula-library-card-grid" class="card-grid"></div>
+        <div id="chem-formula-library-empty-message" class="empty-message" style="display: none;">
+          一致する化学式が見つかりませんでした
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="chem-formula-modal-close-footer" class="modal-btn-secondary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 化学構造式（平面構造式）ライブラリ モーダル -->
   <div id="chem-library-modal" class="modal-overlay" aria-hidden="true">
     <div class="modal-dialog" role="dialog" aria-labelledby="chem-modal-title">
       <div class="modal-header">
-        <h2 id="chem-modal-title">化学式ライブラリ</h2>
+        <h2 id="chem-modal-title">化学構造式（平面構造式）ライブラリ</h2>
         <button type="button" id="chem-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
       </div>
 
@@ -409,6 +460,70 @@
     </div>
   </div>
 
+  <!-- 2軸マップ・マトリクス図 ライブラリ モーダル -->
+  <div id="matrix-library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="matrix-modal-title">
+      <div class="modal-header">
+        <h2 id="matrix-modal-title">2軸マップ・マトリクス図（ポジショニングマップ）ライブラリ</h2>
+        <button type="button" id="matrix-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="modal-search-area">
+        <input type="text" id="matrix-library-search-input" placeholder="マップ名、軸名、キーワードで検索..." autocomplete="off">
+      </div>
+
+      <div class="modal-category-tabs" id="matrix-library-category-tabs">
+        <button type="button" class="matrix-category-tab active" data-category="すべて">すべて</button>
+        <button type="button" class="matrix-category-tab" data-category="ビジネス・戦略">ビジネス・戦略</button>
+        <button type="button" class="matrix-category-tab" data-category="タスク・優先度">タスク・優先度</button>
+        <button type="button" class="matrix-category-tab" data-category="物理・工学比較">物理・工学比較</button>
+      </div>
+
+      <div class="modal-content-area">
+        <div id="matrix-library-card-grid" class="card-grid"></div>
+        <div id="matrix-library-empty-message" class="empty-message" style="display: none;">
+          一致するマップが見つかりませんでした
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="matrix-modal-close-footer" class="modal-btn-secondary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ピラミッド図・階層図 ライブラリ モーダル -->
+  <div id="pyramid-library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="pyramid-modal-title">
+      <div class="modal-header">
+        <h2 id="pyramid-modal-title">ピラミッド図・階層図（マズロー・スクールカースト等）ライブラリ</h2>
+        <button type="button" id="pyramid-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+      </div>
+
+      <div class="modal-search-area">
+        <input type="text" id="pyramid-library-search-input" placeholder="ピラミッド名、階層名、キーワードで検索..." autocomplete="off">
+      </div>
+
+      <div class="modal-category-tabs" id="pyramid-library-category-tabs">
+        <button type="button" class="pyramid-category-tab active" data-category="すべて">すべて</button>
+        <button type="button" class="pyramid-category-tab" data-category="社会・組織">社会・組織</button>
+        <button type="button" class="pyramid-category-tab" data-category="心理・思考">心理・思考</button>
+        <button type="button" class="pyramid-category-tab" data-category="科学・工学">科学・工学</button>
+      </div>
+
+      <div class="modal-content-area">
+        <div id="pyramid-library-card-grid" class="card-grid"></div>
+        <div id="pyramid-library-empty-message" class="empty-message" style="display: none;">
+          一致するピラミッド図が見つかりませんでした
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="pyramid-modal-close-footer" class="modal-btn-secondary">閉じる</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 画像出力設定 モーダル -->
   <div id="export-modal" class="modal-overlay" aria-hidden="true">
     <div class="modal-dialog export-dialog" role="dialog" aria-labelledby="export-modal-title">
@@ -417,7 +532,8 @@
         <button type="button" id="export-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
       </div>
 
-      <div class="export-controls-container">
+      <div class="export-dialog-body">
+        <div class="export-controls-container">
         <!-- 記号・画像サイズ（拡大縮小）設定 -->
         <div class="export-control-group">
           <label for="export-size-slider" class="export-control-label">
@@ -473,6 +589,48 @@
             <label class="export-radio-label">
               <input type="radio" name="export-color-mode" value="monochrome"> モノクロ（白黒）
             </label>
+          </div>
+        </div>
+
+        <!-- 表専用オプション（表出力時のみ表示） -->
+        <div id="export-table-options" class="export-table-options" style="display: none;">
+          <!-- セル余白（パディング割合） -->
+          <div class="export-control-group">
+            <label for="export-cell-padding-slider" class="export-control-label">
+              セル余白割合: <span id="export-cell-padding-value">100%</span>
+            </label>
+            <input type="range" id="export-cell-padding-slider" min="10" max="200" value="100" step="5">
+          </div>
+
+          <!-- 表の色合い（カラー時のみ表示） -->
+          <div class="export-control-group" id="export-table-theme-group">
+            <span class="export-control-label">表の色合い:</span>
+            <div class="export-radio-group export-theme-radio-group">
+              <label class="export-radio-label theme-label theme-blue">
+                <input type="radio" name="export-table-theme" value="blue" checked> 🌊 ブルー
+              </label>
+              <label class="export-radio-label theme-label theme-slate">
+                <input type="radio" name="export-table-theme" value="slate"> 🪨 スレート
+              </label>
+              <label class="export-radio-label theme-label theme-emerald">
+                <input type="radio" name="export-table-theme" value="emerald"> 🍃 エメラルド
+              </label>
+              <label class="export-radio-label theme-label theme-purple">
+                <input type="radio" name="export-table-theme" value="purple"> 🍇 パープル
+              </label>
+              <label class="export-radio-label theme-label theme-amber">
+                <input type="radio" name="export-table-theme" value="amber"> 🍊 アンバー
+              </label>
+              <label class="export-radio-label theme-label theme-rose">
+                <input type="radio" name="export-table-theme" value="rose"> 🌹 ローズ
+              </label>
+              <label class="export-radio-label theme-label theme-cyan">
+                <input type="radio" name="export-table-theme" value="cyan"> 💎 シアン
+              </label>
+              <label class="export-radio-label theme-label theme-navy">
+                <input type="radio" name="export-table-theme" value="navy"> 🫐 ネイビー
+              </label>
+            </div>
           </div>
         </div>
       </div>

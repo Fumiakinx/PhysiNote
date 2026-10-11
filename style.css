@@ -25,114 +25,93 @@ h1 {
   gap: 8px;
 }
 
-.instruction {
-  font-size: 14px;
-  color: #64748b;
-  margin-bottom: 12px;
-}
-
-/* 数式ライブラリ & 画像出力 トリガーボタン */
+/* コントロール・ツールバー（表・図作成 / 式作成 / 画像出力） */
 .library-trigger-container {
   display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
+  align-items: flex-end;
 }
 
-.library-trigger-btn {
+.library-control-unit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.library-unit-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
+
+.select-btn-group {
+  display: inline-flex;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.library-select {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.library-select:hover {
+  background-color: #f1f5f9;
+}
+
+.library-select:focus {
+  border-color: #0284c7;
+  background-color: #ffffff;
+}
+
+.library-action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background-color: #0284c7;
+  justify-content: center;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
   color: #ffffff;
   border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
   cursor: pointer;
+  border-radius: 0 8px 8px 0;
   transition: background-color 0.15s ease, transform 0.1s ease;
-  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2);
 }
 
-.library-trigger-btn:hover {
+.diagram-action-btn {
+  background-color: #475569;
+}
+
+.diagram-action-btn:hover {
+  background-color: #334155;
+}
+
+.formula-action-btn {
+  background-color: #0284c7;
+}
+
+.formula-action-btn:hover {
   background-color: #0369a1;
 }
 
-.library-trigger-btn:active {
+.library-action-btn:active {
   transform: translateY(1px);
 }
 
-.chem-library-trigger-btn {
-  background-color: #7c3aed;
-  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
-}
-
-.chem-library-trigger-btn:hover {
-  background-color: #6d28d9;
-}
-
-.circuit-library-trigger-btn {
-  background-color: #d97706;
-  box-shadow: 0 2px 4px rgba(217, 119, 6, 0.2);
-}
-
-.circuit-library-trigger-btn:hover {
-  background-color: #b45309;
-}
-
-.timing-library-trigger-btn {
-  background-color: #0d9488;
-  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.2);
-}
-
-.timing-library-trigger-btn:hover {
-  background-color: #0f766e;
-}
-
-.fsm-library-trigger-btn {
-  background-color: #6366f1;
-  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
-}
-
-.fsm-library-trigger-btn:hover {
-  background-color: #4f46e5;
-}
-
-.feynman-library-trigger-btn {
-  background-color: #be185d;
-  box-shadow: 0 2px 4px rgba(190, 24, 93, 0.2);
-}
-
-.feynman-library-trigger-btn:hover {
-  background-color: #9d174d;
-}
-
-.sankey-library-trigger-btn {
-  background-color: #0891b2;
-  box-shadow: 0 2px 4px rgba(8, 145, 178, 0.2);
-}
-
-.sankey-library-trigger-btn:hover {
-  background-color: #0e7490;
-}
-
-.flowchart-library-trigger-btn {
-  background-color: #2563eb;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
-}
-
-.flowchart-library-trigger-btn:hover {
-  background-color: #1d4ed8;
-}
-
-.table-library-trigger-btn {
-  background-color: #475569;
-  box-shadow: 0 2px 4px rgba(71, 85, 105, 0.2);
-}
-
-.table-library-trigger-btn:hover {
-  background-color: #334155;
+.library-export-unit {
+  margin-left: auto;
 }
 
 .export-trigger-btn {
@@ -144,11 +123,13 @@ h1 {
   border: none;
   padding: 8px 16px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.15s ease, transform 0.1s ease;
-  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.2);
+  height: 37px;
+  box-sizing: border-box;
 }
 
 .export-trigger-btn:hover {
@@ -157,6 +138,86 @@ h1 {
 
 .export-trigger-btn:active {
   transform: translateY(1px);
+}
+
+/* 構文書式インジケーター（入力欄直上の書式案内） */
+.syntax-guide-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  margin-bottom: 6px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.syntax-guide-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.syntax-guide-label {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.syntax-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.badge-latex {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.badge-custom {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.badge-table {
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.badge-chem-formula {
+  background-color: #ecfdf5;
+  color: #047857;
+}
+
+.badge-chem-struct {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+
+.badge-chem {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+
+.badge-empty {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+}
+
+.syntax-guide-right {
+  color: #475569;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 textarea {
@@ -490,6 +551,39 @@ body.modal-open {
   background-color: #0284c7;
   border-color: #0284c7;
   color: #ffffff;
+}
+
+.chem-formula-category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.chem-formula-category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.chem-formula-category-tab.active {
+  background-color: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+.formula-card.chem-formula-card:hover {
+  border-color: #059669;
+}
+
+.chem-formula-card-tag {
+  background-color: #ecfdf5;
+  color: #059669;
 }
 
 .chem-category-tab {
@@ -993,6 +1087,8 @@ body.modal-open {
 }
 
 .physi-table {
+  --cell-pad-y: 10px;
+  --cell-pad-x: 16px;
   border-collapse: collapse;
   width: auto;
   max-width: 100%;
@@ -1008,10 +1104,11 @@ body.modal-open {
   background-color: #f8fafc;
   color: #1e293b;
   font-weight: 700;
-  padding: 10px 16px;
+  padding: var(--cell-pad-y) var(--cell-pad-x);
   border-bottom: 2px solid #cbd5e1;
   border-right: 1px solid #e2e8f0;
-  white-space: nowrap;
+  vertical-align: middle;
+  word-break: break-word;
 }
 
 .physi-table th:last-child {
@@ -1019,10 +1116,12 @@ body.modal-open {
 }
 
 .physi-table td {
-  padding: 9px 16px;
+  padding: calc(var(--cell-pad-y) * 0.9) var(--cell-pad-x);
   border-bottom: 1px solid #e2e8f0;
   border-right: 1px solid #e2e8f0;
   color: #334155;
+  vertical-align: middle;
+  word-break: break-word;
 }
 
 .physi-table td:last-child {
@@ -1041,6 +1140,181 @@ body.modal-open {
   font-size: 1.05em;
 }
 
+/* 表のテーマカラー定義 */
+.physi-table.table-theme-blue {
+  border-color: #bae6fd;
+}
+.physi-table.table-theme-blue th {
+  background-color: #f0f9ff;
+  color: #0369a1;
+  border-bottom-color: #bae6fd;
+  border-right-color: #e0f2fe;
+}
+.physi-table.table-theme-blue td {
+  border-bottom-color: #f1f5f9;
+  border-right-color: #f1f5f9;
+}
+.physi-table.table-theme-blue tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.physi-table.table-theme-slate {
+  border-color: #cbd5e1;
+}
+.physi-table.table-theme-slate th {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  border-bottom-color: #94a3b8;
+  border-right-color: #e2e8f0;
+}
+.physi-table.table-theme-slate td {
+  border-bottom-color: #e2e8f0;
+  border-right-color: #e2e8f0;
+}
+.physi-table.table-theme-slate tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.physi-table.table-theme-emerald {
+  border-color: #a7f3d0;
+}
+.physi-table.table-theme-emerald th {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border-bottom-color: #6ee7b7;
+  border-right-color: #d1fae5;
+}
+.physi-table.table-theme-emerald td {
+  border-bottom-color: #f0fdf4;
+  border-right-color: #f0fdf4;
+}
+.physi-table.table-theme-emerald tbody tr:nth-child(even) {
+  background-color: #f0fdf4;
+}
+
+.physi-table.table-theme-purple {
+  border-color: #ddd6fe;
+}
+.physi-table.table-theme-purple th {
+  background-color: #f5f3ff;
+  color: #5b21b6;
+  border-bottom-color: #c4b5fd;
+  border-right-color: #ede9fe;
+}
+.physi-table.table-theme-purple td {
+  border-bottom-color: #f5f3ff;
+  border-right-color: #f5f3ff;
+}
+.physi-table.table-theme-purple tbody tr:nth-child(even) {
+  background-color: #faf5ff;
+}
+
+.physi-table.table-theme-amber {
+  border-color: #fde68a;
+}
+.physi-table.table-theme-amber th {
+  background-color: #fffbeb;
+  color: #92400e;
+  border-bottom-color: #fcd34d;
+  border-right-color: #fef3c7;
+}
+.physi-table.table-theme-amber td {
+  border-bottom-color: #fef3c7;
+  border-right-color: #fef3c7;
+}
+.physi-table.table-theme-amber tbody tr:nth-child(even) {
+  background-color: #fffdf5;
+}
+
+.physi-table.table-theme-rose {
+  border-color: #fecdd3;
+}
+.physi-table.table-theme-rose th {
+  background-color: #fff1f2;
+  color: #be123c;
+  border-bottom-color: #fda4af;
+  border-right-color: #ffe4e6;
+}
+.physi-table.table-theme-rose td {
+  border-bottom-color: #ffe4e6;
+  border-right-color: #ffe4e6;
+}
+.physi-table.table-theme-rose tbody tr:nth-child(even) {
+  background-color: #fff5f6;
+}
+
+.physi-table.table-theme-cyan {
+  border-color: #a5f3fc;
+}
+.physi-table.table-theme-cyan th {
+  background-color: #ecfeff;
+  color: #0e7490;
+  border-bottom-color: #67e8f9;
+  border-right-color: #cffafe;
+}
+.physi-table.table-theme-cyan td {
+  border-bottom-color: #cffafe;
+  border-right-color: #cffafe;
+}
+.physi-table.table-theme-cyan tbody tr:nth-child(even) {
+  background-color: #f0fdfa;
+}
+
+.physi-table.table-theme-navy {
+  border-color: #c7d2fe;
+}
+.physi-table.table-theme-navy th {
+  background-color: #eef2ff;
+  color: #3730a3;
+  border-bottom-color: #a5b4fc;
+  border-right-color: #e0e7ff;
+}
+.physi-table.table-theme-navy td {
+  border-bottom-color: #e0e7ff;
+  border-right-color: #e0e7ff;
+}
+.physi-table.table-theme-navy tbody tr:nth-child(even) {
+  background-color: #f5f7ff;
+}
+
+/* 表出力専用オプション枠 */
+.export-table-options {
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 10px;
+}
+
+.export-theme-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.export-theme-radio-group .theme-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.export-theme-radio-group .theme-label:hover {
+  background-color: #f1f5f9;
+}
+
+.export-theme-radio-group .theme-label:has(input:checked) {
+  border-color: #0284c7;
+  background-color: #e0f2fe;
+  font-weight: 600;
+}
+
 .export-target .table-preview-container {
   padding: 0;
   margin: 0;
@@ -1049,6 +1323,162 @@ body.modal-open {
 }
 
 .export-target .table-preview-container .chem-structure-label {
+  display: none;
+}
+
+/* 2軸マップ・マトリクス図（ポジショニングマップ）用スタイル */
+.matrix-category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.matrix-category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.matrix-category-tab.active {
+  background-color: #e11d48;
+  border-color: #e11d48;
+  color: #ffffff;
+}
+
+.formula-card.matrix-card:hover {
+  border-color: #e11d48;
+}
+
+.matrix-card-tag {
+  background-color: #ffe4e6;
+  color: #be123c;
+}
+
+.matrix-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow-x: auto;
+}
+
+.matrix-card-preview svg,
+.matrix-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.matrix-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+.export-target .matrix-preview-container {
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.export-target .matrix-preview-container .chem-structure-label {
+  display: none;
+}
+
+.export-target.transparent-bg .matrix-quadrant-bg {
+  fill: transparent !important;
+}
+
+/* ピラミッド図・階層図用スタイル */
+.pyramid-category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.pyramid-category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.pyramid-category-tab.active {
+  background-color: #d97706;
+  border-color: #d97706;
+  color: #ffffff;
+}
+
+.formula-card.pyramid-card:hover {
+  border-color: #d97706;
+}
+
+.pyramid-card-tag {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.pyramid-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow-x: auto;
+}
+
+.pyramid-card-preview svg,
+.pyramid-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.pyramid-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+.export-target .pyramid-preview-container {
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.export-target .pyramid-preview-container .chem-structure-label {
   display: none;
 }
 
@@ -1159,11 +1589,14 @@ body.modal-open {
 
 /* モーダルフッター */
 .modal-footer {
-  padding: 12px 20px;
+  padding: 14px 20px;
   border-top: 1px solid #e2e8f0;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
   background-color: #ffffff;
+  flex-shrink: 0;
 }
 
 .modal-btn-secondary {
@@ -1396,6 +1829,17 @@ body.modal-open {
 /* 画像ファイル出力設定モーダル */
 .export-dialog {
   max-width: 620px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.export-dialog-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .export-controls-container {
@@ -1462,8 +1906,8 @@ body.modal-open {
 }
 
 .export-preview-board {
-  min-height: 140px;
-  max-height: 380px;
+  min-height: 130px;
+  max-height: 260px;
   overflow: auto;
   display: flex;
   align-items: center;
