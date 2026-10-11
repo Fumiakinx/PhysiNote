@@ -1251,10 +1251,40 @@ function parseCircuiTikz(text) {
   let clean = text.replace(/\\circuit\{([\s\S]*)\}/g, '$1');
   const commands = clean.split(';').map((c) => c.trim()).filter((c) => c.length > 0);
   const elements = [];
+  const loops = [];
 
   for (const cmd of commands) {
     if (!cmd.startsWith('\\draw')) continue;
     const rest = cmd.slice(5).trim();
+
+    // 1. ループ電流ノードの検出: \draw (x, y) node[loop=...] または node[loop] {...}
+    const loopNodeMatch = rest.match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)\s*node\s*\[([^\]]*)\](?:\s*\{([^}]*)\})?/i);
+    if (loopNodeMatch) {
+      const lx = parseFloat(loopNodeMatch[1]);
+      const ly = parseFloat(loopNodeMatch[2]);
+      const opts = loopNodeMatch[3].trim();
+      const body = (loopNodeMatch[4] || '').trim();
+
+      if (/loop|mesh/i.test(opts)) {
+        let label = '';
+        const eqMatch = opts.match(/(?:loop|mesh)\s*=\s*(.+)/i);
+        if (eqMatch) {
+          label = eqMatch[1].trim();
+        } else if (body) {
+          label = body;
+        }
+        label = label
+          .replace(/\$/g, '')
+          .replace(/\\text\{([^}]*)\}/g, '$1')
+          .replace(/_\{([^}]+)\}/g, '_$1');
+
+        const dir = /ccw|counter/i.test(opts) ? 'ccw' : 'cw';
+        loops.push({ x: lx, y: ly, label, dir });
+        continue;
+      }
+    }
+
+    // 2. 通常の線分および素子
     const startMatch = rest.match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/);
     if (!startMatch) continue;
 
@@ -1262,38 +1292,88 @@ function parseCircuiTikz(text) {
     let curY = parseFloat(startMatch[2]);
     let remain = rest.slice(startMatch[0].length).trim();
 
-    const segRegex = /^(to\s*\[([^\]]+)\]|--)\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/;
-
     while (remain.length > 0) {
-      const match = remain.match(segRegex);
-      if (!match) break;
+      let isWire = false;
+      let toTypeStr = '';
+      let nextX = 0;
+      let nextY = 0;
+      let consumedLen = 0;
 
-      const isWire = match[1] === '--';
-      const toTypeStr = isWire ? '' : match[2];
-      const nextX = parseFloat(match[3]);
-      const nextY = parseFloat(match[4]);
+      if (remain.startsWith('--')) {
+        isWire = true;
+        const afterWire = remain.slice(2).trim();
+        const coordMatch = afterWire.match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/);
+        if (!coordMatch) break;
+        nextX = parseFloat(coordMatch[1]);
+        nextY = parseFloat(coordMatch[2]);
+        consumedLen = 2 + (remain.length - 2 - afterWire.length) + coordMatch[0].length;
+      } else if (remain.match(/^to\s*\[/)) {
+        const startBracketIdx = remain.indexOf('[');
+        let depth = 0;
+        let endBracketIdx = -1;
+        for (let i = startBracketIdx; i < remain.length; i++) {
+          if (remain[i] === '[') depth++;
+          else if (remain[i] === ']') {
+            depth--;
+            if (depth === 0) {
+              endBracketIdx = i;
+              break;
+            }
+          }
+        }
+        if (endBracketIdx === -1) break;
+        toTypeStr = remain.slice(startBracketIdx + 1, endBracketIdx);
+        const afterTo = remain.slice(endBracketIdx + 1).trim();
+        const coordMatch = afterTo.match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/);
+        if (!coordMatch) break;
+        nextX = parseFloat(coordMatch[1]);
+        nextY = parseFloat(coordMatch[2]);
+        consumedLen = (endBracketIdx + 1) + (remain.length - (endBracketIdx + 1) - afterTo.length) + coordMatch[0].length;
+      } else {
+        break;
+      }
 
       let type = 'wire';
       let label = '';
+      let xshift = 0;
       let yshift = 0;
+      let side = null;
+
       if (!isWire) {
-        const opts = toTypeStr.split(',').map((s) => s.trim());
-        const mainPart = opts[0];
-        const parts = mainPart.split('=');
-        type = parts[0].trim();
-        if (parts.length > 1) {
-          let rawLabel = parts.slice(1).join('=').trim();
+        let mainPart = toTypeStr;
+
+        const mX = mainPart.match(/(?:^|,)\s*xshift\s*=\s*(-?\d+(?:\.\d+)?)/i);
+        if (mX) {
+          xshift = parseFloat(mX[1]);
+          mainPart = mainPart.replace(mX[0], '');
+        }
+
+        const mY = mainPart.match(/(?:^|,)\s*yshift\s*=\s*(-?\d+(?:\.\d+)?)/i);
+        if (mY) {
+          yshift = parseFloat(mY[1]);
+          mainPart = mainPart.replace(mY[0], '');
+        }
+
+        const mSide = mainPart.match(/(?:^|,)\s*(left|right|above|below)\b/i);
+        if (mSide) {
+          side = mSide[1].toLowerCase();
+          mainPart = mainPart.replace(mSide[0], '');
+        }
+        mainPart = mainPart.replace(/^,\s*|,\s*$/g, '').trim();
+
+        const eqIdx = mainPart.indexOf('=');
+        if (eqIdx !== -1) {
+          type = mainPart.slice(0, eqIdx).trim();
+          let rawLabel = mainPart.slice(eqIdx + 1).trim();
           rawLabel = rawLabel
             .replace(/\$/g, '')
             .replace(/\\text\{([^}]*)\}/g, '$1')
+            .replace(/\\Omega/g, 'Ω')
+            .replace(/\\mu/g, 'μ')
             .replace(/_\{([^}]+)\}/g, '_$1');
           label = rawLabel;
-        }
-
-        for (let i = 1; i < opts.length; i++) {
-          const opt = opts[i];
-          const mY = opt.match(/^yshift\s*=\s*(-?\d+(?:\.\d+)?)/i);
-          if (mY) yshift = parseFloat(mY[1]);
+        } else {
+          type = mainPart.trim();
         }
       }
 
@@ -1304,22 +1384,27 @@ function parseCircuiTikz(text) {
         y2: nextY,
         type: type,
         label: label,
-        yshift: yshift
+        xshift: xshift,
+        yshift: yshift,
+        side: side
       });
 
       curX = nextX;
       curY = nextY;
-      remain = remain.slice(match[0].length).trim();
+      remain = remain.slice(consumedLen).trim();
     }
   }
 
-  return elements;
+  return { elements, loops };
 }
 
 function drawCircuitSvg(circuitText, container, labelText) {
   container.innerHTML = '';
-  const elements = parseCircuiTikz(circuitText);
-  if (!elements || elements.length === 0) {
+  const parsed = parseCircuiTikz(circuitText);
+  const elements = parsed ? parsed.elements : [];
+  const loops = parsed ? parsed.loops : [];
+
+  if ((!elements || elements.length === 0) && (!loops || loops.length === 0)) {
     container.innerHTML = '<span style="color:#ef4444; font-size:12px;">回路構文を解析できませんでした</span>';
     return;
   }
@@ -1332,6 +1417,14 @@ function drawCircuitSvg(circuitText, container, labelText) {
   elements.forEach((el) => {
     pts.push({ x: el.x1 * scale, y: -el.y1 * scale });
     pts.push({ x: el.x2 * scale, y: -el.y2 * scale });
+  });
+
+  // ループ電流のバウンディングボックスも登録
+  loops.forEach((lp) => {
+    const cx = lp.x * scale;
+    const cy = -lp.y * scale;
+    pts.push({ x: cx - 35, y: cy - 35 });
+    pts.push({ x: cx + 35, y: cy + 35 });
   });
 
   // 回路の重心を暫定計算（法線ベクトルの外向き判定用）
@@ -1366,7 +1459,19 @@ function drawCircuitSvg(circuitText, container, labelText) {
     const toOutX = midX - centerX;
     const toOutY = midY - centerY;
 
-    if (nx * toOutX + ny * toOutY < 0) {
+    if (el.side === 'left') {
+      nx = -1;
+      ny = 0;
+    } else if (el.side === 'right') {
+      nx = 1;
+      ny = 0;
+    } else if (el.side === 'above') {
+      nx = 0;
+      ny = -1;
+    } else if (el.side === 'below') {
+      nx = 0;
+      ny = 1;
+    } else if (nx * toOutX + ny * toOutY < 0) {
       nx = -nx;
       ny = -ny;
     } else if (nx * toOutX + ny * toOutY === 0) {
@@ -1389,9 +1494,10 @@ function drawCircuitSvg(circuitText, container, labelText) {
     if (Math.abs(normDx) < Math.abs(normDy)) {
       autoYShift = -14;
     }
+    const manualXShift = el.xshift ? el.xshift : 0;
     const manualYShift = el.yshift ? -el.yshift : 0;
 
-    const lx = midX + nx * offsetDist;
+    const lx = midX + nx * offsetDist + manualXShift;
     const ly = midY + ny * offsetDist + autoYShift + manualYShift;
 
     let textAnchor = 'middle';
@@ -1405,8 +1511,10 @@ function drawCircuitSvg(circuitText, container, labelText) {
       else dominantBaseline = 'hanging';
     }
 
-    const textW = Math.max(el.label.length * 8.5 + 8, 22);
-    const textH = 18;
+    const lines = el.label.split(/\\n|\n/);
+    const maxLineLen = Math.max(...lines.map((l) => l.length));
+    const textW = Math.max(maxLineLen * 8.5 + 8, 22);
+    const textH = lines.length > 1 ? lines.length * 15 + 4 : 18;
 
     let rx = lx - textW / 2;
     if (textAnchor === 'start') rx = lx - 2;
@@ -1599,6 +1707,68 @@ function drawCircuitSvg(circuitText, container, labelText) {
         w2.setAttribute('stroke', strokeColor);
         w2.setAttribute('stroke-width', strokeWidth);
         compG.appendChild(w2);
+      } else if (normType === 'switch' || normType === 'sw' || normType === 'spst') {
+        // スイッチ（開閉器：端子2つ、斜めレバー、投入矢印）
+        const t1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        t1.setAttribute('cx', -10);
+        t1.setAttribute('cy', 0);
+        t1.setAttribute('r', 2.8);
+        t1.setAttribute('stroke', strokeColor);
+        t1.setAttribute('stroke-width', strokeWidth);
+        t1.setAttribute('fill', '#ffffff');
+        compG.appendChild(t1);
+
+        const t2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        t2.setAttribute('cx', 10);
+        t2.setAttribute('cy', 0);
+        t2.setAttribute('r', 2.8);
+        t2.setAttribute('stroke', strokeColor);
+        t2.setAttribute('stroke-width', strokeWidth);
+        t2.setAttribute('fill', '#ffffff');
+        compG.appendChild(t2);
+
+        const w1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        w1.setAttribute('x1', -18);
+        w1.setAttribute('y1', 0);
+        w1.setAttribute('x2', -13);
+        w1.setAttribute('y2', 0);
+        w1.setAttribute('stroke', strokeColor);
+        w1.setAttribute('stroke-width', strokeWidth);
+        compG.appendChild(w1);
+
+        const w2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        w2.setAttribute('x1', 13);
+        w2.setAttribute('y1', 0);
+        w2.setAttribute('x2', 18);
+        w2.setAttribute('y2', 0);
+        w2.setAttribute('stroke', strokeColor);
+        w2.setAttribute('stroke-width', strokeWidth);
+        compG.appendChild(w2);
+
+        const leverAngle = (-35 * Math.PI) / 180;
+        const lx = -10 + 20 * Math.cos(leverAngle);
+        const ly = 20 * Math.sin(leverAngle);
+        const lever = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        lever.setAttribute('x1', -10);
+        lever.setAttribute('y1', 0);
+        lever.setAttribute('x2', lx.toFixed(1));
+        lever.setAttribute('y2', ly.toFixed(1));
+        lever.setAttribute('stroke', strokeColor);
+        lever.setAttribute('stroke-width', strokeWidth);
+        lever.setAttribute('stroke-linecap', 'round');
+        compG.appendChild(lever);
+
+        const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        arc.setAttribute('d', 'M -2.5,-13.0 A 15 15 0 0 1 3.2,-7.5');
+        arc.setAttribute('stroke', strokeColor);
+        arc.setAttribute('stroke-width', 1.3);
+        arc.setAttribute('fill', 'none');
+        compG.appendChild(arc);
+
+        const arrHead = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        arrHead.setAttribute('points', '4.6,-4.5 1.3,-6.8 5.1,-8.2');
+        arrHead.setAttribute('fill', strokeColor);
+        compG.appendChild(arrHead);
       } else if (normType === 'gnd' || normType === 'ground') {
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d', 'M -18,0 L 0,0 M 0,-12 L 0,12 M 4,-8 L 4,8 M 8,-4 L 8,4');
@@ -1658,21 +1828,103 @@ function drawCircuitSvg(circuitText, container, labelText) {
     bgRect.setAttribute('class', 'circuit-label-mask');
     labelG.appendChild(bgRect);
 
-    // 2. ラベルテキスト
+    // 2. ラベルテキスト（改行 \n 対応）
     const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     textEl.setAttribute('class', 'circuit-label-text');
     textEl.setAttribute('x', layout.lx);
-    textEl.setAttribute('y', layout.ly);
     textEl.setAttribute('text-anchor', layout.textAnchor);
-    textEl.setAttribute('dominant-baseline', layout.dominantBaseline);
-    textEl.setAttribute('font-size', '13');
+    textEl.setAttribute('font-size', '12.5');
     textEl.setAttribute('font-weight', '700');
     textEl.setAttribute('fill', '#d97706');
     textEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-    textEl.textContent = layout.label;
+
+    const lines = layout.label.split(/\\n|\n/);
+    if (lines.length > 1) {
+      const lineH = 15;
+      const startY = layout.ly - ((lines.length - 1) * lineH) / 2 + 3;
+      lines.forEach((line, lIdx) => {
+        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        tspan.setAttribute('x', layout.lx);
+        tspan.setAttribute('y', (startY + lIdx * lineH).toFixed(1));
+        tspan.textContent = line.trim();
+        textEl.appendChild(tspan);
+      });
+    } else {
+      textEl.setAttribute('y', layout.ly);
+      textEl.setAttribute('dominant-baseline', layout.dominantBaseline);
+      textEl.textContent = layout.label;
+    }
     labelG.appendChild(textEl);
 
     svg.appendChild(labelG);
+  });
+
+  // メッシュ電流（ループ電流）の描画
+  loops.forEach((lp) => {
+    const cx = lp.x * scale;
+    const cy = -lp.y * scale;
+    const R = 23;
+
+    const loopG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    loopG.setAttribute('class', 'circuit-mesh-loop');
+
+    const isCcw = lp.dir === 'ccw';
+    const startAng = isCcw ? 0.52 : 2.35;
+    const endAng = isCcw ? 2.35 : 0.52;
+
+    const sx = cx + R * Math.cos(startAng);
+    const sy = cy + R * Math.sin(startAng);
+    const ex = cx + R * Math.cos(endAng);
+    const ey = cy + R * Math.sin(endAng);
+
+    const arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const sweepFlag = isCcw ? 0 : 1;
+    arcPath.setAttribute('d', `M ${sx.toFixed(1)} ${sy.toFixed(1)} A ${R} ${R} 0 1 ${sweepFlag} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
+    arcPath.setAttribute('stroke', strokeColor);
+    arcPath.setAttribute('stroke-width', 2);
+    arcPath.setAttribute('fill', 'none');
+    arcPath.setAttribute('stroke-linecap', 'round');
+    loopG.appendChild(arcPath);
+
+    const tanAng = isCcw ? endAng - Math.PI / 2 : endAng + Math.PI / 2;
+    const aLen = 8;
+    const aWid = 4.5;
+    const tipX = ex;
+    const tipY = ey;
+    const p1x = tipX - aLen * Math.cos(tanAng) + aWid * Math.sin(tanAng);
+    const p1y = tipY - aLen * Math.sin(tanAng) - aWid * Math.cos(tanAng);
+    const p2x = tipX - aLen * Math.cos(tanAng) - aWid * Math.sin(tanAng);
+    const p2y = tipY - aLen * Math.sin(tanAng) + aWid * Math.cos(tanAng);
+
+    const arrowHead = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    arrowHead.setAttribute('points', `${tipX.toFixed(1)},${tipY.toFixed(1)} ${p1x.toFixed(1)},${p1y.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)}`);
+    arrowHead.setAttribute('fill', strokeColor);
+    loopG.appendChild(arrowHead);
+
+    const loopTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    loopTxt.setAttribute('x', cx);
+    loopTxt.setAttribute('y', cy + 5);
+    loopTxt.setAttribute('text-anchor', 'middle');
+    loopTxt.setAttribute('font-size', '15');
+    loopTxt.setAttribute('font-weight', '700');
+    loopTxt.setAttribute('font-style', 'italic');
+    loopTxt.setAttribute('font-family', 'Georgia, "Times New Roman", serif');
+    loopTxt.setAttribute('fill', strokeColor);
+
+    if (lp.label.includes('_')) {
+      const parts = lp.label.split('_');
+      loopTxt.textContent = parts[0];
+      const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+      tspan.setAttribute('font-size', '11');
+      tspan.setAttribute('dy', '3');
+      tspan.textContent = parts[1];
+      loopTxt.appendChild(tspan);
+    } else {
+      loopTxt.textContent = lp.label || 'I';
+    }
+    loopG.appendChild(loopTxt);
+
+    svg.appendChild(loopG);
   });
 
   container.appendChild(svg);
@@ -6200,6 +6452,14 @@ const circuitLibrary = [
     description: 'コイルとコンデンサが並列接続され、特定の共振周波数で電磁エネルギーが相互変換される発振・選択回路。',
     code: '\\circuit{\\draw (0,0) to[sV=$v$] (0,2) -- (2,2); \\draw (2,2) to[L=$L$] (2,0); \\draw (2,2) -- (4,2) to[C=$C$] (4,0) -- (0,0);}',
     tags: ['LC回路', 'タンク回路', '並列共振', '発振回路']
+  },
+  {
+    id: 'circ-rlc-transient-mesh',
+    name: 'RLC過渡応答回路（2メッシュ・スイッチ付き）',
+    category: '交流・共振回路',
+    description: '直流電源とスイッチ投入時のRLC回路。各閉ループのメッシュ電流（I1, I2）と過渡現象を解析する回路。',
+    code: '\\circuit{\\draw (0,0) to[battery=$E=12\\text{[V]}$] (0,1.5) to[switch=スイッチ\\n(t=0)] (0,3) to[L=$L=1\\text{[H]}$] (2.5,3) to[R=$R_1=4\\text{[\\Omega]}$, right] (2.5,0) -- (0,0); \\draw (2.5,3) to[C=$C=0.25\\text{[F]}$] (5,3) -- (5,0) to[R=$R_2=6\\text{[\\Omega]}$] (2.5,0); \\draw (1.25, 1.5) node[loop=$I_1$]; \\draw (3.75, 1.5) node[loop=$I_2$];}',
+    tags: ['RLC', '過渡応答', 'メッシュ電流', 'スイッチ', '閉ループ', '回路']
   },
 
   // --- 半導体・能動素子 ---
