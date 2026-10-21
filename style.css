@@ -25,119 +25,234 @@ h1 {
   gap: 8px;
 }
 
-/* コントロール・ツールバー（表・図作成 / 式作成 / 画像出力） */
-.library-trigger-container {
+/* ==========================================
+   新ヘッダーナビゲーションバー（1行集約レイアウト）
+   ========================================== */
+.app-header-bar {
   display: flex;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
   margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e2e8f0;
   flex-wrap: wrap;
-  align-items: flex-end;
 }
 
-.library-control-unit {
+.header-left {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
-.library-unit-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #64748b;
-  letter-spacing: 0.02em;
+.app-logo {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0284c7;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
-.select-btn-group {
-  display: inline-flex;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+.header-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.library-select {
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #1e293b;
-  background-color: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-right: none;
-  border-radius: 8px 0 0 8px;
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+.dropdown-wrapper {
+  position: relative;
 }
 
-.library-select:hover {
-  background-color: #f1f5f9;
-}
-
-.library-select:focus {
-  border-color: #0284c7;
-  background-color: #ffffff;
-}
-
-.library-action-btn {
+.nav-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 8px 14px;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #1e293b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.nav-btn-primary {
+  background-color: #f0f9ff;
+  border-color: #bae6fd;
+  color: #0369a1;
+}
+
+.nav-btn:hover {
+  background-color: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0284c7;
+}
+
+.nav-btn.active {
+  background-color: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+}
+
+.nav-btn .btn-caret {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.nav-btn.active .btn-caret {
+  transform: rotate(180deg);
+}
+
+/* ポップオーバーメニューパネル */
+.dropdown-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1000;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.15), 0 8px 12px -6px rgba(0, 0, 0, 0.1);
+  display: none;
+  padding: 14px;
+  min-width: 580px;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.dropdown-menu-panel.active {
+  display: flex;
+}
+
+.formula-dropdown-panel {
+  min-width: 320px;
+}
+
+.menu-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 250px;
+}
+
+.menu-col-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  padding: 4px 8px 6px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 4px;
+}
+
+.menu-item-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  background-color: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, transform 0.12s ease;
+}
+
+.menu-item-btn:hover {
+  background-color: #f0f9ff;
+  color: #0284c7;
+  font-weight: 600;
+  transform: translateX(3px);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.header-action-group {
+  display: inline-flex;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.header-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #ffedd5;
+  color: #7c2d12;
+  border: 1px solid #fdba74;
   font-size: 13px;
   font-weight: 600;
-  color: #ffffff;
-  border: none;
+  padding: 7px 14px;
   cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.header-tool-btn:first-child {
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+}
+
+.header-tool-btn:last-child {
   border-radius: 0 8px 8px 0;
-  transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
-.diagram-action-btn {
-  background-color: #475569;
+.header-tool-btn:hover {
+  background-color: #fed7aa;
+  border-color: #fb923c;
+  color: #9a3412;
 }
 
-.diagram-action-btn:hover {
-  background-color: #334155;
-}
-
-.formula-action-btn {
-  background-color: #0284c7;
-}
-
-.formula-action-btn:hover {
-  background-color: #0369a1;
-}
-
-.library-action-btn:active {
+.header-tool-btn:active {
+  background-color: #fdba74;
   transform: translateY(1px);
 }
 
-.library-export-unit {
-  margin-left: auto;
-}
-
-.export-trigger-btn {
+.header-export-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   background-color: #059669;
   color: #ffffff;
-  border: none;
-  padding: 8px 16px;
+  border: 1px solid #047857;
+  padding: 7px 16px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.15s ease, transform 0.1s ease;
   box-shadow: 0 1px 3px rgba(5, 150, 105, 0.2);
-  height: 37px;
   box-sizing: border-box;
 }
 
-.export-trigger-btn:hover {
+.header-export-btn:hover {
   background-color: #047857;
 }
 
-.export-trigger-btn:active {
+.header-export-btn:active {
   transform: translateY(1px);
+}
+
+/* 入力エリアのドラッグオーバー強調 */
+textarea#formula-input.drag-over {
+  border-color: #2563eb !important;
+  background-color: #eff6ff !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
 }
 
 /* 構文書式インジケーター（入力欄直上の書式案内） */
@@ -248,6 +363,124 @@ textarea:focus {
   margin-top: 24px;
 }
 
+/* ⛶ 全画面表示切り替えボタン（プレビュー右上） */
+.preview-fullscreen-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: rgba(255, 255, 255, 0.92);
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+  backdrop-filter: blur(4px);
+}
+
+.preview-fullscreen-btn:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.preview-fullscreen-btn:active {
+  transform: translateY(1px);
+}
+
+/* 全画面表示中のスタイル */
+.preview-container.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  margin-top: 0;
+  background-color: #ffffff;
+  padding: 50px 24px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.preview-container.is-fullscreen .preview-fullscreen-btn {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  background-color: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  padding: 8px 16px;
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.preview-container.is-fullscreen .preview-fullscreen-btn:hover {
+  background-color: #334155;
+  border-color: #334155;
+}
+
+.preview-container.is-fullscreen .preview-box {
+  flex: 1;
+  min-height: calc(100vh - 90px);
+  background-color: #ffffff;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-container.is-fullscreen .formula-preview-scroll {
+  width: 100%;
+  max-width: 96vw;
+  min-height: calc(100vh - 100px);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+
+/* 全画面時の図形・SVGコンテナおよびSVGの拡大 */
+.preview-container.is-fullscreen [class$="-preview-container"],
+.preview-container.is-fullscreen .table-preview-container {
+  width: 100%;
+  max-width: 95vw;
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.preview-container.is-fullscreen svg {
+  max-width: 94vw !important;
+  max-height: 86vh !important;
+  width: 100% !important;
+  height: auto !important;
+}
+
+/* 全画面時の数式の拡大 */
+.preview-container.is-fullscreen .katex-display {
+  font-size: 2em;
+}
+
+body.preview-fullscreen-active {
+  overflow: hidden;
+}
+
 /* 数式全体のカード枠 */
 .preview-box {
   padding: 0;
@@ -269,7 +502,7 @@ textarea:focus {
   overflow-x: hidden;
   padding: 2.5rem 1.5rem 1.5rem 1.5rem;
   box-sizing: border-box;
-  font-size: 26px;
+  font-size: 21px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -652,32 +885,38 @@ body.modal-open {
 }
 
 .circuit-category-tab.active {
-  background-color: #d97706;
-  border-color: #d97706;
+  background-color: #0284c7;
+  border-color: #0284c7;
   color: #ffffff;
 }
 
 .formula-card.circuit-card:hover {
-  border-color: #d97706;
+  border-color: #0284c7;
 }
 
 .circuit-card-tag {
-  background-color: #fef3c7;
-  color: #b45309;
+  background-color: #e0f2fe;
+  color: #0369a1;
 }
 
 .circuit-card-preview {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 84px;
+  min-height: 110px;
   padding: 8px;
   background-color: #ffffff;
   border-radius: 6px;
   border: 1px solid #f1f5f9;
+  overflow: hidden;
 }
 
-.circuit-card-preview svg,
+.circuit-card-preview svg {
+  max-width: 100% !important;
+  max-height: 94px;
+  height: auto;
+}
+
 .circuit-preview-container svg {
   max-width: 100%;
   height: auto;
@@ -695,16 +934,6 @@ body.modal-open {
   margin: 8px 0;
 }
 
-.export-target .circuit-preview-container {
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-  background: transparent;
-}
-
-.export-target .circuit-preview-container .chem-structure-label {
-  display: none;
-}
 
 .timing-category-tab {
   background-color: #f1f5f9;
@@ -725,30 +954,31 @@ body.modal-open {
 }
 
 .timing-category-tab.active {
-  background-color: #0d9488;
-  border-color: #0d9488;
+  background-color: #0284c7;
+  border-color: #0284c7;
   color: #ffffff;
 }
 
 .formula-card.timing-card:hover {
-  border-color: #0d9488;
+  border-color: #0284c7;
 }
 
 .timing-card-tag {
-  background-color: #ccfbf1;
-  color: #0f766e;
+  background-color: #e0f2fe;
+  color: #0369a1;
 }
 
 .timing-card-preview {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 84px;
+  min-height: 110px;
+  max-height: 96px;
   padding: 8px;
   background-color: #ffffff;
   border-radius: 6px;
   border: 1px solid #f1f5f9;
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 .timing-card-preview svg,
@@ -770,16 +1000,6 @@ body.modal-open {
   overflow-x: auto;
 }
 
-.export-target .timing-preview-container {
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-  background: transparent;
-}
-
-.export-target .timing-preview-container .chem-structure-label {
-  display: none;
-}
 
 .fsm-category-tab {
   background-color: #f1f5f9;
@@ -818,15 +1038,20 @@ body.modal-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 84px;
+  min-height: 110px;
   padding: 8px;
   background-color: #ffffff;
   border-radius: 6px;
   border: 1px solid #f1f5f9;
-  overflow-x: auto;
+  overflow: hidden;
 }
 
-.fsm-card-preview svg,
+.fsm-card-preview svg {
+  max-width: 100%;
+  max-height: 96px;
+  height: auto;
+}
+
 .fsm-preview-container svg {
   max-width: 100%;
   height: auto;
@@ -845,16 +1070,6 @@ body.modal-open {
   overflow-x: auto;
 }
 
-.export-target .fsm-preview-container {
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-  background: transparent;
-}
-
-.export-target .fsm-preview-container .chem-structure-label {
-  display: none;
-}
 
 .feynman-category-tab {
   background-color: #f1f5f9;
@@ -920,16 +1135,6 @@ body.modal-open {
   overflow-x: auto;
 }
 
-.export-target .feynman-preview-container {
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-  background: transparent;
-}
-
-.export-target .feynman-preview-container .chem-structure-label {
-  display: none;
-}
 
 .sankey-category-tab {
   background-color: #f1f5f9;
@@ -995,15 +1200,20 @@ body.modal-open {
   overflow-x: auto;
 }
 
-.export-target .sankey-preview-container {
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-  background: transparent;
-}
 
-.export-target .sankey-preview-container .chem-structure-label {
-  display: none;
+/* 決算書サンキー図 (B/S) 用スタイル */
+.bs-node {
+  transition: opacity 0.2s ease, filter 0.2s ease;
+  cursor: pointer;
+}
+.bs-node:hover {
+  filter: brightness(1.15);
+}
+.bs-link {
+  transition: fill-opacity 0.2s ease;
+}
+.bs-link:hover {
+  fill-opacity: 0.65 !important;
 }
 
 /* フローチャート用スタイル */
@@ -1043,16 +1253,6 @@ body.modal-open {
   overflow-x: auto;
 }
 
-.export-target .flowchart-preview-container {
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-  background: transparent;
-}
-
-.export-target .flowchart-preview-container .chem-structure-label {
-  display: none;
-}
 
 /* 表（テーブル）用スタイル */
 .table-card-tag {
@@ -1062,15 +1262,36 @@ body.modal-open {
 
 .table-card-preview {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   min-height: 84px;
-  padding: 8px;
+  max-height: 140px;
+  padding: 8px 4px;
   background-color: #ffffff;
   border-radius: 6px;
   border: 1px solid #f1f5f9;
-  overflow-x: auto;
+  overflow: hidden;
 }
+
+.table-card-preview .physi-table {
+  width: max-content;
+  max-width: none !important;
+  white-space: nowrap;
+  font-size: 12px;
+  --cell-pad-y: 6px;
+  --cell-pad-x: 10px;
+  zoom: 0.55;
+  pointer-events: none;
+  filter: grayscale(100%);
+}
+
+@supports not (zoom: 1) {
+  .table-card-preview .physi-table {
+    transform: scale(0.55);
+    transform-origin: top center;
+  }
+}
+
 
 .table-preview-container {
   display: flex;
@@ -1100,6 +1321,18 @@ body.modal-open {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+.physi-table caption.physi-table-caption {
+  caption-side: top;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  padding: 8px 12px 14px 12px;
+  text-align: center;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  background: transparent;
+}
+
 .physi-table th {
   background-color: #f8fafc;
   color: #1e293b;
@@ -1120,6 +1353,7 @@ body.modal-open {
   border-bottom: 1px solid #e2e8f0;
   border-right: 1px solid #e2e8f0;
   color: #334155;
+  font-size: 13px;
   vertical-align: middle;
   word-break: break-word;
 }
@@ -1128,16 +1362,212 @@ body.modal-open {
   border-right: none;
 }
 
-.physi-table tbody tr:nth-child(even) {
+.physi-table tbody tr {
+  background-color: transparent;
+}
+
+.physi-table tbody tr:nth-child(even) td {
   background-color: #f8fafc;
 }
 
-.physi-table tbody tr:hover {
+.physi-table tbody tr:hover td {
   background-color: #f1f5f9;
+}
+
+.physi-table td[rowspan] {
+  position: relative;
+  z-index: 1;
+  background-color: #ffffff;
+  vertical-align: middle;
 }
 
 .physi-table .katex {
   font-size: 1.05em;
+}
+
+/* ==========================================
+   表のレイアウトスタイル定義 (modern, academic, accent, dark, blue)
+   ========================================== */
+
+/* 0. 標準モダン・クリーン表スタイル (Modern / Default / Grid) */
+.physi-table.table-style-modern {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background-color: #ffffff;
+}
+.physi-table.table-style-modern th {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  font-weight: 700;
+  border-top: none;
+  border-bottom: 2px solid #cbd5e1;
+  border-right: 1px solid #e2e8f0;
+  padding: 10px 16px;
+}
+.physi-table.table-style-modern th:last-child {
+  border-right: none;
+}
+.physi-table.table-style-modern td {
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  color: #334155;
+  padding: 10px 16px;
+}
+.physi-table.table-style-modern td:last-child {
+  border-right: none;
+}
+.physi-table.table-style-modern tbody tr:last-child td {
+  border-bottom: none;
+}
+.physi-table.table-style-modern tbody tr:nth-child(even) td {
+  background-color: #f8fafc;
+}
+.physi-table.table-style-modern tbody tr:hover td {
+  background-color: #f1f5f9;
+}
+
+/* 1. 学術論文スタイル (Academic / Booktabs) - 左下 */
+.physi-table.table-style-academic {
+  border: none;
+  border-top: 2.5px solid #334155;
+  border-bottom: 2.5px solid #334155;
+  border-radius: 0;
+  box-shadow: none;
+}
+.physi-table.table-style-academic th {
+  background-color: #d1d5db;
+  color: #1e293b;
+  border-top: none;
+  border-bottom: 1.5px solid #334155;
+  border-right: none;
+  padding: 8px 16px;
+}
+.physi-table.table-style-academic td {
+  border-bottom: none;
+  border-right: none;
+  color: #1e293b;
+  padding: 8px 16px;
+}
+.physi-table.table-style-academic tbody tr:nth-child(even) td {
+  background-color: transparent;
+}
+.physi-table.table-style-academic tbody tr:hover td {
+  background-color: #f8fafc;
+}
+
+/* 2. オレンジアクセント線スタイル (Accent / Line) - 右下 */
+.physi-table.table-style-accent {
+  border: none;
+  border-top: 2.5px solid #ea580c;
+  border-bottom: 1.5px solid #475569;
+  border-radius: 0;
+  box-shadow: none;
+  background-color: #ffffff;
+}
+.physi-table.table-style-accent th {
+  background-color: transparent;
+  color: #1e293b;
+  border-top: none;
+  border-bottom: 1px solid #cbd5e1;
+  border-right: none;
+  padding: 8px 16px;
+}
+.physi-table.table-style-accent td {
+  border-bottom: 1px solid #f1f5f9;
+  border-right: none;
+  color: #1e293b;
+  padding: 8px 16px;
+}
+.physi-table.table-style-accent tbody tr:last-child td {
+  border-bottom: none;
+}
+.physi-table.table-style-accent tbody tr:nth-child(even) td {
+  background-color: transparent;
+}
+.physi-table.table-style-accent tbody tr:hover td {
+  background-color: #fff7ed;
+}
+
+/* 3. チャコールグレー・白グリッドスタイル (Dark / Charcoal) - 左上 */
+.physi-table.table-style-dark {
+  border: none;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.physi-table.table-style-dark th {
+  background-color: #525252;
+  color: #ffffff;
+  font-weight: 700;
+  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+  padding: 8px 16px;
+}
+.physi-table.table-style-dark th:last-child {
+  border-right: none;
+}
+.physi-table.table-style-dark td {
+  background-color: #f2f2f2;
+  color: #1f2937;
+  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+  padding: 8px 16px;
+}
+.physi-table.table-style-dark td:last-child {
+  border-right: none;
+}
+.physi-table.table-style-dark tbody tr:last-child td {
+  border-bottom: none;
+}
+.physi-table.table-style-dark tbody tr:hover td {
+  background-color: #e5e7eb;
+}
+
+/* 4. スカイブルー・第1列インデックススタイル (Blue / Color) - 右上 */
+.physi-table.table-style-blue {
+  border: none;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.physi-table.table-style-blue th {
+  background-color: #6ba3be;
+  color: #ffffff;
+  font-weight: 700;
+  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+  padding: 8px 16px;
+}
+.physi-table.table-style-blue th:last-child {
+  border-right: none;
+}
+/* 論理的第1列（行ヘッダー） */
+.physi-table.table-style-blue tbody td.table-col-first {
+  background-color: #6ba3be;
+  color: #ffffff;
+  font-weight: 700;
+  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+  padding: 8px 16px;
+}
+/* 2列目以降の通常データセル */
+.physi-table.table-style-blue tbody td:not(.table-col-first) {
+  background-color: #f2f2f2;
+  color: #1f2937;
+  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+  padding: 8px 16px;
+}
+.physi-table.table-style-blue td:last-child {
+  border-right: none;
+}
+.physi-table.table-style-blue tbody tr:last-child td {
+  border-bottom: none;
+}
+.physi-table.table-style-blue tbody tr:hover td:not(.table-col-first) {
+  background-color: #e5e7eb;
 }
 
 /* 表のテーマカラー定義 */
@@ -1154,8 +1584,11 @@ body.modal-open {
   border-bottom-color: #f1f5f9;
   border-right-color: #f1f5f9;
 }
-.physi-table.table-theme-blue tbody tr:nth-child(even) {
+.physi-table.table-theme-blue tbody tr:nth-child(even) td {
   background-color: #f8fafc;
+}
+.physi-table.table-theme-blue td[rowspan] {
+  background-color: #f0f9ff;
 }
 
 .physi-table.table-theme-slate {
@@ -1171,7 +1604,10 @@ body.modal-open {
   border-bottom-color: #e2e8f0;
   border-right-color: #e2e8f0;
 }
-.physi-table.table-theme-slate tbody tr:nth-child(even) {
+.physi-table.table-theme-slate tbody tr:nth-child(even) td {
+  background-color: #f8fafc;
+}
+.physi-table.table-theme-slate td[rowspan] {
   background-color: #f8fafc;
 }
 
@@ -1188,8 +1624,11 @@ body.modal-open {
   border-bottom-color: #f0fdf4;
   border-right-color: #f0fdf4;
 }
-.physi-table.table-theme-emerald tbody tr:nth-child(even) {
+.physi-table.table-theme-emerald tbody tr:nth-child(even) td {
   background-color: #f0fdf4;
+}
+.physi-table.table-theme-emerald td[rowspan] {
+  background-color: #ecfdf5;
 }
 
 .physi-table.table-theme-purple {
@@ -1205,8 +1644,11 @@ body.modal-open {
   border-bottom-color: #f5f3ff;
   border-right-color: #f5f3ff;
 }
-.physi-table.table-theme-purple tbody tr:nth-child(even) {
+.physi-table.table-theme-purple tbody tr:nth-child(even) td {
   background-color: #faf5ff;
+}
+.physi-table.table-theme-purple td[rowspan] {
+  background-color: #f5f3ff;
 }
 
 .physi-table.table-theme-amber {
@@ -1222,8 +1664,11 @@ body.modal-open {
   border-bottom-color: #fef3c7;
   border-right-color: #fef3c7;
 }
-.physi-table.table-theme-amber tbody tr:nth-child(even) {
+.physi-table.table-theme-amber tbody tr:nth-child(even) td {
   background-color: #fffdf5;
+}
+.physi-table.table-theme-amber td[rowspan] {
+  background-color: #fffbeb;
 }
 
 .physi-table.table-theme-rose {
@@ -1239,8 +1684,11 @@ body.modal-open {
   border-bottom-color: #ffe4e6;
   border-right-color: #ffe4e6;
 }
-.physi-table.table-theme-rose tbody tr:nth-child(even) {
+.physi-table.table-theme-rose tbody tr:nth-child(even) td {
   background-color: #fff5f6;
+}
+.physi-table.table-theme-rose td[rowspan] {
+  background-color: #fff1f2;
 }
 
 .physi-table.table-theme-cyan {
@@ -1256,8 +1704,11 @@ body.modal-open {
   border-bottom-color: #cffafe;
   border-right-color: #cffafe;
 }
-.physi-table.table-theme-cyan tbody tr:nth-child(even) {
+.physi-table.table-theme-cyan tbody tr:nth-child(even) td {
   background-color: #f0fdfa;
+}
+.physi-table.table-theme-cyan td[rowspan] {
+  background-color: #ecfeff;
 }
 
 .physi-table.table-theme-navy {
@@ -1273,8 +1724,319 @@ body.modal-open {
   border-bottom-color: #e0e7ff;
   border-right-color: #e0e7ff;
 }
-.physi-table.table-theme-navy tbody tr:nth-child(even) {
+.physi-table.table-theme-navy tbody tr:nth-child(even) td {
   background-color: #f5f7ff;
+}
+.physi-table.table-theme-navy td[rowspan] {
+  background-color: #eef2ff;
+}
+
+/* ==========================================
+   各表スタイル固有レイアウト × テーマカラー連動定義
+   ========================================== */
+
+/* 1. ダークヘッダー (table-style-dark) × テーマカラー
+   濃色ヘッダー背景 ＋ 白文字 ＋ 白グリッドタイリングの重厚構造を完全維持 */
+.physi-table.table-style-dark.table-theme-blue th { background-color: #1e40af; color: #ffffff; }
+.physi-table.table-style-dark.table-theme-slate th { background-color: #334155; color: #ffffff; }
+.physi-table.table-style-dark.table-theme-emerald th { background-color: #065f46; color: #ffffff; }
+.physi-table.table-style-dark.table-theme-purple th { background-color: #581c87; color: #ffffff; }
+.physi-table.table-style-dark.table-theme-amber th { background-color: #78350f; color: #ffffff; }
+.physi-table.table-style-dark.table-theme-rose th { background-color: #881337; color: #ffffff; }
+.physi-table.table-style-dark.table-theme-cyan th { background-color: #0e7490; color: #ffffff; }
+.physi-table.table-style-dark.table-theme-navy th { background-color: #0f172a; color: #ffffff; }
+.physi-table.table-style-dark[class*="table-theme-"] th {
+  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+}
+.physi-table.table-style-dark[class*="table-theme-"] td {
+  background-color: #f2f2f2;
+  color: #1f2937;
+  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+}
+.physi-table.table-style-dark[class*="table-theme-"] th:last-child,
+.physi-table.table-style-dark[class*="table-theme-"] td:last-child {
+  border-right: none;
+}
+.physi-table.table-style-dark[class*="table-theme-"] tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* 2. アクセント線スタイル (table-style-accent) × テーマカラー
+   縦線なし・軽やかな構造を維持し、最上部アクセント太線にテーマカラーを反映 */
+.physi-table.table-style-accent.table-theme-blue { border-top-color: #0284c7; }
+.physi-table.table-style-accent.table-theme-slate { border-top-color: #475569; }
+.physi-table.table-style-accent.table-theme-emerald { border-top-color: #10b981; }
+.physi-table.table-style-accent.table-theme-purple { border-top-color: #8b5cf6; }
+.physi-table.table-style-accent.table-theme-amber { border-top-color: #f59e0b; }
+.physi-table.table-style-accent.table-theme-rose { border-top-color: #f43f5e; }
+.physi-table.table-style-accent.table-theme-cyan { border-top-color: #06b6d4; }
+.physi-table.table-style-accent.table-theme-navy { border-top-color: #1e3a8a; }
+.physi-table.table-style-accent[class*="table-theme-"] th {
+  background-color: transparent;
+  color: #1e293b;
+  border-top: none;
+  border-bottom: 1px solid #cbd5e1;
+  border-right: none;
+}
+.physi-table.table-style-accent[class*="table-theme-"] td {
+  background-color: transparent;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: none;
+}
+.physi-table.table-style-accent[class*="table-theme-"] tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* 3. 左列インデックス強調 (table-style-blue) × テーマカラー
+   ヘッダーおよび最左列（行見出し）を各テーマカラーで強調 */
+.physi-table.table-style-blue.table-theme-blue th,
+.physi-table.table-style-blue.table-theme-blue tbody td.table-col-first { background-color: #0284c7; color: #ffffff; }
+.physi-table.table-style-blue.table-theme-slate th,
+.physi-table.table-style-blue.table-theme-slate tbody td.table-col-first { background-color: #475569; color: #ffffff; }
+.physi-table.table-style-blue.table-theme-emerald th,
+.physi-table.table-style-blue.table-theme-emerald tbody td.table-col-first { background-color: #059669; color: #ffffff; }
+.physi-table.table-style-blue.table-theme-purple th,
+.physi-table.table-style-blue.table-theme-purple tbody td.table-col-first { background-color: #7c3aed; color: #ffffff; }
+.physi-table.table-style-blue.table-theme-amber th,
+.physi-table.table-style-blue.table-theme-amber tbody td.table-col-first { background-color: #d97706; color: #ffffff; }
+.physi-table.table-style-blue.table-theme-rose th,
+.physi-table.table-style-blue.table-theme-rose tbody td.table-col-first { background-color: #e11d48; color: #ffffff; }
+.physi-table.table-style-blue.table-theme-cyan th,
+.physi-table.table-style-blue.table-theme-cyan tbody td.table-col-first { background-color: #0891b2; color: #ffffff; }
+.physi-table.table-style-blue.table-theme-navy th,
+.physi-table.table-style-blue.table-theme-navy tbody td.table-col-first { background-color: #1e1b4b; color: #ffffff; }
+.physi-table.table-style-blue[class*="table-theme-"] th,
+.physi-table.table-style-blue[class*="table-theme-"] td {
+  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+}
+.physi-table.table-style-blue[class*="table-theme-"] tbody td:not(.table-col-first) {
+  background-color: #f2f2f2;
+  color: #1f2937;
+}
+
+/* 4. 学術論文スタイル (table-style-academic) × テーマカラー
+   上下太罫線＆ヘッダーの品格ある色づけ（縦線なしのbooktabs構造を完全維持） */
+.physi-table.table-style-academic.table-theme-blue { border-top-color: #0284c7; border-bottom-color: #0284c7; }
+.physi-table.table-style-academic.table-theme-blue th { border-bottom-color: #0284c7; background-color: #f0f9ff; color: #0369a1; }
+
+.physi-table.table-style-academic.table-theme-slate { border-top-color: #334155; border-bottom-color: #334155; }
+.physi-table.table-style-academic.table-theme-slate th { border-bottom-color: #334155; background-color: #f1f5f9; color: #1e293b; }
+
+.physi-table.table-style-academic.table-theme-emerald { border-top-color: #059669; border-bottom-color: #059669; }
+.physi-table.table-style-academic.table-theme-emerald th { border-bottom-color: #059669; background-color: #ecfdf5; color: #065f46; }
+
+.physi-table.table-style-academic.table-theme-purple { border-top-color: #7c3aed; border-bottom-color: #7c3aed; }
+.physi-table.table-style-academic.table-theme-purple th { border-bottom-color: #7c3aed; background-color: #f5f3ff; color: #5b21b6; }
+
+.physi-table.table-style-academic.table-theme-amber { border-top-color: #d97706; border-bottom-color: #d97706; }
+.physi-table.table-style-academic.table-theme-amber th { border-bottom-color: #d97706; background-color: #fffbeb; color: #92400e; }
+
+.physi-table.table-style-academic.table-theme-rose { border-top-color: #e11d48; border-bottom-color: #e11d48; }
+.physi-table.table-style-academic.table-theme-rose th { border-bottom-color: #e11d48; background-color: #fff1f2; color: #9f1239; }
+
+.physi-table.table-style-academic.table-theme-cyan { border-top-color: #0891b2; border-bottom-color: #0891b2; }
+.physi-table.table-style-academic.table-theme-cyan th { border-bottom-color: #0891b2; background-color: #ecfeff; color: #0e7490; }
+
+.physi-table.table-style-academic.table-theme-navy { border-top-color: #1e1b4b; border-bottom-color: #1e1b4b; }
+.physi-table.table-style-academic.table-theme-navy th { border-bottom-color: #1e1b4b; background-color: #e0e7ff; color: #1e1b4b; }
+
+.physi-table.table-style-academic[class*="table-theme-"] td {
+  border-top: none;
+  border-bottom: none;
+  border-right: none;
+  border-left: none;
+  background-color: transparent;
+  color: #1e293b;
+}
+
+/* ==========================================
+   LaTeX tabular 互換 罫線スタイル（二重罫線・個別罫線）
+   ========================================== */
+.physi-table.table-latex-bordered {
+  border: none !important;
+  border-radius: 0 !important;
+  border-collapse: collapse !important;
+  box-shadow: none !important;
+  background-color: #ffffff;
+}
+
+.physi-table.table-latex-bordered th {
+  background-color: #ffffff;
+  color: #1e293b;
+  font-weight: 700;
+  padding: 6px 14px;
+}
+
+.physi-table.table-latex-bordered td {
+  padding: 6px 14px;
+  color: #1e293b;
+}
+
+.physi-table.table-latex-bordered tbody tr:nth-child(even) td {
+  background-color: #ffffff;
+}
+
+.physi-table.table-latex-bordered tbody tr:hover td {
+  background-color: #f8fafc;
+}
+
+/* 縦罫線 */
+.physi-table .border-r-double,
+.physi-table th.border-r-double,
+.physi-table td.border-r-double {
+  border-right: 3px double #334155 !important;
+}
+
+.physi-table .border-r-single,
+.physi-table th.border-r-single,
+.physi-table td.border-r-single {
+  border-right: 1px solid #334155 !important;
+}
+
+.physi-table .border-r-none,
+.physi-table th.border-r-none,
+.physi-table td.border-r-none {
+  border-right: none !important;
+}
+
+.physi-table .border-l-double,
+.physi-table th.border-l-double,
+.physi-table td.border-l-double {
+  border-left: 3px double #334155 !important;
+}
+
+.physi-table .border-l-single,
+.physi-table th.border-l-single,
+.physi-table td.border-l-single {
+  border-left: 1px solid #334155 !important;
+}
+
+.physi-table .border-l-none,
+.physi-table th.border-l-none,
+.physi-table td.border-l-none {
+  border-left: none !important;
+}
+
+/* 横罫線 */
+.physi-table .border-b-double,
+.physi-table th.border-b-double,
+.physi-table td.border-b-double {
+  border-bottom: 3px double #334155 !important;
+}
+
+.physi-table .border-b-single,
+.physi-table th.border-b-single,
+.physi-table td.border-b-single {
+  border-bottom: 1px solid #334155 !important;
+}
+
+.physi-table .border-b-none,
+.physi-table th.border-b-none,
+.physi-table td.border-b-none {
+  border-bottom: none !important;
+}
+
+.physi-table tr.border-t-double,
+.physi-table thead tr.border-t-double th {
+  border-top: 3px double #334155 !important;
+}
+
+.physi-table tr.border-t-single,
+.physi-table thead tr.border-t-single th {
+  border-top: 1px solid #334155 !important;
+}
+
+/* booktabs 罫線スタイル */
+.physi-table .border-b-toprule,
+.physi-table tr.border-t-toprule,
+.physi-table thead tr.border-t-toprule th {
+  border-top: 2.5px solid #1e293b !important;
+}
+
+.physi-table .border-b-midrule,
+.physi-table th.border-b-midrule,
+.physi-table td.border-b-midrule {
+  border-bottom: 1.2px solid #1e293b !important;
+}
+
+.physi-table .border-b-bottomrule,
+.physi-table td.border-b-bottomrule,
+.physi-table tbody tr.border-b-bottomrule td {
+  border-bottom: 2.5px solid #1e293b !important;
+}
+
+.physi-table .border-b-cmidrule,
+.physi-table td.border-b-cmidrule {
+  border-bottom: 1px solid #1e293b !important;
+}
+
+/* makecell & thead */
+.physi-makecell {
+  display: inline-block;
+  line-height: 1.35;
+}
+.physi-thead {
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.35;
+}
+
+/* テーブルキャプション（表見出し） */
+.physi-table-caption {
+  caption-side: top;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1e293b;
+  padding-bottom: 8px;
+  text-align: center;
+}
+
+/* テーブル前後の本文段落（解説文・参照文） */
+.physi-table-text-paragraph {
+  width: 100%;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1e293b;
+  margin: 8px 0;
+  text-align: left;
+  word-break: break-word;
+}
+.physi-table-text-paragraph.before-text {
+  margin-bottom: 12px;
+}
+.physi-table-text-paragraph.after-text {
+  margin-top: 12px;
+}
+
+/* テーブルライブラリ カードプレビュースタイル */
+.table-card-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  max-height: 160px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+/* サムネイル視認性向上のため、カードプレビュー内では表本体にフォーカスし前後の長文解説文は非表示 */
+.table-card-preview .physi-table-text-paragraph {
+  display: none !important;
+}
+
+.table-card-preview .physi-table {
+  font-size: 11px;
+  transform: scale(0.85);
+  transform-origin: center;
+  margin: 0 auto !important;
 }
 
 /* 表出力専用オプション枠 */
@@ -1320,6 +2082,12 @@ body.modal-open {
   margin: 0;
   box-shadow: none;
   background: transparent;
+  width: max-content;
+  max-width: none;
+}
+
+.export-target .physi-table {
+  max-width: none !important;
 }
 
 .export-target .table-preview-container .chem-structure-label {
@@ -1365,17 +2133,26 @@ body.modal-open {
   align-items: center;
   justify-content: center;
   min-height: 84px;
-  padding: 8px;
+  max-height: 140px;
+  padding: 6px;
   background-color: #ffffff;
   border-radius: 6px;
   border: 1px solid #f1f5f9;
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 .matrix-card-preview svg,
 .matrix-preview-container svg {
   max-width: 100%;
   height: auto;
+}
+
+.matrix-card-preview .matrix-schedule-table {
+  width: max-content;
+  max-width: none !important;
+  white-space: nowrap;
+  zoom: 0.58;
+  pointer-events: none;
 }
 
 .matrix-preview-container {
@@ -1391,16 +2168,6 @@ body.modal-open {
   overflow-x: auto;
 }
 
-.export-target .matrix-preview-container {
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-  background: transparent;
-}
-
-.export-target .matrix-preview-container .chem-structure-label {
-  display: none;
-}
 
 .export-target.transparent-bg .matrix-quadrant-bg {
   fill: transparent !important;
@@ -1471,16 +2238,540 @@ body.modal-open {
   overflow-x: auto;
 }
 
-.export-target .pyramid-preview-container {
-  padding: 0;
-  margin: 0;
-  box-shadow: none;
-  background: transparent;
+/* ==========================================
+   レーダーチャート用モーダル＆プレビュースタイル
+========================================== */
+.radar-category-tab.active {
+  background-color: #4f46e5;
+  border-color: #4f46e5;
+  color: #ffffff;
 }
 
-.export-target .pyramid-preview-container .chem-structure-label {
-  display: none;
+.formula-card.radar-card:hover {
+  border-color: #4f46e5;
 }
+
+.radar-card-tag {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+.radar-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.radar-card-preview svg,
+.radar-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.radar-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+/* ==========================================
+   ウォーターフォール図用モーダル＆プレビュースタイル
+========================================== */
+.waterfall-category-tab.active {
+  background-color: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+.formula-card.waterfall-card:hover {
+  border-color: #059669;
+}
+
+.waterfall-card-tag {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.waterfall-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.waterfall-card-preview svg,
+.waterfall-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.waterfall-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+/* ==========================================
+   ツリーマップ用モーダル＆プレビュースタイル
+========================================== */
+.treemap-category-tab.active {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.formula-card.treemap-card:hover {
+  border-color: #2563eb;
+}
+
+.treemap-card-tag {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.treemap-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.treemap-card-preview svg,
+.treemap-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.treemap-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+
+/* ==========================================
+   ガントチャート用モーダル＆プレビュースタイル
+========================================== */
+.gantt-category-tab.active {
+  background-color: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+}
+
+.formula-card.gantt-card:hover {
+  border-color: #0284c7;
+}
+
+.gantt-card-tag {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.gantt-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.gantt-card-preview svg,
+.gantt-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.gantt-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+
+
+/* ==========================================
+   資本構成ツリー図用モーダル＆プレビュースタイル
+========================================== */
+.capitaltree-category-tab,
+.blockdiagram-category-tab,
+.flowchart-category-tab,
+.fsm-category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.capitaltree-category-tab:hover,
+.blockdiagram-category-tab:hover,
+.flowchart-category-tab:hover,
+.fsm-category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.capitaltree-category-tab.active,
+.blockdiagram-category-tab.active,
+.flowchart-category-tab.active,
+.fsm-category-tab.active {
+  background-color: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+}
+
+.formula-card.capitaltree-card:hover,
+.formula-card.blockdiagram-card:hover,
+.formula-card.flowchart-card:hover,
+.formula-card.fsm-card:hover {
+  border-color: #0284c7;
+}
+
+.capitaltree-card-tag,
+.blockdiagram-card-tag,
+.flowchart-card-tag,
+.fsm-card-tag {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.capitaltree-card-preview,
+.blockdiagram-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.capitaltree-card-preview svg,
+.blockdiagram-card-preview svg,
+.capitaltree-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.capitaltree-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+
+.radialtree-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.radialtree-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+
+.orgchart-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.orgchart-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+
+.blockdiagram-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.blockdiagram-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+
+/* ==========================================
+   シーケンス図用モーダル＆プレビュースタイル
+========================================== */
+.sequence-category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.sequence-category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.sequence-category-tab.active {
+  background-color: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+}
+
+.formula-card.sequence-card:hover {
+  border-color: #0284c7;
+}
+
+.sequence-card-tag {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.sequence-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  max-height: 140px;
+  padding: 8px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.sequence-card-preview svg {
+  width: 100%;
+  height: 100%;
+  max-width: 100% !important;
+  max-height: 124px;
+  object-fit: contain;
+}
+
+.sequence-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.sequence-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+
+/* ==========================================
+   光学系用モーダル＆プレビュースタイル
+========================================== */
+.optics-category-tab {
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.optics-category-tab:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.optics-category-tab.active {
+  background-color: #0ea5e9;
+  border-color: #0ea5e9;
+  color: #ffffff;
+}
+
+.formula-card.optics-card:hover {
+  border-color: #0ea5e9;
+}
+
+.optics-card-tag {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+
+.optics-card-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  max-height: 140px;
+  padding: 8px;
+  background-color: #0f172a;
+  border-radius: 6px;
+  border: 1px solid #1e293b;
+  overflow: hidden;
+}
+
+.optics-card-preview svg {
+  width: 100%;
+  height: 100%;
+  max-width: 100% !important;
+  max-height: 124px;
+  object-fit: contain;
+}
+
+.optics-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.optics-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #0f172a;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #1e293b;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+
+.pl-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.pl-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+
+.optics-preview-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.optics-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #0f172a;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #334155;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+
+
+
+
 
 
 
@@ -1828,7 +3119,8 @@ body.modal-open {
 
 /* 画像ファイル出力設定モーダル */
 .export-dialog {
-  max-width: 620px;
+  max-width: 860px;
+  width: 94vw;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -1906,12 +3198,12 @@ body.modal-open {
 }
 
 .export-preview-board {
-  min-height: 130px;
-  max-height: 260px;
+  min-height: 140px;
+  max-height: 340px;
   overflow: auto;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
   border: 1px dashed #cbd5e1;
   border-radius: 8px;
   background-color: #f1f5f9;
@@ -1938,6 +3230,21 @@ body.modal-open {
 
 .export-target svg {
   max-width: none !important;
+}
+
+/* 独自ダイアグラム共通エクスポートスタイル */
+.export-target [class*="-preview-container"],
+.export-target .table-preview-container {
+  padding: 0;
+  margin: 0 auto;
+  box-shadow: none;
+  background: transparent;
+  width: auto;
+}
+
+.export-target [class*="-preview-container"] .chem-structure-label,
+.export-target .table-preview-container .chem-structure-label {
+  display: none;
 }
 
 .export-target .chem-structure-svg {
@@ -2151,4 +3458,784 @@ body.modal-open {
 
 .retro-counter-digit:last-child {
   border-right: none;
+}
+
+/* ==========================================
+   ChordPro 形式 コード譜 描画スタイル
+   ========================================== */
+.chordpro-container {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 260px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  box-sizing: border-box;
+  text-align: left;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+}
+
+.chordpro-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.chordpro-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.chordpro-subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.chordpro-meta-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chordpro-meta-badge {
+  font-size: 11.5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+}
+
+.chordpro-meta-badge strong {
+  color: #0284c7;
+  margin-right: 2px;
+}
+
+.chordpro-degree-block {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.chordpro-degree-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #166534;
+  white-space: nowrap;
+}
+
+.chordpro-degree-math {
+  font-size: 15px;
+  color: #14532d;
+  flex: 1;
+}
+
+.chordpro-math-row {
+  margin: 12px 0;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+  text-align: center;
+  font-size: 16px;
+  overflow-x: auto;
+}
+
+.chordpro-section {
+  margin-bottom: 22px;
+}
+
+.chordpro-section.section-chorus {
+  border-left: 4px solid #38bdf8;
+  padding-left: 14px;
+  background: #f8fafc;
+  border-radius: 0 8px 8px 0;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.chordpro-section-label {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  letter-spacing: 0.04em;
+}
+
+.chordpro-line {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  margin-bottom: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.chordpro-pair {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: bottom;
+  margin-right: 1px;
+}
+
+/* 歌詞のない連続コード同士に十分な余白を確保して密着を防止 */
+.chordpro-pair.chord-only {
+  margin-right: 14px;
+}
+
+.chordpro-chord {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0284c7;
+  min-height: 18px;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  padding-right: 4px;
+  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Arial", sans-serif;
+}
+
+.chordpro-lyric {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1e293b;
+  min-height: 22px;
+  line-height: 1.4;
+  white-space: pre;
+}
+
+/* リードシート・小節グリッド */
+.chordpro-leadsheet-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.chordpro-measure-bar {
+  flex: 1 1 120px;
+  min-width: 100px;
+  max-width: 220px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.chordpro-bar-chord {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0284c7;
+  font-family: Menlo, Monaco, Consolas, monospace;
+}
+
+.chordpro-empty,
+.guitarchords-empty {
+  padding: 24px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* ==========================================
+   ギターコード指板 (LaTeX guitarchords) 描画スタイル
+   ========================================== */
+.guitarchords-container {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 20px 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.guitarchords-header {
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.guitarchords-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.guitarchords-subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.guitarchords-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.guitarchords-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.guitarchords-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+  border-color: #38bdf8;
+}
+
+.guitarchords-arrow {
+  font-size: 22px;
+  font-weight: 800;
+  color: #94a3b8;
+  user-select: none;
+  padding: 0 4px;
+}
+
+/* ==========================================
+   コード進行フロー (ChordFlow) 描画スタイル
+   ========================================== */
+.chordflow-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: transparent;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+}
+
+.chordflow-container {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.chordflow-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+}
+
+.chordflow-empty {
+  padding: 24px 32px;
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.chordflow-empty code {
+  background: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+
+
+.export-target.transparent-bg .chordflow-bg {
+  fill: transparent !important;
+  stroke: transparent !important;
+}
+
+.export-target.transparent-bg .chordflow-svg {
+  box-shadow: none !important;
+}
+
+.export-target.monochrome-mode .chordflow-svg {
+  filter: grayscale(100%);
+}
+
+/* ==========================================
+   エネルギー準位図 & バンド図 (Energy Level / Band) プレビュースタイル
+========================================== */
+.energylevel-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background-color: #0b1120;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px #1e293b, 0 4px 16px rgba(0, 0, 0, 0.4);
+  margin: 8px 0;
+  overflow-x: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.energylevel-preview-container svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+
+/* ==========================================
+   ポテンシャルエネルギー曲線 (Potential Energy Curve) プレビュースタイル
+========================================== */
+.potential-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background-color: #0b1120;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px #1e293b, 0 4px 16px rgba(0, 0, 0, 0.4);
+  margin: 8px 0;
+  overflow-x: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.potential-preview-container svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+
+/* ==========================================
+   ニューラルネットワーク構造図 (Neural Network / DNN) プレビュースタイル
+========================================== */
+.neuralnet-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05), inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.neuralnet-container {
+  width: 100%;
+}
+
+.neuralnet-svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+
+/* ==========================================
+   有向グラフ / ネットワーク図 (Graph / Network) プレビュースタイル
+========================================== */
+.graph-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05), inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.graph-container {
+  width: 100%;
+}
+
+.graph-svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+
+/* ==========================================
+   ベン図 (Venn Diagram) プレビュースタイル
+========================================== */
+.venn-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05), inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.venn-container {
+  width: 100%;
+}
+
+.venn-svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+
+/* ==========================================
+   フィッシュボーン図 (特性要因図) プレビュースタイル
+========================================== */
+.fishbone-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05), inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fishbone-container {
+  width: 100%;
+}
+
+.fishbone-svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+
+/* ==========================================
+   SWOT分析マトリクス (2×2 戦略マップ) プレビュースタイル
+========================================== */
+.swot-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05), inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.swot-container {
+  width: 100%;
+}
+
+.swot-svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.swot-card-preview {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.swot-card-preview svg {
+  max-width: 100%;
+  max-height: 180px;
+  height: auto;
+}
+
+
+.venn-card-preview {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.venn-card-preview svg {
+  max-width: 100%;
+  max-height: 180px;
+  height: auto;
+}
+
+.venn-card-tag {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.fishbone-card-preview {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.fishbone-card-preview svg {
+  max-width: 100%;
+  max-height: 180px;
+  height: auto;
+}
+
+.fishbone-card-tag {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.potential-card-preview {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #0b1120;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.potential-card-preview svg {
+  max-width: 100%;
+  max-height: 180px;
+  height: auto;
+}
+
+.potential-card-tag {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.neuralnet-card-preview {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.neuralnet-card-preview svg {
+  max-width: 100%;
+  max-height: 180px;
+  height: auto;
+}
+
+.neuralnet-card-tag {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.graph-card-preview {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.graph-card-preview svg {
+  max-width: 100%;
+  max-height: 180px;
+  height: auto;
+}
+
+.graph-card-tag {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+/* 結晶構造・格子モデル カードプレビュースタイル */
+.crystal-card-preview {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.crystal-card-preview svg {
+  max-width: 100%;
+  max-height: 180px;
+  height: auto;
+}
+
+.crystal-card-tag {
+  background-color: #ede9fe;
+  color: #6d28d9;
+}
+
+/* 汎用シナリオ・概念図 (フリーフロー) カードプレビュースタイル */
+.scenario-card-preview {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #0b0f19;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.scenario-card-preview svg {
+  max-width: 100%;
+  max-height: 180px;
+  height: auto;
+}
+
+.scenario-card-tag {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* テンソルネットワーク図 / ペンローズ記法 カードプレビュースタイル */
+.tensor-card-preview {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #080c16;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.tensor-card-preview svg {
+  max-width: 100%;
+  max-height: 180px;
+  height: auto;
+}
+
+.tensor-card-tag {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.tensor-preview-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* グラフ・統計チャート (Bar, Line, Pie, Donut, Combo) カードプレビュースタイル */
+.chart-card-preview {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.chart-card-preview svg {
+  max-width: 100%;
+  max-height: 180px;
+  height: auto;
+}
+
+.chart-card-tag {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.chart-preview-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+.chart-preview-container svg {
+  max-width: 100%;
+  height: auto;
 }

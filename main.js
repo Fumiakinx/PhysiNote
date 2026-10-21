@@ -400,208 +400,15 @@ const formulaDictionary = [
     purpose: '空間内の微小体積要素における密度の時間変化と、境界からの質量流出入フラックスの完全均衡（質量保存）を表す。',
     elements: [
       { symbol: '$\\frac{\\partial \\rho}{\\partial t}$', desc: '局所的な流体密度の時間変化率' },
-      { symbol: '$\\rho \\boldsymbol{v}$', desc: '単位面積あたりの質量流束（フラックスベクトル）' },
-      { symbol: '$\\nabla \\cdot (\\rho \\boldsymbol{v})$', desc: '微小体積からの正味の流出量（発散）' },
-      { symbol: '$= 0$', desc: '質量の生成・消滅が起きない厳密保存条件' }
+      { symbol: '$\\nabla \\cdot (\\rho \\boldsymbol{v})$', desc: '境界からの正味の質量流出フラックス' }
     ],
-    domain: '流体を連続体として扱える全領域（局所的な質量保存）。',
-    limitSignal: '原子核反応など質量がエネルギーへ転換する領域、または分子スケールの希薄気体。',
-    timeReversibility: '時間反転（$t \\to -t, \\boldsymbol{v} \\to -\\boldsymbol{v}$）に対して方程式の形が保たれ時間反転可逆。'
-  },
-  {
-    id: 'navier-stokes',
-    pattern: /\\rho.*\\partial/,
-    name: 'ナビエ–ストークス方程式',
-    desc: '粘性流体の運動を記述する流体力学の基礎方程式。運動量の保存則を表す。',
-    purpose: '粘性流体の要素に作用する圧力勾配・粘性拡散・外力から、流速場の局所加速度を算出する運動方程式。',
-    elements: [
-      { symbol: '$\\rho (\\frac{\\partial \\boldsymbol{v}}{\\partial t} + (\\boldsymbol{v}\\cdot\\nabla)\\boldsymbol{v})$', desc: '流体微小要素の実質加速度と慣性力項' },
-      { symbol: '$-\\nabla P$', desc: '周囲との圧力差によって流体を押し出す圧力勾配力' },
-      { symbol: '$\\mu \\nabla^2 \\boldsymbol{v}$', desc: '流体間の摩擦（粘性）による運動量の空間拡散・減速項' },
-      { symbol: '$\\boldsymbol{f}$', desc: '重力や遠心力などの外力体積力' }
-    ],
-    domain: '流体を連続体として近似できる領域（クヌーセン数が十分小さい環境）。',
-    limitSignal: '希薄気体（宇宙空間など）では分子衝突モデルが必要。また数学的には3次元における滑らかな解の存在と一意性（ミレニアム懸賞問題）が未解決。',
-    timeReversibility: '粘性によるエネルギー散逸があるため、基本的には未来方向（不可逆）。'
-  },
-  {
-    id: 'quantum_schrodinger',
-    pattern: /i\\hbar.*\\partial.*\\psi/,
-    name: 'シュレーディンガー方程式（$i\\hbar \\frac{\\partial}{\\partial t}\\psi = \\hat{H}\\psi$）',
-    desc: '微視的な粒子の状態（波動関数）の時間発展を決定づける量子力学の基本方程式。',
-    purpose: 'ハミルトニアン $\\hat{H}$ が規定するエネルギー構造に基づいて、量子波動関数 $\\psi$ の複素位相回転・時間発展を決定する。',
-    elements: [
-      { symbol: '$\\psi$', desc: '系の状態を表す複素確率振幅（波動関数）' },
-      { symbol: '$\\hat{H}$', desc: 'ハミルトニアン（系の全エネルギー演算子）' },
-      { symbol: '$i\\hbar$', desc: '量子的な複素位相回転速度を規定する作用素スケール' },
-      { symbol: '$\\frac{\\partial}{\\partial t}\\psi$', desc: '波動関数の瞬時時間微分（未来の状態を紡ぎ出す出力）' }
-    ],
-    domain: '非相対論的エネルギー領域（粒子数保存が成り立つ単一または少数量子系）。',
-    limitSignal: '光速に近い高速粒子（ディラック方程式が必要）、素粒子の生成・消滅（場の量子論が必要）。',
-    timeReversibility: 'ユニタリ発展（$t \\to -t$ と複素共役 $\\psi \\to \\psi^*$ の組み合わせ）により微視的には時間反転可逆。'
-  },
-  {
-    id: 'quantum_uncertainty',
-    pattern: /\\Delta\s*x\s*\\Delta\s*p/,
-    name: '不確定性原理（$\\Delta x \\Delta p \\ge \\frac{\\hbar}{2}$）',
-    desc: '粒子の位置と運動量を同時に無限の精度で確定することはできないことを示す原理。',
-    purpose: '位置 $x$ の広がりと運動量 $p$ のゆらぎの積に存在する、量子力学固有の理論的下限境界を規定する。',
-    elements: [
-      { symbol: '$\\Delta x$', desc: '位置の測定の不確定さ（波動関数の空間的広がり）' },
-      { symbol: '$\\Delta p$', desc: '運動量の測定の不確定さ（波数の分散・スペクトル幅）' },
-      { symbol: '$\\frac{\\hbar}{2}$', desc: '交換関係 $[\\hat{x}, \\hat{p}] = i\\hbar$ から導かれる最小の量子ゆらぎ限界値' },
-      { symbol: '$\\ge$', desc: '両者を同時にこれ以上狭めることができない不等式制約' }
-    ],
-    domain: '非可換な物理量（正準共役対）を持つすべての量子力学的状態。',
-    limitSignal: 'マクロ系（$\\hbar \\to 0$ の極限）では不確定性幅が日常スケールに対して無視可能となり古典極限へ移行。',
-    timeReversibility: '状態の測定前後の統計的散らばりの限界関係式（時間発展自体とは独立な固有の不等式）。'
-  },
-  {
-    id: 'quantum_de_broglie',
-    pattern: /\\lambda\s*=\s*\\frac\{\s*h\s*\}\{\s*p\s*\}/,
-    name: 'ド・ブロイ波の波長（$\\lambda = \\frac{h}{p}$）',
-    desc: '物質粒子が波動としての性質（物質波）を併せ持つことを表す式。',
-    purpose: '運動量 $p$ を持つ任意の粒子が空間中で示す物質波の空間波長 $\\lambda$ を算出する。',
-    elements: [
-      { symbol: '$p$', desc: '粒子の運動量', varKey: 'p', unit: 'kg·m/s', defaultVal: 1.0e-24 },
-      { symbol: '$h$', desc: 'プランク定数', varKey: 'h', unit: 'J·s', defaultVal: 6.626e-34, isConstant: true },
-      { symbol: '$\\lambda$', desc: '物質波の波長（出力結果）', varKey: 'lambda', unit: 'nm', defaultVal: 0.6626, target: true }
-    ],
-    solve: (vals, trig) => (trig === 'lambda' && vals.lambda > 0 ? { p: vals.h / (vals.lambda * 1e-9) } : (vals.p > 0 ? { lambda: (vals.h / vals.p) * 1e9 } : null)),
-    domain: '運動量 $p$ を持つあらゆる自由粒子（電子・中性子・原子線など）。',
-    limitSignal: '巨視的物体（質量が極めて大きく $\\lambda$ がプランク長スケールに埋もれる領域）では波動性が観測不能。'
-  },
-  {
-    id: 'quantum-photoelectric',
-    pattern: /(E\s*=\s*h\s*\\nu|E\s*=\s*\\hbar\s*\\omega)/,
-    name: 'アインシュタインの光量子仮説（$E = h\\nu = \\hbar \\omega$）',
-    desc: '光（電磁波）が振動数に比例したエネルギーの塊（光子）として振る舞う関係式。',
-    purpose: '電磁波の振動数 $\\nu$ から、光子1粒子が担う離散化されたエネルギー $E$ を算出する。',
-    elements: [
-      { symbol: '$\\nu$', desc: '電磁波の振動数', varKey: 'nu', unit: 'THz', defaultVal: 500 },
-      { symbol: '$h$', desc: 'プランク定数', varKey: 'h', unit: 'J·s', defaultVal: 6.626e-34, isConstant: true },
-      { symbol: '$E$', desc: '光子1個のエネルギー（出力結果）', varKey: 'E', unit: 'eV', defaultVal: 2.07, target: true }
-    ],
-    solve: (vals, trig) => (trig === 'E' ? { nu: (vals.E * 1.602e-19 / vals.h) / 1e12 } : { E: (vals.h * (vals.nu * 1e12)) / 1.602e-19 }),
-    domain: '電磁相互作用における光子のエネルギー授受過程（光電効果・コンプトン散乱）。',
-    limitSignal: '極端に強い古典的コヒーレント電磁場（無数の光子が重なり波動として振る舞う巨視的領域）。',
-    timeReversibility: '光子の放出・吸収の微視的素過程は時間反転可逆。'
-  },
-  {
-    id: 'quantum-commutation-relation',
-    pattern: /\\hat\{x\}.*\\hat\{p\}.*=.*i\\hbar/,
-    name: '正準交換関係（$[\\hat{x}, \\hat{p}] = i\\hbar$）',
-    desc: '位置と運動量の演算子が非可換であることを示し、不確定性原理の数学的根底をなす基本関係式。',
-    purpose: '位置と運動量の観測順序の入れ替え不可能性（非可換性）から、量子ゆらぎ定数 $i\\hbar$ を生成する代数方程式。',
-    elements: [
-      { symbol: '$\\hat{x}$', desc: '位置作用素（座標値の掛け算作用）' },
-      { symbol: '$\\hat{p}$', desc: '運動量作用素（微分演算子 $-i\\hbar\\frac{\\partial}{\\partial x}$）' },
-      { symbol: '$[\\hat{x}, \\hat{p}]$', desc: '交換子 $\\hat{x}\\hat{p} - \\hat{p}\\hat{x}$（作用順序の差分測定）' },
-      { symbol: '$i\\hbar$', desc: '順序の食い違いから発生する量子位相変位（出力定数）' }
-    ],
-    domain: '標準的な正準量子化が成立するヒルベルト空間上の量子力学系。',
-    limitSignal: '古典極限 $\\hbar \\to 0$ でポアソン括弧へと漸近。離散時空などの極限量子重力理論。',
-    timeReversibility: '時間依存性を持たない代数的交換関係（不変）。'
-  },
-  {
-    id: 'wave_wave_equation',
-    pattern: /\\partial\^2\s*u.*\\partial\s*t\^2.*\\partial\^2\s*u.*\\partial\s*x\^2/,
-    name: '1次元波動方程式（$\\frac{\\partial^2 u}{\\partial t^2} = v^2 \\frac{\\partial^2 u}{\\partial x^2}$）',
-    desc: '波が空間中を一定の速さで伝播していく様子を記述する偏微分方程式。',
-    purpose: '空間変位の曲率（歪み）から媒質の時間加速度を誘起し、波形を位相速度 $v$ で無歪み伝播させる偏微分方程式。',
-    elements: [
-      { symbol: '$\\frac{\\partial^2 u}{\\partial x^2}$', desc: '波形変位の空間曲率（近傍要素からの復元張力）' },
-      { symbol: '$v^2$', desc: '媒質の位相速度の2乗（伝播の応答特性定数）' },
-      { symbol: '$\\frac{\\partial^2 u}{\\partial t^2}$', desc: '媒質各点における時間加速度（波を進行させる駆動力出力）' }
-    ],
-    domain: '媒質の分散性や減衰が無視できる均質媒質中の微小振幅波。',
-    limitSignal: '大振幅時の媒質の非線形性（衝撃波の形成）、周波数依存の分散（波形崩れ）、媒質抵抗による減衰で破綻。',
-    timeReversibility: '2階時間微分のため時間反転可逆（$t \\to -t$ でも方程式が保存され、波の巻き戻しが可能）。'
-  },
-  {
-    id: 'optics_snell',
-    pattern: /n_1\s*\\sin\s*\\theta_1/,
-    name: 'スネルの法則（屈折の法則）（$n_1 \\sin \\theta_1 = n_2 \\sin \\theta_2$）',
-    desc: '屈折率が異なる媒質の境界を光が通過する際の入射角と屈折角の関係式。',
-    purpose: '媒質境界における光の波面の連続性（位相整合）から、入射角 $\\theta_1$ に対する屈折角 $\\theta_2$ を決定する。',
-    elements: [
-      { symbol: '$n_1$', desc: '媒質1の屈折率', varKey: 'n1', unit: '', defaultVal: 1.0 },
-      { symbol: '$\\theta_1$', desc: '媒質1の入射角', varKey: 'theta1', unit: '°', defaultVal: 30 },
-      { symbol: '$n_2$', desc: '媒質2の屈折率', varKey: 'n2', unit: '', defaultVal: 1.5 },
-      { symbol: '$\\theta_2$', desc: '媒質2の屈折角（出力結果）', varKey: 'theta2', unit: '°', defaultVal: 19.47, target: true }
-    ],
-    solve: (vals) => {
-      const rad1 = (vals.theta1 * Math.PI) / 180;
-      const sin2 = (vals.n1 * Math.sin(rad1)) / vals.n2;
-      if (Math.abs(sin2) <= 1) {
-        return { theta2: (Math.asin(sin2) * 180) / Math.PI };
-      }
-      return null;
-    },
-    domain: '幾何光学が成り立つ波長より十分大きなスケールの等方性・均質媒質境界。',
-    limitSignal: '全反射領域（臨界角超え）、境界の厚みが光の波長と同等以下のナノスケール（波動光学・回折が必要）。',
-    timeReversibility: '光路可逆の原理により時間反転可逆（光線を逆向きに入射させても同一の経路を辿る）。'
-  },
-  {
-    id: 'wave-grating-interference',
-    pattern: /d\s*\\sin\s*\\theta\s*=\s*m\s*\\lambda/,
-    name: '回折・干渉条件（$d \\sin \\theta = m \\lambda$）',
-    desc: '波がスリットや回折格子を通過した際に位相が揃い強め合う条件を表す波動光学の基本式。',
-    purpose: '周期構造 $d$ を通過した散乱波の光路差が波長 $\\lambda$ の整数倍に一致する回折強め合い角度 $\\theta$ を決定する。',
-    elements: [
-      { symbol: '$d$', desc: '格子のスリット間隔', varKey: 'd', unit: 'μm', defaultVal: 2.0 },
-      { symbol: '$m$', desc: '干渉次数', varKey: 'm', unit: '次', defaultVal: 1 },
-      { symbol: '$\\lambda$', desc: '入射光の波長', varKey: 'lambda', unit: 'nm', defaultVal: 500 },
-      { symbol: '$\\theta$', desc: '回折角度（出力結果）', varKey: 'theta', unit: '°', defaultVal: 14.48, target: true }
-    ],
-    solve: (vals) => {
-      const sinTheta = (vals.m * (vals.lambda * 1e-9)) / (vals.d * 1e-6);
-      if (Math.abs(sinTheta) <= 1) {
-        return { theta: (Math.asin(sinTheta) * 180) / Math.PI };
-      }
-      return null;
-    },
-    domain: '単色コヒーレント波、遠方回折（フラウンホーファー回折）領域。',
-    limitSignal: 'スリット間隔 $d$ が波長 $\\lambda$ より小さい場合（$\\sin \\theta > 1$ となり回折光が生じない）、またはインコヒーレント光。',
-    timeReversibility: '光路可逆の原理により時間反転可逆。'
-  },
-  {
-    id: 'wave-doppler-effect',
-    pattern: /f'\s*=\s*f.*v/,
-    name: 'ドップラー効果の式（$f\' = f \\frac{v \\pm v_o}{v \\mp v_s}$）',
-    desc: '観測者や波源の相対運動によって観測される振動数が変化する現象を記述する式。',
-    purpose: '波源と観測者の相対的な移動速度から、単位時間あたりに受波される見かけの周波数 $f\'$ を換算する。',
-    elements: [
-      { symbol: '$f$', desc: '音源の固有周波数', varKey: 'f', unit: 'Hz', defaultVal: 440 },
-      { symbol: '$v$', desc: '媒質中の音速', varKey: 'v', unit: 'm/s', defaultVal: 340 },
-      { symbol: '$v_o$', desc: '観測者の移動速度', varKey: 'vo', unit: 'm/s', defaultVal: 0 },
-      { symbol: '$v_s$', desc: '音源の移動速度（接近時正）', varKey: 'vs', unit: 'm/s', defaultVal: 20 },
-      { symbol: '$f\'$', desc: '観測される受信周波数（出力結果）', varKey: 'fp', unit: 'Hz', defaultVal: 467.5, target: true }
-    ],
-    solve: (vals) => (vals.v !== vals.vs ? { fp: vals.f * ((vals.v + vals.vo) / (vals.v - vals.vs)) } : null),
-    domain: '音速 $v$ 以下の媒質中における波源・観測者の一次元相対運動。',
-    limitSignal: '波源の速度が音速を超える場合（$v_s \\ge v$：衝撃波の発生）、または光の相対論的ドップラー効果。',
-    timeReversibility: '音波の減衰・空気抵抗を無視すれば時間反転可逆。'
-  },
-  {
-    id: 'thermo_stat_boltzmann',
-    pattern: /S\s*=\s*k_B\s*\\ln\s*W/,
-    name: 'ボルツマンの原理（$S = k_B \\ln W$）',
-    desc: '微視的な状態数と巨視的なエントロピーを結びつける統計力学の基礎式。',
-    purpose: '微視的な取りうる状態数 $W$ の情報量（対数）から、巨視的熱力学エントロピー $S$ を導出する架橋方程式。',
-    elements: [
-      { symbol: '$W$', desc: '取りうる微視的状態数', varKey: 'W', unit: '', defaultVal: 1.0e20 },
-      { symbol: '$k_B$', desc: 'ボルツマン定数', varKey: 'kB', unit: 'J/K', defaultVal: 1.381e-23, isConstant: true },
-      { symbol: '$S$', desc: '巨視的エントロピー（出力結果）', varKey: 'S', unit: 'J/K', defaultVal: 6.359e-22, target: true }
-    ],
-    solve: (vals) => (vals.W > 0 ? { S: vals.kB * Math.log(vals.W) } : null),
-    domain: '等確率の原理が成り立つ孤立した平衡熱力学系（小正準集団）。',
-    limitSignal: '状態数が極めて少なく統計的平均が取れない極小少数粒子系、または非平衡定常状態。',
-    timeReversibility: '平衡状態における静的状態量関係式（時間依存性なし）。'
+    domain: '質量保存が成り立つすべての流体連続体。',
+    limitSignal: '連続体近似が破綻する希薄気体や核反応系。',
+    timeReversibility: '時間反転可逆。'
   },
   {
     id: 'thermo_stat_distribution',
-    pattern: /P_i.*e\^/,
+    pattern: /P_i\s*\\propto\s*e\^/,
     name: 'ボルツマン分布（$P_i \\propto e^{-\\frac{E_i}{k_B T}}$）',
     desc: '熱平衡状態にある系において、エネルギー状態が出現する確率を表す分布則。',
     purpose: '温度 $T$ の熱浴と熱平衡にある系が、特定エネルギー準位 $E_i$ をとる統計的出現確率重みを算出する。',
@@ -974,3496 +781,9 @@ function renderElementsList(container, elements, formula) {
   }
 }
 
-// ==========================================
-// 化学構造式（chemfig / SMILES）の変換・描画エンジン
-// ==========================================
-function chemfigToSmiles(chemfigStr) {
-  if (!chemfigStr) return null;
-  const trimmed = chemfigStr.trim();
 
-  // 1. ベンゼン環および置換ベンゼン環（トルエン、アスピリン等）の解析
-  const ringMatch = trimmed.match(/^\*6\s*\((.+)\)$/);
-  if (ringMatch) {
-    const inner = ringMatch[1];
 
-    // トップレベルの枝分かれ括弧（ネスト深度=1）を完全抽出
-    const branches = [];
-    let depth = 0;
-    let startIdx = -1;
-    for (let i = 0; i < inner.length; i++) {
-      if (inner[i] === '(') {
-        if (depth === 0) startIdx = i;
-        depth++;
-      } else if (inner[i] === ')') {
-        depth--;
-        if (depth === 0 && startIdx !== -1) {
-          branches.push(inner.slice(startIdx + 1, i));
-          startIdx = -1;
-        }
-      }
-    }
 
-    if (branches.length > 0) {
-      // 置換基を正規化・SMILESフラグメント化するヘルパー
-      const parseSub = (raw) => {
-        const clean = raw
-          .replace(/^[-=]+/, '')
-          .replace(/\[:?[^\]]*\]/g, '')
-          .replace(/_/g, '')
-          .trim();
-
-        // カルボキシ基: -C(=[1]O)-[7]OH, COOH, C(=O)O
-        if (/^C\(=?O\)\s*-?O\s*H?$/i.test(clean) || clean === 'COOH') {
-          return { smiles: 'C(=O)O', type: 'COOH' };
-        }
-        // アセトキシ基: -O-C(=[1]O)-[7]CH3, OCOCH3, OAc
-        if (/^O-?C\(=?O\)\s*-?CH3?$/i.test(clean) || clean === 'OCOCH3' || clean === 'OAc') {
-          return { smiles: 'OC(=O)C', type: 'OCOCH3' };
-        }
-        // メチル基: -CH3
-        if (/^CH3?$/i.test(clean)) return { smiles: 'C', type: 'CH3' };
-        // エチル基: -CH2CH3, -C2H5
-        if (/^CH2CH3$|^C2H5$/i.test(clean)) return { smiles: 'CC', type: 'C2H5' };
-        // ヒドロキシ基: -OH
-        if (/^OH$/i.test(clean)) return { smiles: 'O', type: 'OH' };
-        // アミノ基: -NH2
-        if (/^NH2?$/i.test(clean)) return { smiles: 'N', type: 'NH2' };
-        // アルデヒド基: -CHO
-        if (/^CHO$/i.test(clean)) return { smiles: 'C=O', type: 'CHO' };
-        // ニトロ基: -NO2
-        if (/^NO2?$/i.test(clean)) return { smiles: '[N+](=O)[O-]', type: 'NO2' };
-        // スルホン酸基: -SO3H
-        if (/^SO3H$/i.test(clean)) return { smiles: 'S(=O)(=O)O', type: 'SO3H' };
-        // ハロゲン
-        if (clean === 'Cl') return { smiles: 'Cl', type: 'Cl' };
-        if (clean === 'Br') return { smiles: 'Br', type: 'Br' };
-        if (clean === 'F') return { smiles: 'F', type: 'F' };
-        if (clean === 'I') return { smiles: 'I', type: 'I' };
-
-        return { smiles: clean, type: clean };
-      };
-
-      const parsedSubs = branches.map(parseSub);
-
-      // 2置換ベンゼンの特別判定（アスピリン、サリチル酸等）
-      if (parsedSubs.length === 2) {
-        const types = parsedSubs.map((s) => s.type);
-        // アスピリン（アセチルサリチル酸）: COOH + OCOCH3
-        if (types.includes('COOH') && types.includes('OCOCH3')) {
-          return { smiles: 'O=C(O)c1ccccc1OC(=O)C', name: 'アスピリン（アセチルサリチル酸）' };
-        }
-        // サリチル酸: COOH + OH
-        if (types.includes('COOH') && types.includes('OH')) {
-          return { smiles: 'O=C(O)c1ccccc1O', name: 'サリチル酸' };
-        }
-        // 一般的な2置換体
-        return {
-          smiles: `${parsedSubs[0].smiles}c1ccccc1${parsedSubs[1].smiles}`,
-          name: `2置換ベンゼン（-${parsedSubs[0].type}, -${parsedSubs[1].type}）`
-        };
-      }
-
-      // 単一置換ベンゼン
-      const singleSub = parsedSubs[0];
-      const singleNameMap = {
-        'CH3': 'トルエン（C₇H₈）',
-        'C2H5': 'エチルベンゼン',
-        'OH': 'フェノール（C₆H₅OH）',
-        'NH2': 'アニリン（C₆H₅NH₂）',
-        'COOH': '安息香酸（C₆H₅COOH）',
-        'CHO': 'ベンズアルデヒド',
-        'NO2': 'ニトロベンゼン',
-        'SO3H': 'ベンゼンスルホン酸',
-        'Cl': 'クロロベンゼン',
-        'Br': 'ブロモベンゼン',
-        'F': 'フルオロベンゼン',
-        'I': 'ヨードベンゼン'
-      };
-
-      return {
-        smiles: `${singleSub.smiles}c1ccccc1`,
-        name: singleNameMap[singleSub.type] || `置換ベンゼン（-${singleSub.type}）`
-      };
-    }
-
-    // 括弧（置換基）のない純粋な六員環
-    if (/^[-=]{5,6}$/.test(inner.replace(/\s+/g, ''))) {
-      if (inner.includes('=')) {
-        return { smiles: 'c1ccccc1', name: 'ベンゼン環（C₆H₆）' };
-      }
-      return { smiles: 'C1CCCCC1', name: 'シクロヘキサン' };
-    }
-  }
-
-  // 2. シクロペンタン
-  if (trimmed === '*5(-----)') {
-    return { smiles: 'C1CCCC1', name: 'シクロペンタン' };
-  }
-  // 4. 水分子（折れ線型: [:30] 度数指定および [1] 等の整数方位指定に対応）
-  if (/H\s*-\s*(?:\[:?[^\]]+\]\s*)?O\s*-\s*(?:\[:?[^\]]+\]\s*)?H/i.test(trimmed) || trimmed === 'H-O-H') {
-    return { smiles: 'WATER', name: '水分子（H₂O 折れ線型）' };
-  }
-  // 5. メタン
-  if (/^CH4$/i.test(trimmed) || /C\(.*H.*\)/.test(trimmed)) {
-    return { smiles: 'C', name: 'メタン（CH₄）' };
-  }
-  // 6. エタノール
-  if (/ethanol/i.test(trimmed) || trimmed.includes('C-C-OH') || trimmed.includes('CH3-CH2-OH')) {
-    return { smiles: 'CCO', name: 'エタノール' };
-  }
-  // 7. 酢酸
-  if (trimmed.includes('C(=O)OH') || trimmed.includes('CH3-COOH')) {
-    return { smiles: 'CC(=O)O', name: '酢酸' };
-  }
-
-  // 簡易抽出：角度や方位ブラケットを取り除いてSMILESとして解釈可能か試行
-  const simplified = trimmed.replace(/\[:?[^\]]*\]/g, '').replace(/[()]/g, '');
-  if (simplified && /^[A-Za-z0-9=#\-+]+$/.test(simplified)) {
-    return { smiles: simplified, name: '化学構造' };
-  }
-
-  return null;
-}
-
-// 水分子専用の高品位折れ線型（104.5度）SVG描画
-function createWaterMoleculeSvg() {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 180 120');
-  svg.setAttribute('width', '180');
-  svg.setAttribute('height', '120');
-  svg.setAttribute('class', 'chem-structure-svg');
-
-  svg.innerHTML = `
-    <!-- 結合線（折れ線型 104.5度） -->
-    <line x1="78" y1="48" x2="42" y2="82" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
-    <line x1="102" y1="48" x2="138" y2="82" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
-    <!-- 元素記号 -->
-    <circle cx="90" cy="42" r="16" fill="#fee2e2"/>
-    <text x="90" y="48" font-family="'KaTeX_Main', sans-serif" font-size="20" font-weight="bold" fill="#dc2626" text-anchor="middle">O</text>
-    <circle cx="34" cy="90" r="14" fill="#e0f2fe"/>
-    <text x="34" y="96" font-family="'KaTeX_Main', sans-serif" font-size="18" font-weight="bold" fill="#0284c7" text-anchor="middle">H</text>
-    <circle cx="146" cy="90" r="14" fill="#e0f2fe"/>
-    <text x="146" y="96" font-family="'KaTeX_Main', sans-serif" font-size="18" font-weight="bold" fill="#0284c7" text-anchor="middle">H</text>
-  `;
-  return svg;
-}
-
-// ベンゼン環のフォールバックSVG描画
-function createBenzeneSvg() {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 160 160');
-  svg.setAttribute('width', '160');
-  svg.setAttribute('height', '160');
-  svg.setAttribute('class', 'chem-structure-svg');
-
-  svg.innerHTML = `
-    <!-- 外側六角形 -->
-    <polygon points="80,18 135,50 135,110 80,142 25,110 25,50" fill="none" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/>
-    <!-- 内側二重結合線（ケクレ構造） -->
-    <line x1="80" y1="30" x2="123" y2="55" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
-    <line x1="123" y1="105" x2="80" y2="130" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
-    <line x1="37" y1="105" x2="37" y2="55" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
-  `;
-  return svg;
-}
-
-// SMILES文字列からSVGを描画するヘルパー
-function drawSmilesToElement(smiles, container, labelText) {
-  if (!container) return;
-  container.innerHTML = '';
-
-  // 1. 水分子特化
-  if (smiles === 'WATER') {
-    container.appendChild(createWaterMoleculeSvg());
-    if (labelText) {
-      const lbl = document.createElement('div');
-      lbl.className = 'chem-structure-label';
-      lbl.textContent = labelText;
-      container.appendChild(lbl);
-    }
-    return;
-  }
-
-  // 2. ベンゼン環特化（SmilesDrawerが遅延している場合も確実に綺麗に表示）
-  if (smiles === 'c1ccccc1' && typeof SmilesDrawer === 'undefined') {
-    container.appendChild(createBenzeneSvg());
-    if (labelText) {
-      const lbl = document.createElement('div');
-      lbl.className = 'chem-structure-label';
-      lbl.textContent = labelText;
-      container.appendChild(lbl);
-    }
-    return;
-  }
-
-  // 3. SmilesDrawer による動的描画
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('class', 'chem-structure-svg');
-  svg.setAttribute('width', '220');
-  svg.setAttribute('height', '160');
-  container.appendChild(svg);
-
-  if (typeof SmilesDrawer !== 'undefined' && SmilesDrawer.SvgDrawer) {
-    try {
-      const drawer = new SmilesDrawer.SvgDrawer({
-        width: 220,
-        height: 160,
-        bondThickness: 2.2,
-        bondLength: 22,
-        fontSizeLarge: 14,
-        fontSizeSmall: 10,
-        compactDrawing: false
-      });
-      SmilesDrawer.parse(smiles, (tree) => {
-        drawer.draw(tree, svg, 'light');
-      }, (err) => {
-        console.warn('SmilesDrawer解析エラー:', err);
-        container.innerHTML = `<span style="color:#ef4444; font-size:12px;">構文確認中: ${smiles}</span>`;
-      });
-    } catch (e) {
-      console.error(e);
-      container.appendChild(createBenzeneSvg());
-    }
-  } else {
-    // ライブラリ準備中のフォールバック
-    if (smiles === 'c1ccccc1') {
-      container.innerHTML = '';
-      container.appendChild(createBenzeneSvg());
-    } else {
-      svg.setAttribute('viewBox', '0 0 160 50');
-      svg.innerHTML = `<text x="80" y="30" text-anchor="middle" font-size="14" fill="#64748b">${smiles}</text>`;
-    }
-  }
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
-}
-
-// ==========================================
-// 電子回路図（CircuiTikZ風）構文パーサー & SVG描画エンジン
-// ==========================================
-function parseCircuiTikz(text) {
-  // \circuit{...} の中身、または直接の \draw コマンドを抽出
-  let clean = text.replace(/\\circuit\{([\s\S]*)\}/g, '$1');
-  const commands = clean.split(';').map((c) => c.trim()).filter((c) => c.length > 0);
-  const elements = [];
-  const loops = [];
-
-  for (const cmd of commands) {
-    if (!cmd.startsWith('\\draw')) continue;
-    const rest = cmd.slice(5).trim();
-
-    // 1. ループ電流ノードの検出: \draw (x, y) node[loop=...] または node[loop] {...}
-    const loopNodeMatch = rest.match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)\s*node\s*\[([^\]]*)\](?:\s*\{([^}]*)\})?/i);
-    if (loopNodeMatch) {
-      const lx = parseFloat(loopNodeMatch[1]);
-      const ly = parseFloat(loopNodeMatch[2]);
-      const opts = loopNodeMatch[3].trim();
-      const body = (loopNodeMatch[4] || '').trim();
-
-      if (/loop|mesh/i.test(opts)) {
-        let label = '';
-        const eqMatch = opts.match(/(?:loop|mesh)\s*=\s*(.+)/i);
-        if (eqMatch) {
-          label = eqMatch[1].trim();
-        } else if (body) {
-          label = body;
-        }
-        label = label
-          .replace(/\$/g, '')
-          .replace(/\\text\{([^}]*)\}/g, '$1')
-          .replace(/_\{([^}]+)\}/g, '_$1');
-
-        const dir = /ccw|counter/i.test(opts) ? 'ccw' : 'cw';
-        loops.push({ x: lx, y: ly, label, dir });
-        continue;
-      }
-    }
-
-    // 2. 通常の線分および素子
-    const startMatch = rest.match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/);
-    if (!startMatch) continue;
-
-    let curX = parseFloat(startMatch[1]);
-    let curY = parseFloat(startMatch[2]);
-    let remain = rest.slice(startMatch[0].length).trim();
-
-    while (remain.length > 0) {
-      let isWire = false;
-      let toTypeStr = '';
-      let nextX = 0;
-      let nextY = 0;
-      let consumedLen = 0;
-
-      if (remain.startsWith('--')) {
-        isWire = true;
-        const afterWire = remain.slice(2).trim();
-        const coordMatch = afterWire.match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/);
-        if (!coordMatch) break;
-        nextX = parseFloat(coordMatch[1]);
-        nextY = parseFloat(coordMatch[2]);
-        consumedLen = 2 + (remain.length - 2 - afterWire.length) + coordMatch[0].length;
-      } else if (remain.match(/^to\s*\[/)) {
-        const startBracketIdx = remain.indexOf('[');
-        let depth = 0;
-        let endBracketIdx = -1;
-        for (let i = startBracketIdx; i < remain.length; i++) {
-          if (remain[i] === '[') depth++;
-          else if (remain[i] === ']') {
-            depth--;
-            if (depth === 0) {
-              endBracketIdx = i;
-              break;
-            }
-          }
-        }
-        if (endBracketIdx === -1) break;
-        toTypeStr = remain.slice(startBracketIdx + 1, endBracketIdx);
-        const afterTo = remain.slice(endBracketIdx + 1).trim();
-        const coordMatch = afterTo.match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/);
-        if (!coordMatch) break;
-        nextX = parseFloat(coordMatch[1]);
-        nextY = parseFloat(coordMatch[2]);
-        consumedLen = (endBracketIdx + 1) + (remain.length - (endBracketIdx + 1) - afterTo.length) + coordMatch[0].length;
-      } else {
-        break;
-      }
-
-      let type = 'wire';
-      let label = '';
-      let xshift = 0;
-      let yshift = 0;
-      let side = null;
-
-      if (!isWire) {
-        let mainPart = toTypeStr;
-
-        const mX = mainPart.match(/(?:^|,)\s*xshift\s*=\s*(-?\d+(?:\.\d+)?)/i);
-        if (mX) {
-          xshift = parseFloat(mX[1]);
-          mainPart = mainPart.replace(mX[0], '');
-        }
-
-        const mY = mainPart.match(/(?:^|,)\s*yshift\s*=\s*(-?\d+(?:\.\d+)?)/i);
-        if (mY) {
-          yshift = parseFloat(mY[1]);
-          mainPart = mainPart.replace(mY[0], '');
-        }
-
-        const mSide = mainPart.match(/(?:^|,)\s*(left|right|above|below)\b/i);
-        if (mSide) {
-          side = mSide[1].toLowerCase();
-          mainPart = mainPart.replace(mSide[0], '');
-        }
-        mainPart = mainPart.replace(/^,\s*|,\s*$/g, '').trim();
-
-        const eqIdx = mainPart.indexOf('=');
-        if (eqIdx !== -1) {
-          type = mainPart.slice(0, eqIdx).trim();
-          let rawLabel = mainPart.slice(eqIdx + 1).trim();
-          rawLabel = rawLabel
-            .replace(/\$/g, '')
-            .replace(/\\text\{([^}]*)\}/g, '$1')
-            .replace(/\\Omega/g, 'Ω')
-            .replace(/\\mu/g, 'μ')
-            .replace(/_\{([^}]+)\}/g, '_$1');
-          label = rawLabel;
-        } else {
-          type = mainPart.trim();
-        }
-      }
-
-      elements.push({
-        x1: curX,
-        y1: curY,
-        x2: nextX,
-        y2: nextY,
-        type: type,
-        label: label,
-        xshift: xshift,
-        yshift: yshift,
-        side: side
-      });
-
-      curX = nextX;
-      curY = nextY;
-      remain = remain.slice(consumedLen).trim();
-    }
-  }
-
-  return { elements, loops };
-}
-
-function drawCircuitSvg(circuitText, container, labelText) {
-  container.innerHTML = '';
-  const parsed = parseCircuiTikz(circuitText);
-  const elements = parsed ? parsed.elements : [];
-  const loops = parsed ? parsed.loops : [];
-
-  if ((!elements || elements.length === 0) && (!loops || loops.length === 0)) {
-    container.innerHTML = '<span style="color:#ef4444; font-size:12px;">回路構文を解析できませんでした</span>';
-    return;
-  }
-
-  // 座標変換：LaTeXのy軸（上が正）をSVGのy軸（下が正）に反転（scale: 1単位 = 60px）
-  const scale = 60;
-  const pts = [];
-
-  // まず回路素子の基本端点を登録
-  elements.forEach((el) => {
-    pts.push({ x: el.x1 * scale, y: -el.y1 * scale });
-    pts.push({ x: el.x2 * scale, y: -el.y2 * scale });
-  });
-
-  // ループ電流のバウンディングボックスも登録
-  loops.forEach((lp) => {
-    const cx = lp.x * scale;
-    const cy = -lp.y * scale;
-    pts.push({ x: cx - 35, y: cy - 35 });
-    pts.push({ x: cx + 35, y: cy + 35 });
-  });
-
-  // 回路の重心を暫定計算（法線ベクトルの外向き判定用）
-  const initMinX = Math.min(...pts.map((p) => p.x));
-  const initMaxX = Math.max(...pts.map((p) => p.x));
-  const initMinY = Math.min(...pts.map((p) => p.y));
-  const initMaxY = Math.max(...pts.map((p) => p.y));
-  const centerX = (initMinX + initMaxX) / 2;
-  const centerY = (initMinY + initMaxY) / 2;
-
-  // ラベル位置を事前計算し、pts にバウンディングボックスを追加（viewBox見切れ防止）
-  const labelLayouts = [];
-  elements.forEach((el) => {
-    if (!el.label) {
-      labelLayouts.push(null);
-      return;
-    }
-
-    const p1 = { x: el.x1 * scale, y: -el.y1 * scale };
-    const p2 = { x: el.x2 * scale, y: -el.y2 * scale };
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const len = Math.hypot(dx, dy);
-    const midX = (p1.x + p2.x) / 2;
-    const midY = (p1.y + p2.y) / 2;
-    const normDx = len > 0 ? dx / len : 0;
-    const normDy = len > 0 ? dy / len : 0;
-    const normType = el.type.toLowerCase();
-
-    let nx = -normDy;
-    let ny = normDx;
-    const toOutX = midX - centerX;
-    const toOutY = midY - centerY;
-
-    if (el.side === 'left') {
-      nx = -1;
-      ny = 0;
-    } else if (el.side === 'right') {
-      nx = 1;
-      ny = 0;
-    } else if (el.side === 'above') {
-      nx = 0;
-      ny = -1;
-    } else if (el.side === 'below') {
-      nx = 0;
-      ny = 1;
-    } else if (nx * toOutX + ny * toOutY < 0) {
-      nx = -nx;
-      ny = -ny;
-    } else if (nx * toOutX + ny * toOutY === 0) {
-      if (Math.abs(normDx) >= Math.abs(normDy)) {
-        if (ny > 0) { nx = -nx; ny = -ny; }
-      } else {
-        if (nx > 0) { nx = -nx; ny = -ny; }
-      }
-    }
-
-    let offsetDist = 20;
-    if (normType === 'sv' || normType === 'ac' || normType === 'battery' || normType === 'v') {
-      offsetDist = 24;
-    } else if (normType === 'c' || normType === 'capacitor') {
-      offsetDist = 20;
-    }
-
-    let autoYShift = 0;
-    // 垂直素子の場合（中点からの水平分岐線との重なりを回避するため上方に自動シフト）
-    if (Math.abs(normDx) < Math.abs(normDy)) {
-      autoYShift = -14;
-    }
-    const manualXShift = el.xshift ? el.xshift : 0;
-    const manualYShift = el.yshift ? -el.yshift : 0;
-
-    const lx = midX + nx * offsetDist + manualXShift;
-    const ly = midY + ny * offsetDist + autoYShift + manualYShift;
-
-    let textAnchor = 'middle';
-    let dominantBaseline = 'central';
-    if (Math.abs(nx) > Math.abs(ny)) {
-      if (nx < 0) textAnchor = 'end';
-      else textAnchor = 'start';
-    } else {
-      textAnchor = 'middle';
-      if (ny < 0) dominantBaseline = 'auto';
-      else dominantBaseline = 'hanging';
-    }
-
-    const lines = el.label.split(/\\n|\n/);
-    const maxLineLen = Math.max(...lines.map((l) => l.length));
-    const textW = Math.max(maxLineLen * 8.5 + 8, 22);
-    const textH = lines.length > 1 ? lines.length * 15 + 4 : 18;
-
-    let rx = lx - textW / 2;
-    if (textAnchor === 'start') rx = lx - 2;
-    else if (textAnchor === 'end') rx = lx - textW + 2;
-
-    let ry = ly - textH / 2;
-    if (dominantBaseline === 'auto') ry = ly - textH + 3;
-    else if (dominantBaseline === 'hanging') ry = ly - 3;
-
-    // バウンディングボックスを pts に登録（viewBox に反映）
-    pts.push({ x: rx, y: ry });
-    pts.push({ x: rx + textW, y: ry + textH });
-
-    labelLayouts.push({ lx, ly, rx, ry, textW, textH, textAnchor, dominantBaseline, label: el.label });
-  });
-
-  // 全要素（素子＋端点＋ラベル）を含む真のバウンディングボックス
-  let minX = Math.min(...pts.map((p) => p.x));
-  let maxX = Math.max(...pts.map((p) => p.x));
-  let minY = Math.min(...pts.map((p) => p.y));
-  let maxY = Math.max(...pts.map((p) => p.y));
-
-  const pad = 24;
-  let width = maxX - minX;
-  let height = maxY - minY;
-  if (width < 60) width = 60;
-  if (height < 40) height = 40;
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  const vbX = minX - pad;
-  const vbY = minY - pad;
-  const vbW = width + pad * 2;
-  const vbH = height + pad * 2;
-  svg.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
-  svg.setAttribute('width', Math.min(vbW, 460));
-  svg.setAttribute('height', Math.min(vbH, 300));
-  svg.style.maxWidth = '100%';
-  svg.style.height = 'auto';
-  svg.style.overflow = 'visible';
-
-  const strokeColor = '#1e293b';
-  const strokeWidth = 2;
-
-  elements.forEach((el) => {
-    const p1 = { x: el.x1 * scale, y: -el.y1 * scale };
-    const p2 = { x: el.x2 * scale, y: -el.y2 * scale };
-
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const len = Math.hypot(dx, dy);
-    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-    const midX = (p1.x + p2.x) / 2;
-    const midY = (p1.y + p2.y) / 2;
-
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    const compLen = 36;
-    const halfComp = compLen / 2;
-    const normType = el.type.toLowerCase();
-
-    if (normType === 'wire' || normType === '--' || len <= compLen) {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', p1.x);
-      line.setAttribute('y1', p1.y);
-      line.setAttribute('x2', p2.x);
-      line.setAttribute('y2', p2.y);
-      line.setAttribute('stroke', strokeColor);
-      line.setAttribute('stroke-width', strokeWidth);
-      line.setAttribute('stroke-linecap', 'round');
-      g.appendChild(line);
-    } else {
-      const inX = midX - (halfComp * dx) / len;
-      const inY = midY - (halfComp * dy) / len;
-      const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line1.setAttribute('x1', p1.x);
-      line1.setAttribute('y1', p1.y);
-      line1.setAttribute('x2', inX);
-      line1.setAttribute('y2', inY);
-      line1.setAttribute('stroke', strokeColor);
-      line1.setAttribute('stroke-width', strokeWidth);
-      line1.setAttribute('stroke-linecap', 'round');
-      g.appendChild(line1);
-
-      const outX = midX + (halfComp * dx) / len;
-      const outY = midY + (halfComp * dy) / len;
-      const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line2.setAttribute('x1', outX);
-      line2.setAttribute('y1', outY);
-      line2.setAttribute('x2', p2.x);
-      line2.setAttribute('y2', p2.y);
-      line2.setAttribute('stroke', strokeColor);
-      line2.setAttribute('stroke-width', strokeWidth);
-      line2.setAttribute('stroke-linecap', 'round');
-      g.appendChild(line2);
-
-      const compG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      compG.setAttribute('transform', `translate(${midX}, ${midY}) rotate(${angle})`);
-
-      if (normType === 'r' || normType === 'resistor') {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M -18,0 L -12,-7 L -6,7 L 0,-7 L 6,7 L 12,-7 L 18,0');
-        path.setAttribute('stroke', strokeColor);
-        path.setAttribute('stroke-width', strokeWidth);
-        path.setAttribute('fill', 'none');
-        path.setAttribute('stroke-linejoin', 'round');
-        compG.appendChild(path);
-      } else if (normType === 'c' || normType === 'capacitor') {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M -18,0 L -4,0 M -4,-12 L -4,12 M 4,-12 L 4,12 M 4,0 L 18,0');
-        path.setAttribute('stroke', strokeColor);
-        path.setAttribute('stroke-width', strokeWidth);
-        path.setAttribute('fill', 'none');
-        compG.appendChild(path);
-      } else if (normType === 'l' || normType === 'inductor') {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M -18,0 C -18,-9 -9,-9 -9,0 C -9,-9 0,-9 0,0 C 0,-9 9,-9 9,0 C 9,-9 18,-9 18,0');
-        path.setAttribute('stroke', strokeColor);
-        path.setAttribute('stroke-width', strokeWidth);
-        path.setAttribute('fill', 'none');
-        compG.appendChild(path);
-      } else if (normType === 'battery' || normType === 'v') {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M -18,0 L -4,0 M -4,-14 L -4,14 M 4,-8 L 4,8 M 4,0 L 18,0');
-        path.setAttribute('stroke', strokeColor);
-        path.setAttribute('stroke-width', strokeWidth);
-        path.setAttribute('fill', 'none');
-        compG.appendChild(path);
-      } else if (normType === 'sv' || normType === 'ac' || normType === 'sinusoidal') {
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', 0);
-        circle.setAttribute('cy', 0);
-        circle.setAttribute('r', 13);
-        circle.setAttribute('stroke', strokeColor);
-        circle.setAttribute('stroke-width', strokeWidth);
-        circle.setAttribute('fill', '#ffffff');
-        compG.appendChild(circle);
-
-        const wave = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        wave.setAttribute('d', 'M -7,0 Q -3.5,-7 0,0 Q 3.5,7 7,0');
-        wave.setAttribute('stroke', strokeColor);
-        wave.setAttribute('stroke-width', strokeWidth);
-        wave.setAttribute('fill', 'none');
-        compG.appendChild(wave);
-
-        const wIn = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        wIn.setAttribute('x1', -18);
-        wIn.setAttribute('y1', 0);
-        wIn.setAttribute('x2', -13);
-        wIn.setAttribute('y2', 0);
-        wIn.setAttribute('stroke', strokeColor);
-        wIn.setAttribute('stroke-width', strokeWidth);
-        compG.appendChild(wIn);
-
-        const wOut = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        wOut.setAttribute('x1', 13);
-        wOut.setAttribute('y1', 0);
-        wOut.setAttribute('x2', 18);
-        wOut.setAttribute('y2', 0);
-        wOut.setAttribute('stroke', strokeColor);
-        wOut.setAttribute('stroke-width', strokeWidth);
-        compG.appendChild(wOut);
-      } else if (normType === 'd' || normType === 'diode') {
-        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        poly.setAttribute('points', '-6,-10 8,0 -6,10');
-        poly.setAttribute('fill', strokeColor);
-        compG.appendChild(poly);
-
-        const bar = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        bar.setAttribute('x1', 8);
-        bar.setAttribute('y1', -10);
-        bar.setAttribute('x2', 8);
-        bar.setAttribute('y2', 10);
-        bar.setAttribute('stroke', strokeColor);
-        bar.setAttribute('stroke-width', strokeWidth);
-        compG.appendChild(bar);
-
-        const w1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        w1.setAttribute('x1', -18);
-        w1.setAttribute('y1', 0);
-        w1.setAttribute('x2', -6);
-        w1.setAttribute('y2', 0);
-        w1.setAttribute('stroke', strokeColor);
-        w1.setAttribute('stroke-width', strokeWidth);
-        compG.appendChild(w1);
-
-        const w2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        w2.setAttribute('x1', 8);
-        w2.setAttribute('y1', 0);
-        w2.setAttribute('x2', 18);
-        w2.setAttribute('y2', 0);
-        w2.setAttribute('stroke', strokeColor);
-        w2.setAttribute('stroke-width', strokeWidth);
-        compG.appendChild(w2);
-      } else if (normType === 'switch' || normType === 'sw' || normType === 'spst') {
-        // スイッチ（開閉器：端子2つ、斜めレバー、投入矢印）
-        const t1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        t1.setAttribute('cx', -10);
-        t1.setAttribute('cy', 0);
-        t1.setAttribute('r', 2.8);
-        t1.setAttribute('stroke', strokeColor);
-        t1.setAttribute('stroke-width', strokeWidth);
-        t1.setAttribute('fill', '#ffffff');
-        compG.appendChild(t1);
-
-        const t2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        t2.setAttribute('cx', 10);
-        t2.setAttribute('cy', 0);
-        t2.setAttribute('r', 2.8);
-        t2.setAttribute('stroke', strokeColor);
-        t2.setAttribute('stroke-width', strokeWidth);
-        t2.setAttribute('fill', '#ffffff');
-        compG.appendChild(t2);
-
-        const w1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        w1.setAttribute('x1', -18);
-        w1.setAttribute('y1', 0);
-        w1.setAttribute('x2', -13);
-        w1.setAttribute('y2', 0);
-        w1.setAttribute('stroke', strokeColor);
-        w1.setAttribute('stroke-width', strokeWidth);
-        compG.appendChild(w1);
-
-        const w2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        w2.setAttribute('x1', 13);
-        w2.setAttribute('y1', 0);
-        w2.setAttribute('x2', 18);
-        w2.setAttribute('y2', 0);
-        w2.setAttribute('stroke', strokeColor);
-        w2.setAttribute('stroke-width', strokeWidth);
-        compG.appendChild(w2);
-
-        const leverAngle = (-35 * Math.PI) / 180;
-        const lx = -10 + 20 * Math.cos(leverAngle);
-        const ly = 20 * Math.sin(leverAngle);
-        const lever = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        lever.setAttribute('x1', -10);
-        lever.setAttribute('y1', 0);
-        lever.setAttribute('x2', lx.toFixed(1));
-        lever.setAttribute('y2', ly.toFixed(1));
-        lever.setAttribute('stroke', strokeColor);
-        lever.setAttribute('stroke-width', strokeWidth);
-        lever.setAttribute('stroke-linecap', 'round');
-        compG.appendChild(lever);
-
-        const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        arc.setAttribute('d', 'M -2.5,-13.0 A 15 15 0 0 1 3.2,-7.5');
-        arc.setAttribute('stroke', strokeColor);
-        arc.setAttribute('stroke-width', 1.3);
-        arc.setAttribute('fill', 'none');
-        compG.appendChild(arc);
-
-        const arrHead = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        arrHead.setAttribute('points', '4.6,-4.5 1.3,-6.8 5.1,-8.2');
-        arrHead.setAttribute('fill', strokeColor);
-        compG.appendChild(arrHead);
-      } else if (normType === 'gnd' || normType === 'ground') {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', 'M -18,0 L 0,0 M 0,-12 L 0,12 M 4,-8 L 4,8 M 8,-4 L 8,4');
-        path.setAttribute('stroke', strokeColor);
-        path.setAttribute('stroke-width', strokeWidth);
-        path.setAttribute('fill', 'none');
-        compG.appendChild(path);
-      } else {
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rect.setAttribute('x', -14);
-        rect.setAttribute('y', -8);
-        rect.setAttribute('width', 28);
-        rect.setAttribute('height', 16);
-        rect.setAttribute('stroke', strokeColor);
-        rect.setAttribute('stroke-width', strokeWidth);
-        rect.setAttribute('fill', '#ffffff');
-        compG.appendChild(rect);
-      }
-
-      g.appendChild(compG);
-    }
-
-    const dot1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot1.setAttribute('cx', p1.x);
-    dot1.setAttribute('cy', p1.y);
-    dot1.setAttribute('r', 2.5);
-    dot1.setAttribute('fill', strokeColor);
-    g.appendChild(dot1);
-
-    const dot2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot2.setAttribute('cx', p2.x);
-    dot2.setAttribute('cy', p2.y);
-    dot2.setAttribute('r', 2.5);
-    dot2.setAttribute('fill', strokeColor);
-    g.appendChild(dot2);
-
-    svg.appendChild(g);
-  });
-
-  // ラベルレイヤー（素子・配線の上に白座布団＋文字を描画）
-  elements.forEach((el, idx) => {
-    const layout = labelLayouts[idx];
-    if (!layout) return;
-
-    const labelG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-    // 1. 白座布団（背景マスク）
-    const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    bgRect.setAttribute('x', layout.rx);
-    bgRect.setAttribute('y', layout.ry);
-    bgRect.setAttribute('width', layout.textW);
-    bgRect.setAttribute('height', layout.textH);
-    bgRect.setAttribute('fill', '#ffffff');
-    bgRect.setAttribute('rx', 4);
-    bgRect.setAttribute('ry', 4);
-    bgRect.setAttribute('opacity', '0.92');
-    bgRect.setAttribute('class', 'circuit-label-mask');
-    labelG.appendChild(bgRect);
-
-    // 2. ラベルテキスト（改行 \n 対応）
-    const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    textEl.setAttribute('class', 'circuit-label-text');
-    textEl.setAttribute('x', layout.lx);
-    textEl.setAttribute('text-anchor', layout.textAnchor);
-    textEl.setAttribute('font-size', '12.5');
-    textEl.setAttribute('font-weight', '700');
-    textEl.setAttribute('fill', '#d97706');
-    textEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-
-    const lines = layout.label.split(/\\n|\n/);
-    if (lines.length > 1) {
-      const lineH = 15;
-      const startY = layout.ly - ((lines.length - 1) * lineH) / 2 + 3;
-      lines.forEach((line, lIdx) => {
-        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        tspan.setAttribute('x', layout.lx);
-        tspan.setAttribute('y', (startY + lIdx * lineH).toFixed(1));
-        tspan.textContent = line.trim();
-        textEl.appendChild(tspan);
-      });
-    } else {
-      textEl.setAttribute('y', layout.ly);
-      textEl.setAttribute('dominant-baseline', layout.dominantBaseline);
-      textEl.textContent = layout.label;
-    }
-    labelG.appendChild(textEl);
-
-    svg.appendChild(labelG);
-  });
-
-  // メッシュ電流（ループ電流）の描画
-  loops.forEach((lp) => {
-    const cx = lp.x * scale;
-    const cy = -lp.y * scale;
-    const R = 23;
-
-    const loopG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    loopG.setAttribute('class', 'circuit-mesh-loop');
-
-    const isCcw = lp.dir === 'ccw';
-    const startAng = isCcw ? 0.52 : 2.35;
-    const endAng = isCcw ? 2.35 : 0.52;
-
-    const sx = cx + R * Math.cos(startAng);
-    const sy = cy + R * Math.sin(startAng);
-    const ex = cx + R * Math.cos(endAng);
-    const ey = cy + R * Math.sin(endAng);
-
-    const arcPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    const sweepFlag = isCcw ? 0 : 1;
-    arcPath.setAttribute('d', `M ${sx.toFixed(1)} ${sy.toFixed(1)} A ${R} ${R} 0 1 ${sweepFlag} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
-    arcPath.setAttribute('stroke', strokeColor);
-    arcPath.setAttribute('stroke-width', 2);
-    arcPath.setAttribute('fill', 'none');
-    arcPath.setAttribute('stroke-linecap', 'round');
-    loopG.appendChild(arcPath);
-
-    const tanAng = isCcw ? endAng - Math.PI / 2 : endAng + Math.PI / 2;
-    const aLen = 8;
-    const aWid = 4.5;
-    const tipX = ex;
-    const tipY = ey;
-    const p1x = tipX - aLen * Math.cos(tanAng) + aWid * Math.sin(tanAng);
-    const p1y = tipY - aLen * Math.sin(tanAng) - aWid * Math.cos(tanAng);
-    const p2x = tipX - aLen * Math.cos(tanAng) - aWid * Math.sin(tanAng);
-    const p2y = tipY - aLen * Math.sin(tanAng) + aWid * Math.cos(tanAng);
-
-    const arrowHead = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    arrowHead.setAttribute('points', `${tipX.toFixed(1)},${tipY.toFixed(1)} ${p1x.toFixed(1)},${p1y.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)}`);
-    arrowHead.setAttribute('fill', strokeColor);
-    loopG.appendChild(arrowHead);
-
-    const loopTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    loopTxt.setAttribute('x', cx);
-    loopTxt.setAttribute('y', cy + 5);
-    loopTxt.setAttribute('text-anchor', 'middle');
-    loopTxt.setAttribute('font-size', '15');
-    loopTxt.setAttribute('font-weight', '700');
-    loopTxt.setAttribute('font-style', 'italic');
-    loopTxt.setAttribute('font-family', 'Georgia, "Times New Roman", serif');
-    loopTxt.setAttribute('fill', strokeColor);
-
-    if (lp.label.includes('_')) {
-      const parts = lp.label.split('_');
-      loopTxt.textContent = parts[0];
-      const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-      tspan.setAttribute('font-size', '11');
-      tspan.setAttribute('dy', '3');
-      tspan.textContent = parts[1];
-      loopTxt.appendChild(tspan);
-    } else {
-      loopTxt.textContent = lp.label || 'I';
-    }
-    loopG.appendChild(loopTxt);
-
-    svg.appendChild(loopG);
-  });
-
-  container.appendChild(svg);
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
-}
-
-// ==========================================
-// タイミングチャート（波形）構文パーサー & SVG描画エンジン
-// ==========================================
-function parseTimingChart(text) {
-  let clean = text.replace(/\\timing\{([\s\S]*)\}/g, '$1');
-  const lines = clean.split(/[;\n]/).map((l) => l.trim()).filter((l) => l.length > 0 && l.includes(':'));
-  const signals = [];
-
-  for (const line of lines) {
-    const colonIdx = line.indexOf(':');
-    if (colonIdx === -1) continue;
-    const name = line.slice(0, colonIdx).trim();
-    const rawTokens = line.slice(colonIdx + 1).trim();
-    if (!name) continue;
-
-    const tokens = [];
-    const parts = rawTokens.split(/\s+/);
-    for (const part of parts) {
-      if (!part) continue;
-      if (part.startsWith('=')) {
-        tokens.push({ type: 'bus', label: part.slice(1) });
-      } else {
-        for (let i = 0; i < part.length; i++) {
-          const ch = part[i];
-          if (ch === '=') {
-            tokens.push({ type: 'bus', label: part.slice(i + 1) });
-            break;
-          } else if (ch.toUpperCase() === 'P') {
-            tokens.push({ type: 'clock' });
-          } else if (ch === '0' || ch.toUpperCase() === 'L') {
-            tokens.push({ type: 'low' });
-          } else if (ch === '1' || ch.toUpperCase() === 'H') {
-            tokens.push({ type: 'high' });
-          } else if (ch.toUpperCase() === 'Z') {
-            tokens.push({ type: 'z' });
-          } else if (ch.toUpperCase() === 'X') {
-            tokens.push({ type: 'x' });
-          }
-        }
-      }
-    }
-
-    if (tokens.length > 0) {
-      signals.push({ name, tokens });
-    }
-  }
-
-  return signals;
-}
-
-function drawTimingSvg(timingText, container, labelText) {
-  container.innerHTML = '';
-  const signals = parseTimingChart(timingText);
-  if (!signals || signals.length === 0) {
-    container.innerHTML = '<span style="color:#ef4444; font-size:12px;">波形構文を解析できませんでした（例: \\timing{ CLK: P P P; DATA: 0 1 0; }）</span>';
-    return;
-  }
-
-  const maxSteps = Math.max(...signals.map((s) => s.tokens.length));
-  if (maxSteps === 0) return;
-
-  const stepW = 44;
-  const nameW = 75;
-  const rowH = 38;
-  const headerH = 22;
-  const pad = 16;
-  const totalW = nameW + maxSteps * stepW + pad * 2;
-  const totalH = headerH + signals.length * rowH + pad * 2;
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
-  svg.setAttribute('width', Math.min(totalW, 640));
-  svg.setAttribute('height', Math.min(totalH, 360));
-  svg.style.maxWidth = '100%';
-  svg.style.height = 'auto';
-  svg.style.overflow = 'visible';
-
-  const strokeColor = '#1e293b';
-  const strokeWidth = 2;
-  const gridColor = '#e2e8f0';
-
-  // 1. 縦グリッド線とサイクル番号ヘッダー
-  for (let s = 0; s <= maxSteps; s++) {
-    const gx = pad + nameW + s * stepW;
-    const gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    gridLine.setAttribute('x1', gx);
-    gridLine.setAttribute('y1', pad + headerH);
-    gridLine.setAttribute('x2', gx);
-    gridLine.setAttribute('y2', totalH - pad);
-    gridLine.setAttribute('stroke', gridColor);
-    gridLine.setAttribute('stroke-width', 1);
-    gridLine.setAttribute('stroke-dasharray', '3,3');
-    svg.appendChild(gridLine);
-
-    if (s < maxSteps) {
-      const cycleNum = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      cycleNum.setAttribute('x', gx + stepW / 2);
-      cycleNum.setAttribute('y', pad + headerH - 6);
-      cycleNum.setAttribute('text-anchor', 'middle');
-      cycleNum.setAttribute('font-size', '11');
-      cycleNum.setAttribute('font-family', 'monospace');
-      cycleNum.setAttribute('fill', '#94a3b8');
-      cycleNum.textContent = s;
-      svg.appendChild(cycleNum);
-    }
-  }
-
-  // 2. 各シグナル波形を描画
-  signals.forEach((sig, rIdx) => {
-    const rowY = pad + headerH + rIdx * rowH;
-    const yHigh = rowY + 6;
-    const yLow = rowY + rowH - 10;
-    const yMid = (yHigh + yLow) / 2;
-
-    // 信号名（左端）
-    const nameText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    nameText.setAttribute('x', pad + nameW - 12);
-    nameText.setAttribute('y', yMid + 4);
-    nameText.setAttribute('text-anchor', 'end');
-    nameText.setAttribute('font-size', '12.5');
-    nameText.setAttribute('font-weight', '700');
-    nameText.setAttribute('font-family', 'ui-monospace, SFMono-Regular, Menlo, monospace');
-    nameText.setAttribute('fill', '#0d9488');
-    nameText.textContent = sig.name;
-    svg.appendChild(nameText);
-
-    const startX = pad + nameW;
-    let pathD = '';
-    let curState = null;
-    const transW = 3.5;
-
-    sig.tokens.forEach((tok, tIdx) => {
-      const x0 = startX + tIdx * stepW;
-      const x1 = x0 + stepW;
-
-      if (tok.type === 'clock') {
-        const xMid = (x0 + x1) / 2;
-        if (tIdx === 0 || curState === null || curState === 'bus') pathD += `M ${x0},${yLow} `;
-        pathD += `L ${x0 + transW},${yHigh} L ${xMid - transW},${yHigh} L ${xMid + transW},${yLow} L ${x1},${yLow} `;
-        curState = 'low';
-      } else if (tok.type === 'high') {
-        if (curState === null || curState === 'bus') {
-          pathD += `M ${x0},${yHigh} `;
-        } else if (curState === 'low' || curState === 'z') {
-          pathD += `L ${x0 + transW},${yHigh} `;
-        }
-        pathD += `L ${x1},${yHigh} `;
-        curState = 'high';
-      } else if (tok.type === 'low') {
-        if (curState === null || curState === 'bus') {
-          pathD += `M ${x0},${yLow} `;
-        } else if (curState === 'high' || curState === 'z') {
-          pathD += `L ${x0 + transW},${yLow} `;
-        }
-        pathD += `L ${x1},${yLow} `;
-        curState = 'low';
-      } else if (tok.type === 'z') {
-        if (curState === null || curState === 'bus') {
-          pathD += `M ${x0},${yMid} `;
-        } else {
-          pathD += `L ${x0 + transW},${yMid} `;
-        }
-        pathD += `L ${x1},${yMid} `;
-        curState = 'z';
-      } else if (tok.type === 'bus') {
-        const busG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        const ptsStr = `${x0 + transW},${yHigh} ${x1 - transW},${yHigh} ${x1},${yMid} ${x1 - transW},${yLow} ${x0 + transW},${yLow} ${x0},${yMid}`;
-        poly.setAttribute('points', ptsStr);
-        poly.setAttribute('fill', '#f0fdfa');
-        poly.setAttribute('stroke', strokeColor);
-        poly.setAttribute('stroke-width', strokeWidth);
-        busG.appendChild(poly);
-
-        if (tok.label) {
-          const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          lbl.setAttribute('x', (x0 + x1) / 2);
-          lbl.setAttribute('y', yMid + 4);
-          lbl.setAttribute('text-anchor', 'middle');
-          lbl.setAttribute('font-size', '11.5');
-          lbl.setAttribute('font-weight', '600');
-          lbl.setAttribute('font-family', 'sans-serif');
-          lbl.setAttribute('fill', '#0f766e');
-          lbl.textContent = tok.label;
-          busG.appendChild(lbl);
-        }
-        svg.appendChild(busG);
-        curState = 'bus';
-      }
-    });
-
-    if (pathD) {
-      const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      pathEl.setAttribute('d', pathD.trim());
-      pathEl.setAttribute('stroke', strokeColor);
-      pathEl.setAttribute('stroke-width', strokeWidth);
-      pathEl.setAttribute('fill', 'none');
-      pathEl.setAttribute('stroke-linecap', 'round');
-      pathEl.setAttribute('stroke-linejoin', 'round');
-      svg.appendChild(pathEl);
-    }
-  });
-
-  container.appendChild(svg);
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
-}
-
-// ==========================================
-// 状態遷移図（オートマトン）構文パーサー & SVG描画エンジン
-// ==========================================
-function parseFsmChart(fsmText) {
-  const lines = fsmText.split(/[\n;]+/).map((l) => l.trim()).filter(Boolean);
-  const statesMap = new Map();
-  const transitions = [];
-
-  lines.forEach((line) => {
-    if (line.includes('->')) {
-      const transMatch = line.match(/^(?:trans:?\s*)?([a-zA-Z0-9_\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]+)\s*->\s*([a-zA-Z0-9_\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]+)(?:\s*:\s*([^\[]+))?(?:\s*\[(.*)\])?$/i);
-      if (transMatch) {
-        const from = transMatch[1].trim();
-        const to = transMatch[2].trim();
-        let label = (transMatch[3] || '').trim().replace(/^["']|["']$/g, '');
-        const opts = (transMatch[4] || '').toLowerCase();
-        const bend = opts.includes('bend');
-        transitions.push({ from, to, label, bend });
-
-        if (!statesMap.has(from)) statesMap.set(from, { id: from, x: null, y: null, isStart: false, isAccept: false });
-        if (!statesMap.has(to)) statesMap.set(to, { id: to, x: null, y: null, isStart: false, isAccept: false });
-      }
-    } else {
-      const stateMatch = line.match(/^(?:state:?\s*)?([a-zA-Z0-9_\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]+)(?:\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\))?(.*)$/i);
-      if (stateMatch) {
-        const id = stateMatch[1].trim();
-        const x = stateMatch[2] !== undefined ? parseFloat(stateMatch[2]) : null;
-        const y = stateMatch[3] !== undefined ? parseFloat(stateMatch[3]) : null;
-        const flags = (stateMatch[4] || '').toLowerCase();
-        const isStart = flags.includes('start') || flags.includes('init');
-        const isAccept = flags.includes('accept') || flags.includes('final') || flags.includes('end');
-
-        const existing = statesMap.get(id) || {};
-        statesMap.set(id, {
-          id,
-          x: x !== null ? x : existing.x ?? null,
-          y: y !== null ? y : existing.y ?? null,
-          isStart: isStart || existing.isStart || false,
-          isAccept: isAccept || existing.isAccept || false
-        });
-      }
-    }
-  });
-
-  const states = Array.from(statesMap.values());
-  let unpositionedIdx = 0;
-  states.forEach((st) => {
-    if (st.x === null || st.y === null) {
-      st.x = unpositionedIdx * 130;
-      st.y = 0;
-      unpositionedIdx++;
-    }
-  });
-
-  return { states, transitions };
-}
-
-function drawFsmSvg(fsmText, container, labelText) {
-  container.innerHTML = '';
-  const parsed = parseFsmChart(fsmText);
-  const { states, transitions } = parsed;
-
-  if (states.length === 0) {
-    container.innerHTML = '<span style="color:#ef4444; font-size:12px;">状態遷移図の構文を解析できませんでした（例: \\fsm{ state: q0 start; state: q1 accept; q0 -> q1: 1; }）</span>';
-    return;
-  }
-
-  const R = 23;
-  const strokeColor = '#1e293b';
-  const strokeWidth = 2;
-  const stateLookup = new Map(states.map((s) => [s.id, s]));
-
-  const edgePairCount = new Map();
-  transitions.forEach((t) => {
-    if (t.from !== t.to) {
-      const key = [t.from, t.to].sort().join('___');
-      edgePairCount.set(key, (edgePairCount.get(key) || 0) + 1);
-    }
-  });
-
-  const pts = [];
-  states.forEach((s) => {
-    pts.push({ x: s.x - R - (s.isStart ? 36 : 0), y: s.y - R });
-    pts.push({ x: s.x + R, y: s.y + R });
-  });
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.style.overflow = 'visible';
-
-  function renderArrowHead(tipX, tipY, angleRad, color) {
-    const len = 8.5;
-    const width = 5;
-    const x1 = tipX - len * Math.cos(angleRad) + width * Math.sin(angleRad);
-    const y1 = tipY - len * Math.sin(angleRad) - width * Math.cos(angleRad);
-    const x2 = tipX - len * Math.cos(angleRad) - width * Math.sin(angleRad);
-    const y2 = tipY - len * Math.sin(angleRad) + width * Math.cos(angleRad);
-
-    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    poly.setAttribute('points', `${tipX.toFixed(1)},${tipY.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`);
-    poly.setAttribute('fill', color);
-    svg.appendChild(poly);
-  }
-
-  function renderLabel(cx, cy, text) {
-    if (!text) return;
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-    const tw = Math.max(text.length * 8 + 8, 16);
-    const th = 16;
-    const rx = cx - tw / 2;
-    const ry = cy - th / 2;
-
-    pts.push({ x: rx, y: ry });
-    pts.push({ x: rx + tw, y: ry + th });
-
-    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    bg.setAttribute('x', rx);
-    bg.setAttribute('y', ry);
-    bg.setAttribute('width', tw);
-    bg.setAttribute('height', th);
-    bg.setAttribute('rx', 3);
-    bg.setAttribute('ry', 3);
-    bg.setAttribute('fill', '#ffffff');
-    bg.setAttribute('opacity', '0.92');
-    bg.setAttribute('class', 'fsm-label-mask');
-    g.appendChild(bg);
-
-    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    txt.setAttribute('x', cx);
-    txt.setAttribute('y', cy + 4);
-    txt.setAttribute('text-anchor', 'middle');
-    txt.setAttribute('font-size', '12');
-    txt.setAttribute('font-weight', '600');
-    txt.setAttribute('font-family', 'ui-monospace, monospace');
-    txt.setAttribute('fill', '#4338ca');
-    txt.setAttribute('class', 'fsm-label-text');
-    txt.textContent = text;
-    g.appendChild(txt);
-
-    svg.appendChild(g);
-  }
-
-  transitions.forEach((t) => {
-    const s1 = stateLookup.get(t.from);
-    const s2 = stateLookup.get(t.to);
-    if (!s1 || !s2) return;
-
-    if (t.from === t.to) {
-      const loopR = 26;
-      const x0 = s1.x - 9;
-      const y0 = s1.y - R;
-      const x1 = s1.x + 9;
-      const y1 = s1.y - R;
-
-      const c1x = s1.x - loopR;
-      const c1y = s1.y - R - 36;
-      const c2x = s1.x + loopR;
-      const c2y = s1.y - R - 36;
-
-      pts.push({ x: c1x, y: c1y });
-      pts.push({ x: c2x, y: c2y });
-
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', `M ${x0},${y0} C ${c1x},${c1y} ${c2x},${c2y} ${x1},${y1}`);
-      path.setAttribute('stroke', strokeColor);
-      path.setAttribute('stroke-width', strokeWidth);
-      path.setAttribute('fill', 'none');
-      svg.appendChild(path);
-
-      renderArrowHead(x1, y1, Math.PI / 2 + 0.3, strokeColor);
-      renderLabel(s1.x, s1.y - R - 30, t.label);
-    } else {
-      const dx = s2.x - s1.x;
-      const dy = s2.y - s1.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist === 0) return;
-
-      const ux = dx / dist;
-      const uy = dy / dist;
-      const nx = -uy;
-      const ny = ux;
-
-      const key = [t.from, t.to].sort().join('___');
-      const isBiDirectional = (edgePairCount.get(key) || 0) > 1;
-      const shouldBend = t.bend || isBiDirectional;
-
-      if (shouldBend) {
-        const bendOffset = 26;
-        const midX = (s1.x + s2.x) / 2 + nx * bendOffset;
-        const midY = (s1.y + s2.y) / 2 + ny * bendOffset;
-
-        pts.push({ x: midX, y: midY });
-
-        const angleStart = Math.atan2(midY - s1.y, midX - s1.x);
-        const pStartX = s1.x + R * Math.cos(angleStart);
-        const pStartY = s1.y + R * Math.sin(angleStart);
-
-        const angleEnd = Math.atan2(midY - s2.y, midX - s2.x);
-        const pEndX = s2.x + R * Math.cos(angleEnd);
-        const pEndY = s2.y + R * Math.sin(angleEnd);
-
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', `M ${pStartX.toFixed(1)},${pStartY.toFixed(1)} Q ${midX.toFixed(1)},${midY.toFixed(1)} ${pEndX.toFixed(1)},${pEndY.toFixed(1)}`);
-        path.setAttribute('stroke', strokeColor);
-        path.setAttribute('stroke-width', strokeWidth);
-        path.setAttribute('fill', 'none');
-        svg.appendChild(path);
-
-        const arrowAngle = Math.atan2(pEndY - midY, pEndX - midX);
-        renderArrowHead(pEndX, pEndY, arrowAngle, strokeColor);
-
-        const labelX = (pStartX + 2 * midX + pEndX) / 4;
-        const labelY = (pStartY + 2 * midY + pEndY) / 4 + (ny >= 0 ? 3 : -3);
-        renderLabel(labelX, labelY, t.label);
-      } else {
-        const pStartX = s1.x + ux * R;
-        const pStartY = s1.y + uy * R;
-        const pEndX = s2.x - ux * R;
-        const pEndY = s2.y - uy * R;
-
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', pStartX.toFixed(1));
-        line.setAttribute('y1', pStartY.toFixed(1));
-        line.setAttribute('x2', pEndX.toFixed(1));
-        line.setAttribute('y2', pEndY.toFixed(1));
-        line.setAttribute('stroke', strokeColor);
-        line.setAttribute('stroke-width', strokeWidth);
-        svg.appendChild(line);
-
-        const arrowAngle = Math.atan2(uy, ux);
-        renderArrowHead(pEndX, pEndY, arrowAngle, strokeColor);
-
-        const labelDist = 13;
-        const labelX = (pStartX + pEndX) / 2 + nx * labelDist;
-        const labelY = (pStartY + pEndY) / 2 + ny * labelDist;
-        renderLabel(labelX, labelY, t.label);
-      }
-    }
-  });
-
-  states.forEach((st) => {
-    const nodeG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-    if (st.isStart) {
-      const arrLen = 28;
-      const startX = st.x - R - arrLen;
-      const endX = st.x - R;
-      const startLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      startLine.setAttribute('x1', startX);
-      startLine.setAttribute('y1', st.y);
-      startLine.setAttribute('x2', endX);
-      startLine.setAttribute('y2', st.y);
-      startLine.setAttribute('stroke', strokeColor);
-      startLine.setAttribute('stroke-width', strokeWidth);
-      nodeG.appendChild(startLine);
-      renderArrowHead(endX, st.y, 0, strokeColor);
-    }
-
-    const outerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    outerCircle.setAttribute('cx', st.x);
-    outerCircle.setAttribute('cy', st.y);
-    outerCircle.setAttribute('r', R);
-    outerCircle.setAttribute('fill', '#ffffff');
-    outerCircle.setAttribute('stroke', strokeColor);
-    outerCircle.setAttribute('stroke-width', strokeWidth);
-    nodeG.appendChild(outerCircle);
-
-    if (st.isAccept) {
-      const innerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      innerCircle.setAttribute('cx', st.x);
-      innerCircle.setAttribute('cy', st.y);
-      innerCircle.setAttribute('r', R - 4.5);
-      innerCircle.setAttribute('fill', 'none');
-      innerCircle.setAttribute('stroke', strokeColor);
-      innerCircle.setAttribute('stroke-width', 1.8);
-      nodeG.appendChild(innerCircle);
-    }
-
-    const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    textEl.setAttribute('x', st.x);
-    textEl.setAttribute('y', st.y + 4.5);
-    textEl.setAttribute('text-anchor', 'middle');
-    textEl.setAttribute('font-size', '13');
-    textEl.setAttribute('font-weight', '700');
-    textEl.setAttribute('font-family', 'ui-monospace, SFMono-Regular, Menlo, monospace');
-    textEl.setAttribute('fill', strokeColor);
-    textEl.textContent = st.id;
-    nodeG.appendChild(textEl);
-
-    svg.appendChild(nodeG);
-  });
-
-  const minX = Math.min(...pts.map((p) => p.x));
-  const maxX = Math.max(...pts.map((p) => p.x));
-  const minY = Math.min(...pts.map((p) => p.y));
-  const maxY = Math.max(...pts.map((p) => p.y));
-
-  const pad = 24;
-  let w = maxX - minX;
-  let h = maxY - minY;
-  if (w < 80) w = 80;
-  if (h < 60) h = 60;
-
-  const vbX = minX - pad;
-  const vbY = minY - pad;
-  const vbW = w + pad * 2;
-  const vbH = h + pad * 2;
-
-  svg.setAttribute('viewBox', `${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`);
-  svg.setAttribute('width', Math.min(vbW, 580));
-  svg.setAttribute('height', Math.min(vbH, 360));
-  svg.style.maxWidth = '100%';
-  svg.style.height = 'auto';
-
-  container.appendChild(svg);
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
-}
-
-// ==========================================
-// ファインマン・ダイアグラム構文パーサー & SVG描画エンジン
-// ==========================================
-function parseFeynmanDiagram(feynmanText) {
-  const lines = feynmanText.split(/[\n;]+/).map((l) => l.trim()).filter(Boolean);
-  const elements = [];
-
-  lines.forEach((line) => {
-    const match = line.match(/^([a-zA-Z0-9_-]+)\s*:\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)\s*to\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)(?:\s*(?:["']([^"']*)["']|([^\s;\[]+)))?(?:\s*\[(.*)\])?/i);
-    if (match) {
-      const type = match[1].toLowerCase().trim();
-      const x1 = parseFloat(match[2]);
-      const y1 = parseFloat(match[3]);
-      const x2 = parseFloat(match[4]);
-      const y2 = parseFloat(match[5]);
-      let label = (match[6] || match[7] || '').trim();
-      const opts = (match[8] || '').toLowerCase();
-
-      elements.push({ type, x1, y1, x2, y2, label, opts });
-    }
-  });
-
-  return elements;
-}
-
-function formatFeynmanLabel(raw) {
-  if (!raw) return '';
-  let str = raw.replace(/[¥￥]/g, '\\');
-
-  // 1. 複合修飾（\bar など）を最優先で処理
-  str = str
-    .replace(/\\bar\{?\\nu\}?/g, 'ν̄')
-    .replace(/\\bar\{?nu\}?/g, 'ν̄')
-    .replace(/\\bar\{?([a-zA-Z])\}?/g, '$1̄');
-
-  // 2. 単独ギリシャ文字・素粒子記号
-  str = str
-    .replace(/\\gamma/g, 'γ')
-    .replace(/\\mu/g, 'μ')
-    .replace(/\\nu/g, 'ν')
-    .replace(/\\tau/g, 'τ')
-    .replace(/\\alpha/g, 'α')
-    .replace(/\\beta/g, 'β')
-    .replace(/\\pi/g, 'π');
-
-  // 3. 上付き文字（電荷・符号など）
-  str = str
-    .replace(/\^\{?([+-])\}?/g, (m, sign) => (sign === '+' ? '⁺' : '⁻'))
-    .replace(/\^([+-])/g, (m, sign) => (sign === '+' ? '⁺' : '⁻'))
-    .replace(/\^\{?0\}?/g, '⁰')
-    .replace(/\^0/g, '⁰');
-
-  // 4. 下付き文字（フレーバー・世代など）
-  const subMap = {
-    '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
-    '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
-    'e': 'ₑ', 'μ': 'ᵤ', 'mu': 'ᵤ', 'τ': 'ᵧ', 'tau': 'ᵧ'
-  };
-  str = str.replace(/_\{?([0-9a-zA-Zμ]+)\}?/g, (m, sub) => {
-    return subMap[sub] || sub;
-  });
-
-  return str;
-}
-
-function drawFeynmanSvg(feynmanText, container, labelText) {
-  container.innerHTML = '';
-  const elements = parseFeynmanDiagram(feynmanText);
-  if (!elements || elements.length === 0) {
-    container.innerHTML = '<span style="color:#ef4444; font-size:12px;">ファインマン図の構文を解析できませんでした（例: \\feynman{ fermion: (0,30) to (50,0) "e^-"; photon: (50,0) to (120,0) "\\gamma"; }）</span>';
-    return;
-  }
-
-  const strokeColor = '#1e293b';
-  const strokeWidth = 2;
-  const pts = [];
-
-  elements.forEach((el) => {
-    pts.push({ x: el.x1, y: el.y1 });
-    pts.push({ x: el.x2, y: el.y2 });
-  });
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.style.overflow = 'visible';
-
-  function renderArrowHead(tipX, tipY, angleRad, color) {
-    const len = 8.5;
-    const width = 4.8;
-    const x1 = tipX - len * Math.cos(angleRad) + width * Math.sin(angleRad);
-    const y1 = tipY - len * Math.sin(angleRad) - width * Math.cos(angleRad);
-    const x2 = tipX - len * Math.cos(angleRad) - width * Math.sin(angleRad);
-    const y2 = tipY - len * Math.sin(angleRad) + width * Math.cos(angleRad);
-
-    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    poly.setAttribute('points', `${tipX.toFixed(1)},${tipY.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`);
-    poly.setAttribute('fill', color);
-    svg.appendChild(poly);
-  }
-
-  // 1. すべての粒子線を描画（背景レイヤー）
-  elements.forEach((el) => {
-    const dx = el.x2 - el.x1;
-    const dy = el.y2 - el.y1;
-    const len = Math.hypot(dx, dy);
-    if (len === 0) return;
-
-    const ux = dx / len;
-    const uy = dy / len;
-    const nx = -uy;
-    const ny = ux;
-
-    const midX = (el.x1 + el.x2) / 2;
-    const midY = (el.y1 + el.y2) / 2;
-    const angleRad = Math.atan2(dy, dx);
-
-    const normType = el.type.toLowerCase();
-
-    if (normType === 'photon' || normType === 'wavy' || normType === 'boson') {
-      const numWaves = Math.max(2, Math.round(len / 12));
-      const halfW = len / (numWaves * 2);
-      const amp = 4.2;
-
-      let d = `M ${el.x1.toFixed(1)},${el.y1.toFixed(1)} `;
-      for (let i = 0; i < numWaves * 2; i++) {
-        const sign = i % 2 === 0 ? 1 : -1;
-        const segStartX = el.x1 + (i * halfW) * ux;
-        const segStartY = el.y1 + (i * halfW) * uy;
-        const segEndX = el.x1 + ((i + 1) * halfW) * ux;
-        const segEndY = el.y1 + ((i + 1) * halfW) * uy;
-
-        const c1x = segStartX + (halfW * 0.36) * ux + sign * amp * nx;
-        const c1y = segStartY + (halfW * 0.36) * uy + sign * amp * ny;
-        const c2x = segEndX - (halfW * 0.36) * ux + sign * amp * nx;
-        const c2y = segEndY - (halfW * 0.36) * uy + sign * amp * ny;
-
-        d += `C ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${segEndX.toFixed(1)},${segEndY.toFixed(1)} `;
-        pts.push({ x: c1x, y: c1y });
-      }
-
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', d.trim());
-      path.setAttribute('stroke', strokeColor);
-      path.setAttribute('stroke-width', strokeWidth);
-      path.setAttribute('fill', 'none');
-      path.setAttribute('stroke-linecap', 'round');
-      svg.appendChild(path);
-    } else if (normType === 'gluon' || normType === 'curly') {
-      const numLoops = Math.max(3, Math.round(len / 14));
-      const step = len / numLoops;
-      const loopR = 4.5;
-
-      let d = `M ${el.x1.toFixed(1)},${el.y1.toFixed(1)} `;
-      for (let i = 0; i < numLoops; i++) {
-        const segStartX = el.x1 + i * step * ux;
-        const segStartY = el.y1 + i * step * uy;
-        const segEndX = el.x1 + (i + 1) * step * ux;
-        const segEndY = el.y1 + (i + 1) * step * uy;
-
-        const c1x = segStartX + step * 0.5 * ux + loopR * 1.5 * nx;
-        const c1y = segStartY + step * 0.5 * uy + loopR * 1.5 * ny;
-        const c2x = segEndX - step * 0.1 * ux + loopR * 1.5 * nx;
-        const c2y = segEndY - step * 0.1 * uy + loopR * 1.5 * ny;
-
-        d += `C ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${segEndX.toFixed(1)},${segEndY.toFixed(1)} `;
-        pts.push({ x: c1x, y: c1y });
-      }
-
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', d.trim());
-      path.setAttribute('stroke', strokeColor);
-      path.setAttribute('stroke-width', strokeWidth);
-      path.setAttribute('fill', 'none');
-      path.setAttribute('stroke-linecap', 'round');
-      svg.appendChild(path);
-    } else if (normType === 'scalar' || normType === 'higgs') {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', el.x1.toFixed(1));
-      line.setAttribute('y1', el.y1.toFixed(1));
-      line.setAttribute('x2', el.x2.toFixed(1));
-      line.setAttribute('y2', el.y2.toFixed(1));
-      line.setAttribute('stroke', strokeColor);
-      line.setAttribute('stroke-width', strokeWidth);
-      line.setAttribute('stroke-dasharray', '5,4');
-      svg.appendChild(line);
-    } else {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', el.x1.toFixed(1));
-      line.setAttribute('y1', el.y1.toFixed(1));
-      line.setAttribute('x2', el.x2.toFixed(1));
-      line.setAttribute('y2', el.y2.toFixed(1));
-      line.setAttribute('stroke', strokeColor);
-      line.setAttribute('stroke-width', strokeWidth);
-      svg.appendChild(line);
-
-      const isAnti = normType === 'antifermion' || normType === 'positron' || normType.startsWith('anti');
-      if (normType !== 'line') {
-        const arrAngle = isAnti ? angleRad + Math.PI : angleRad;
-        renderArrowHead(midX, midY, arrAngle, strokeColor);
-      }
-    }
-  });
-
-  // 2. 頂点（Vertex: 線の接合点）を描画
-  const pointCounts = new Map();
-  elements.forEach((el) => {
-    const k1 = `${Math.round(el.x1)},${Math.round(el.y1)}`;
-    const k2 = `${Math.round(el.x2)},${Math.round(el.y2)}`;
-    pointCounts.set(k1, (pointCounts.get(k1) || 0) + 1);
-    pointCounts.set(k2, (pointCounts.get(k2) || 0) + 1);
-  });
-
-  pointCounts.forEach((count, key) => {
-    if (count >= 2) {
-      const [vx, vy] = key.split(',').map(Number);
-      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      dot.setAttribute('cx', vx);
-      dot.setAttribute('cy', vy);
-      dot.setAttribute('r', 3);
-      dot.setAttribute('fill', strokeColor);
-      svg.appendChild(dot);
-    }
-  });
-
-  // 3. すべてのラベル（座布団＋文字）を最前面レイヤーに描画
-  elements.forEach((el) => {
-    if (!el.label) return;
-
-    const dx = el.x2 - el.x1;
-    const dy = el.y2 - el.y1;
-    const len = Math.hypot(dx, dy);
-    if (len === 0) return;
-
-    const ux = dx / len;
-    const uy = dy / len;
-    let nx = -uy;
-    let ny = ux;
-
-    // flip / below / right オプションで法線の向きを反対側に反転
-    if (el.opts && (el.opts.includes('flip') || el.opts.includes('below') || el.opts.includes('right') || el.opts.includes('rev'))) {
-      nx = -nx;
-      ny = -ny;
-    }
-
-    const midX = (el.x1 + el.x2) / 2;
-    const midY = (el.y1 + el.y2) / 2;
-
-    const formatted = formatFeynmanLabel(el.label);
-    const labelDist = 16;
-    const lx = midX + nx * labelDist;
-    const ly = midY + ny * labelDist;
-
-    const tw = Math.max(formatted.length * 8.5 + 8, 18);
-    const th = 17;
-    const rx = lx - tw / 2;
-    const ry = ly - th / 2;
-
-    pts.push({ x: rx, y: ry });
-    pts.push({ x: rx + tw, y: ry + th });
-
-    const labelG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    bg.setAttribute('x', rx.toFixed(1));
-    bg.setAttribute('y', ry.toFixed(1));
-    bg.setAttribute('width', tw.toFixed(1));
-    bg.setAttribute('height', th.toFixed(1));
-    bg.setAttribute('rx', 4);
-    bg.setAttribute('ry', 4);
-    bg.setAttribute('fill', '#ffffff');
-    bg.setAttribute('opacity', '0.94');
-    bg.setAttribute('class', 'feynman-label-mask');
-    labelG.appendChild(bg);
-
-    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    txt.setAttribute('x', lx.toFixed(1));
-    txt.setAttribute('y', (ly + 4.5).toFixed(1));
-    txt.setAttribute('text-anchor', 'middle');
-    txt.setAttribute('font-size', '13');
-    txt.setAttribute('font-weight', '700');
-    txt.setAttribute('font-family', 'ui-monospace, SFMono-Regular, Menlo, monospace');
-    txt.setAttribute('fill', '#9d174d');
-    txt.setAttribute('class', 'feynman-label-text');
-    txt.textContent = formatted;
-    labelG.appendChild(txt);
-
-    svg.appendChild(labelG);
-  });
-
-
-  const minX = Math.min(...pts.map((p) => p.x));
-  const maxX = Math.max(...pts.map((p) => p.x));
-  const minY = Math.min(...pts.map((p) => p.y));
-  const maxY = Math.max(...pts.map((p) => p.y));
-
-  const pad = 20;
-  let w = maxX - minX;
-  let h = maxY - minY;
-  if (w < 80) w = 80;
-  if (h < 60) h = 60;
-
-  const vbX = minX - pad;
-  const vbY = minY - pad;
-  const vbW = w + pad * 2;
-  const vbH = h + pad * 2;
-
-  svg.setAttribute('viewBox', `${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`);
-  svg.setAttribute('width', Math.min(vbW, 580));
-  svg.setAttribute('height', Math.min(vbH, 360));
-  svg.style.maxWidth = '100%';
-  svg.style.height = 'auto';
-
-  container.appendChild(svg);
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
-}
-
-// ==========================================
-// サンキーダイアグラム（Sankey Diagram）解析・描画エンジン
-// ==========================================
-function parseSankeyDiagram(text) {
-  const lines = text.split(/[\n;]+/).map((l) => l.trim()).filter((l) => l && !l.startsWith('//') && !l.startsWith('#'));
-  const links = [];
-  const nodeNamesSet = new Set();
-
-  lines.forEach((line) => {
-    const match = line.match(/^(.+?)\s*(?:\[([\d.]+)\])?\s*->\s*(?:\[([\d.]+)\])?\s*(.+?)(?:\s*\[([\d.]+)\])?(?:\s+(#[a-fA-F0-9]{3,6}|[a-zA-Z]+))?$/);
-    if (match) {
-      const srcRaw = match[1].trim();
-      let tgtRaw = match[4].trim();
-      let color = match[5] || null;
-
-      const valStr = match[2] || match[3] || match[5] || '10';
-      let value = parseFloat(valStr);
-      if (isNaN(value) || value <= 0) value = 10;
-
-      const src = srcRaw.replace(/^["']|["']$/g, '').trim();
-      let tgt = tgtRaw.replace(/^["']|["']$/g, '').replace(/\[[\d.]+\]/g, '').trim();
-
-      const colorMatch = tgt.match(/\s+(#[a-fA-F0-9]{3,6})$/);
-      if (colorMatch) {
-        color = colorMatch[1];
-        tgt = tgt.replace(/\s+#[a-fA-F0-9]{3,6}$/, '').trim();
-      }
-
-      if (src && tgt) {
-        links.push({ source: src, target: tgt, value, color });
-        nodeNamesSet.add(src);
-        nodeNamesSet.add(tgt);
-      }
-    }
-  });
-
-  return { links, nodes: Array.from(nodeNamesSet) };
-}
-
-function drawSankeySvg(sankeyText, container, labelText) {
-  const { links, nodes } = parseSankeyDiagram(sankeyText);
-  if (links.length === 0 || nodes.length === 0) {
-    container.innerHTML = '<span style="color:#ef4444; font-size:12px;">サンキー図の構文を解析できませんでした（例: \\sankey{ 投入熱量 [100] -> 有効仕事 [40]; 投入熱量 -> 排熱 [60]; }）</span>';
-    return;
-  }
-
-  const inSum = {};
-  const outSum = {};
-  nodes.forEach((n) => {
-    inSum[n] = 0;
-    outSum[n] = 0;
-  });
-
-  links.forEach((l) => {
-    outSum[l.source] = (outSum[l.source] || 0) + l.value;
-    inSum[l.target] = (inSum[l.target] || 0) + l.value;
-  });
-
-  const nodeValue = {};
-  nodes.forEach((n) => {
-    nodeValue[n] = Math.max(inSum[n], outSum[n]);
-    if (nodeValue[n] <= 0) nodeValue[n] = 1;
-  });
-
-  const stages = {};
-  nodes.forEach((n) => {
-    if (inSum[n] === 0) stages[n] = 0;
-  });
-  if (Object.keys(stages).length === 0) {
-    stages[links[0].source] = 0;
-  }
-
-  for (let iter = 0; iter < nodes.length; iter++) {
-    let changed = false;
-    links.forEach((l) => {
-      const srcStage = stages[l.source] !== undefined ? stages[l.source] : 0;
-      const expectedTgtStage = srcStage + 1;
-      if (stages[l.target] === undefined || stages[l.target] < expectedTgtStage) {
-        stages[l.target] = expectedTgtStage;
-        changed = true;
-      }
-    });
-    if (!changed) break;
-  }
-
-  nodes.forEach((n) => {
-    if (stages[n] === undefined) stages[n] = 0;
-  });
-
-  const maxStage = Math.max(1, ...Object.values(stages));
-
-  const stageGroups = [];
-  for (let s = 0; s <= maxStage; s++) {
-    stageGroups[s] = [];
-  }
-  nodes.forEach((n) => {
-    stageGroups[stages[n]].push(n);
-  });
-
-  const palette = [
-    '#0284c7', '#0d9488', '#10b981', '#f59e0b', '#ef4444',
-    '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6', '#f97316',
-    '#3b82f6', '#84cc16'
-  ];
-  const nodeColors = {};
-  nodes.forEach((n, idx) => {
-    if (/排熱|損失|ロス|廃熱|放出|摩擦|抵抗/i.test(n)) {
-      nodeColors[n] = '#f59e0b';
-    } else if (/有効|仕事|電力|発電|生成|出力|回収/i.test(n)) {
-      nodeColors[n] = '#10b981';
-    } else {
-      nodeColors[n] = palette[idx % palette.length];
-    }
-  });
-
-  const maxLabelLength = Math.max(...nodes.map((n) => `${n} (${nodeValue[n]})`.length), 8);
-  const padX = Math.max(140, Math.ceil(maxLabelLength * 8.5 + 20));
-  const svgWidth = Math.max(720, (maxStage + 1) * 240 + padX * 2);
-  const padY = 36;
-  const nodeWidth = 14;
-  const nodeGap = 18;
-
-  let maxStageFlowSum = 0;
-  stageGroups.forEach((group) => {
-    const sum = group.reduce((acc, n) => acc + nodeValue[n], 0);
-    if (sum > maxStageFlowSum) maxStageFlowSum = sum;
-  });
-  if (maxStageFlowSum <= 0) maxStageFlowSum = 100;
-
-  const maxNodesInStage = Math.max(...stageGroups.map((g) => g.length), 1);
-  const baseUsableHeight = 220;
-  const svgHeight = Math.max(260, baseUsableHeight + (maxNodesInStage - 1) * nodeGap + padY * 2);
-  const usableH = svgHeight - padY * 2;
-  const flowScale = Math.max(0.2, (usableH - (maxNodesInStage - 1) * nodeGap) / maxStageFlowSum);
-
-  const nodeGeom = {};
-  stageGroups.forEach((group, s) => {
-    const groupTotalH = group.reduce((acc, n) => acc + Math.max(10, nodeValue[n] * flowScale), 0) + (group.length - 1) * nodeGap;
-    let currY = padY + Math.max(0, (usableH - groupTotalH) / 2);
-    const currX = padX + (s / maxStage) * (svgWidth - padX * 2 - nodeWidth);
-
-    group.forEach((n) => {
-      const nh = Math.max(10, nodeValue[n] * flowScale);
-      nodeGeom[n] = { x: currX, y: currY, w: nodeWidth, h: nh, stage: s };
-      currY += nh + nodeGap;
-    });
-  });
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
-  svg.setAttribute('width', svgWidth);
-  svg.setAttribute('height', svgHeight);
-  svg.style.maxWidth = '100%';
-  svg.style.height = 'auto';
-
-  const sourceOffsets = {};
-  const targetOffsets = {};
-  nodes.forEach((n) => {
-    sourceOffsets[n] = 0;
-    targetOffsets[n] = 0;
-  });
-
-  const linksG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  linksG.setAttribute('class', 'sankey-links-group');
-
-  links.forEach((link) => {
-    const srcG = nodeGeom[link.source];
-    const tgtG = nodeGeom[link.target];
-    if (!srcG || !tgtG) return;
-
-    const bandH = Math.max(2, link.value * flowScale);
-
-    const x1 = srcG.x + srcG.w;
-    const y1_top = srcG.y + sourceOffsets[link.source];
-    const y1_bot = y1_top + bandH;
-    sourceOffsets[link.source] += bandH;
-
-    const x2 = tgtG.x;
-    const y2_top = tgtG.y + targetOffsets[link.target];
-    const y2_bot = y2_top + bandH;
-    targetOffsets[link.target] += bandH;
-
-    const midX = (x1 + x2) / 2;
-    const pathD = `M ${x1.toFixed(1)} ${y1_top.toFixed(1)} ` +
-      `C ${midX.toFixed(1)} ${y1_top.toFixed(1)}, ${midX.toFixed(1)} ${y2_top.toFixed(1)}, ${x2.toFixed(1)} ${y2_top.toFixed(1)} ` +
-      `L ${x2.toFixed(1)} ${y2_bot.toFixed(1)} ` +
-      `C ${midX.toFixed(1)} ${y2_bot.toFixed(1)}, ${midX.toFixed(1)} ${y1_bot.toFixed(1)}, ${x1.toFixed(1)} ${y1_bot.toFixed(1)} ` +
-      `Z`;
-
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', pathD);
-    const linkColor = link.color || nodeColors[link.source] || '#0891b2';
-    path.setAttribute('fill', linkColor);
-    path.setAttribute('fill-opacity', '0.45');
-    path.setAttribute('stroke', linkColor);
-    path.setAttribute('stroke-width', '0.5');
-    path.setAttribute('stroke-opacity', '0.35');
-    path.setAttribute('class', 'sankey-link');
-
-    const titleEl = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-    titleEl.textContent = `${link.source} → ${link.target}: ${link.value}`;
-    path.appendChild(titleEl);
-
-    linksG.appendChild(path);
-  });
-  svg.appendChild(linksG);
-
-  const nodesG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  nodesG.setAttribute('class', 'sankey-nodes-group');
-
-  nodes.forEach((n) => {
-    const geom = nodeGeom[n];
-    if (!geom) return;
-
-    const color = nodeColors[n] || '#0891b2';
-
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rect.setAttribute('x', geom.x.toFixed(1));
-    rect.setAttribute('y', geom.y.toFixed(1));
-    rect.setAttribute('width', geom.w.toFixed(1));
-    rect.setAttribute('height', geom.h.toFixed(1));
-    rect.setAttribute('rx', '3');
-    rect.setAttribute('ry', '3');
-    rect.setAttribute('fill', color);
-    rect.setAttribute('class', 'sankey-node');
-
-    const titleEl = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-    titleEl.textContent = `${n}: 合計 ${nodeValue[n]}`;
-    rect.appendChild(titleEl);
-
-    nodesG.appendChild(rect);
-
-    const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    const isFirstStage = geom.stage === 0;
-    const isLastStage = geom.stage === maxStage;
-
-    let textX;
-    let anchor;
-    if (isFirstStage) {
-      textX = geom.x - 8;
-      anchor = 'end';
-    } else if (isLastStage) {
-      textX = geom.x + geom.w + 8;
-      anchor = 'start';
-    } else {
-      textX = geom.x + geom.w / 2;
-      anchor = 'middle';
-    }
-
-    const textY = geom.y + geom.h / 2 + 4.5;
-    textEl.setAttribute('x', textX.toFixed(1));
-    textEl.setAttribute('y', textY.toFixed(1));
-    textEl.setAttribute('text-anchor', anchor);
-    textEl.setAttribute('font-size', '12');
-    textEl.setAttribute('font-weight', '600');
-    textEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-    textEl.setAttribute('fill', '#1e293b');
-    textEl.setAttribute('class', 'sankey-node-label');
-    textEl.textContent = `${n} (${nodeValue[n]})`;
-
-    nodesG.appendChild(textEl);
-  });
-  svg.appendChild(nodesG);
-
-  container.innerHTML = '';
-  container.appendChild(svg);
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
-}
-
-// ==========================================
-// フローチャート構文パーサー & SVG描画エンジン
-// ==========================================
-function parseFlowchart(flowText) {
-  const lines = flowText.split(/[\n;]+/).map((l) => l.trim()).filter(Boolean);
-  const nodesMap = new Map();
-  const edges = [];
-
-  lines.forEach((line) => {
-    // 1. コネクタ（接続）行: A -> B
-    if (line.includes('->')) {
-      const arrowIdx = line.indexOf('->');
-      const from = line.substring(0, arrowIdx).trim();
-      let rest = line.substring(arrowIdx + 2).trim();
-
-      let opts = '';
-      const optMatch = rest.match(/\[(.*)\]$/);
-      if (optMatch) {
-        opts = optMatch[1].toLowerCase();
-        rest = rest.substring(0, optMatch.index).trim();
-      }
-
-      let label = '';
-      const colonIdx = rest.indexOf(':');
-      let to = rest;
-      if (colonIdx !== -1) {
-        to = rest.substring(0, colonIdx).trim();
-        label = rest.substring(colonIdx + 1).trim().replace(/^["']|["']$/g, '');
-      }
-
-      if (from && to) {
-        edges.push({ from, to, label, opts });
-
-        if (!nodesMap.has(from)) {
-          nodesMap.set(from, { id: from, text: from, x: null, y: null, type: 'proc' });
-        }
-        if (!nodesMap.has(to)) {
-          nodesMap.set(to, { id: to, text: to, x: null, y: null, type: 'proc' });
-        }
-      }
-    } else {
-      // 2. ノード定義行
-      let cleaned = line;
-      let nodeType = 'proc';
-
-      // タイプ [start / cond / io / proc / end / sub] の抽出
-      const typeMatch = cleaned.match(/\[([a-zA-Z0-9_\-]+)\]/);
-      if (typeMatch) {
-        const t = typeMatch[1].toLowerCase();
-        if (/start|begin|terminal/i.test(t)) nodeType = 'start';
-        else if (/end|finish|stop/i.test(t)) nodeType = 'end';
-        else if (/cond|branch|decision|if|diamond/i.test(t)) nodeType = 'cond';
-        else if (/io|input|output|data|parallelogram/i.test(t)) nodeType = 'io';
-        else if (/sub|subroutine|prep/i.test(t)) nodeType = 'sub';
-        else nodeType = 'proc';
-        cleaned = cleaned.replace(typeMatch[0], '').trim();
-      }
-
-      // 座標 (x, y) の抽出
-      let posX = null;
-      let posY = null;
-      const coordMatch = cleaned.match(/\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)/);
-      if (coordMatch) {
-        posX = parseFloat(coordMatch[1]);
-        posY = parseFloat(coordMatch[2]);
-        cleaned = cleaned.replace(coordMatch[0], '').trim();
-      }
-
-      // プレフィックス (node: や state:) の除去
-      cleaned = cleaned.replace(/^(?:node|state|box|step):\s*/i, '').trim();
-
-      // ID と 表示ラベルの分離: 例 ID: "ラベル" または ID
-      let id = cleaned;
-      let label = cleaned;
-      const colonIdx = cleaned.indexOf(':');
-      if (colonIdx !== -1) {
-        id = cleaned.substring(0, colonIdx).trim();
-        label = cleaned.substring(colonIdx + 1).trim();
-      }
-      label = label.replace(/^["']|["']$/g, '');
-
-      if (id) {
-        const existing = nodesMap.get(id) || {};
-        nodesMap.set(id, {
-          id,
-          text: label || existing.text || id,
-          x: posX !== null ? posX : (existing.x ?? null),
-          y: posY !== null ? posY : (existing.y ?? null),
-          type: nodeType !== 'proc' ? nodeType : (existing.type || 'proc')
-        });
-      }
-    }
-  });
-
-  const nodes = Array.from(nodesMap.values());
-
-  // 自動レイアウト（座標未指定ノードがある場合）
-  let needsLayout = nodes.some((n) => n.x === null || n.y === null);
-  if (needsLayout) {
-    const inDegrees = new Map();
-    const childrenMap = new Map();
-    nodes.forEach((n) => {
-      inDegrees.set(n.id, 0);
-      childrenMap.set(n.id, []);
-    });
-
-    edges.forEach((e) => {
-      if (inDegrees.has(e.to)) {
-        inDegrees.set(e.to, inDegrees.get(e.to) + 1);
-      }
-      if (childrenMap.has(e.from)) {
-        childrenMap.get(e.from).push(e.to);
-      }
-    });
-
-    const levels = new Map();
-    const queue = [];
-    nodes.forEach((n) => {
-      if (inDegrees.get(n.id) === 0 || n.type === 'start') {
-        levels.set(n.id, 0);
-        queue.push(n.id);
-      }
-    });
-
-    if (queue.length === 0 && nodes.length > 0) {
-      levels.set(nodes[0].id, 0);
-      queue.push(nodes[0].id);
-    }
-
-    const visited = new Set();
-    while (queue.length > 0) {
-      const curr = queue.shift();
-      visited.add(curr);
-      const currLevel = levels.get(curr) || 0;
-      const children = childrenMap.get(curr) || [];
-      children.forEach((chId) => {
-        const chLevel = levels.get(chId);
-        if (chLevel === undefined || chLevel <= currLevel) {
-          levels.set(chId, currLevel + 1);
-        }
-        if (!visited.has(chId) && !queue.includes(chId)) {
-          queue.push(chId);
-        }
-      });
-    }
-
-    let maxAssignedLevel = 0;
-    levels.forEach((l) => { if (l > maxAssignedLevel) maxAssignedLevel = l; });
-    nodes.forEach((n) => {
-      if (!levels.has(n.id)) {
-        maxAssignedLevel++;
-        levels.set(n.id, maxAssignedLevel);
-      }
-    });
-
-    const levelGroups = new Map();
-    nodes.forEach((n) => {
-      const l = levels.get(n.id);
-      if (!levelGroups.has(l)) levelGroups.set(l, []);
-      levelGroups.get(l).push(n);
-    });
-
-    levelGroups.forEach((groupNodes, lvl) => {
-      const count = groupNodes.length;
-      groupNodes.forEach((n, idx) => {
-        if (n.x === null) {
-          n.x = Math.round((idx - (count - 1) / 2) * 160);
-        }
-        if (n.y === null) {
-          n.y = lvl * 85;
-        }
-      });
-    });
-  }
-
-  return { nodes, edges };
-}
-
-function drawFlowchartSvg(flowText, container, labelText) {
-  container.innerHTML = '';
-  const { nodes, edges } = parseFlowchart(flowText);
-
-  if (nodes.length === 0) {
-    container.innerHTML = '<span style="color:#ef4444; font-size:12px;">フローチャートの構文を解析できませんでした（例: \\flowchart{ 開始 [start]; 処理 [proc]; 開始 -> 処理; }）</span>';
-    return;
-  }
-
-  const nodeLookup = new Map();
-  nodes.forEach((n) => {
-    let w, h;
-    const rawStr = n.text || n.id;
-    const textLines = rawStr.split(/\\n|\n/);
-    n.textLines = textLines;
-    const maxLineLen = Math.max(...textLines.map((l) => l.length));
-    const extraH = (textLines.length - 1) * 16;
-
-    if (n.type === 'start' || n.type === 'end') {
-      w = Math.max(110, maxLineLen * 9 + 36);
-      h = 38 + extraH;
-    } else if (n.type === 'cond') {
-      w = Math.max(124, maxLineLen * 8.5 + 56);
-      h = 48 + extraH * 1.2;
-    } else if (n.type === 'io') {
-      w = Math.max(120, maxLineLen * 9 + 40);
-      h = 40 + extraH;
-    } else if (n.type === 'sub') {
-      w = Math.max(130, maxLineLen * 9 + 42);
-      h = 42 + extraH;
-    } else {
-      w = Math.max(120, maxLineLen * 9 + 32);
-      h = 42 + extraH;
-    }
-    n.w = w;
-    n.h = h;
-    nodeLookup.set(n.id, n);
-  });
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.style.overflow = 'visible';
-
-  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-  marker.setAttribute('id', 'flowchart-arrow');
-  marker.setAttribute('viewBox', '0 0 10 10');
-  marker.setAttribute('refX', '7');
-  marker.setAttribute('refY', '5');
-  marker.setAttribute('markerWidth', '6');
-  marker.setAttribute('markerHeight', '6');
-  marker.setAttribute('orient', 'auto-start-reverse');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', 'M 0 1.5 L 8 5 L 0 8.5 z');
-  path.setAttribute('fill', '#475569');
-  marker.appendChild(path);
-  defs.appendChild(marker);
-  svg.appendChild(defs);
-
-  const pts = [];
-
-  const edgesG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  edgesG.setAttribute('class', 'flowchart-edges');
-
-  edges.forEach((e) => {
-    const s1 = nodeLookup.get(e.from);
-    const s2 = nodeLookup.get(e.to);
-    if (!s1 || !s2) return;
-
-    let pathD = '';
-    let labelPos = null;
-
-    const dx = s2.x - s1.x;
-    const dy = s2.y - s1.y;
-
-    if (dy > 0 && Math.abs(dx) < 40) {
-      const startX = s1.x;
-      const startY = s1.y + s1.h / 2;
-      const endX = s2.x;
-      const endY = s2.y - s2.h / 2;
-      pathD = `M ${startX} ${startY} L ${endX} ${endY}`;
-      labelPos = { x: (startX + endX) / 2 + 14, y: (startY + endY) / 2 };
-    } else if (dy > 0) {
-      if (s1.type === 'cond') {
-        const isRight = dx > 0;
-        const startX = isRight ? (s1.x + s1.w / 2) : (s1.x - s1.w / 2);
-        const startY = s1.y;
-        const endX = s2.x;
-        const endY = s2.y - s2.h / 2;
-        pathD = `M ${startX} ${startY} H ${endX} V ${endY}`;
-        labelPos = { x: (startX + endX) / 2, y: startY - 10 };
-      } else {
-        const startX = s1.x;
-        const startY = s1.y + s1.h / 2;
-        const midY = (startY + (s2.y - s2.h / 2)) / 2;
-        const endX = s2.x;
-        const endY = s2.y - s2.h / 2;
-        pathD = `M ${startX} ${startY} V ${midY} H ${endX} V ${endY}`;
-        labelPos = { x: (startX + endX) / 2, y: midY - 10 };
-      }
-    } else {
-      const outerX = Math.min(s1.x - s1.w / 2, s2.x - s2.w / 2) - 45;
-      const startX = s1.x - s1.w / 2;
-      const startY = s1.y;
-      const endX = s2.x - s2.w / 2;
-      const endY = s2.y;
-      pathD = `M ${startX} ${startY} H ${outerX} V ${endY} H ${endX}`;
-      labelPos = { x: outerX - 16, y: (startY + endY) / 2 };
-      pts.push({ x: outerX - 25, y: startY });
-      pts.push({ x: outerX, y: endY });
-    }
-
-    const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    pathEl.setAttribute('d', pathD);
-    pathEl.setAttribute('fill', 'none');
-    pathEl.setAttribute('stroke', '#475569');
-    pathEl.setAttribute('stroke-width', '2');
-    pathEl.setAttribute('marker-end', 'url(#flowchart-arrow)');
-    edgesG.appendChild(pathEl);
-
-    if (e.label && labelPos) {
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      const tw = Math.max(e.label.length * 8 + 10, 24);
-      const th = 16;
-      const rx = labelPos.x - tw / 2;
-      const ry = labelPos.y - th / 2;
-
-      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      bg.setAttribute('x', rx);
-      bg.setAttribute('y', ry);
-      bg.setAttribute('width', tw);
-      bg.setAttribute('height', th);
-      bg.setAttribute('rx', '3');
-      bg.setAttribute('ry', '3');
-      bg.setAttribute('fill', '#ffffff');
-      bg.setAttribute('stroke', '#cbd5e1');
-      bg.setAttribute('stroke-width', '1');
-      g.appendChild(bg);
-
-      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      txt.setAttribute('x', labelPos.x);
-      txt.setAttribute('y', labelPos.y + 4.5);
-      txt.setAttribute('text-anchor', 'middle');
-      txt.setAttribute('font-size', '11');
-      txt.setAttribute('font-weight', '700');
-      txt.setAttribute('font-family', 'ui-monospace, monospace');
-      txt.setAttribute('fill', '#0284c7');
-      txt.textContent = e.label;
-      g.appendChild(txt);
-
-      edgesG.appendChild(g);
-      pts.push({ x: rx, y: ry });
-      pts.push({ x: rx + tw, y: ry + th });
-    }
-  });
-
-  svg.appendChild(edgesG);
-
-  const nodesG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  nodesG.setAttribute('class', 'flowchart-nodes');
-
-  nodes.forEach((n) => {
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    const x0 = n.x - n.w / 2;
-    const y0 = n.y - n.h / 2;
-
-    pts.push({ x: x0, y: y0 });
-    pts.push({ x: x0 + n.w, y: y0 + n.h });
-
-    let shapeEl;
-    let fill = '#eff6ff';
-    let stroke = '#3b82f6';
-    let textColor = '#1e40af';
-
-    if (n.type === 'start' || n.type === 'end') {
-      fill = '#ecfdf5';
-      stroke = '#10b981';
-      textColor = '#065f46';
-      shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      shapeEl.setAttribute('x', x0);
-      shapeEl.setAttribute('y', y0);
-      shapeEl.setAttribute('width', n.w);
-      shapeEl.setAttribute('height', n.h);
-      shapeEl.setAttribute('rx', n.h / 2);
-      shapeEl.setAttribute('ry', n.h / 2);
-    } else if (n.type === 'cond') {
-      fill = '#fffbeb';
-      stroke = '#f59e0b';
-      textColor = '#92400e';
-      shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-      const topP = `${n.x},${y0}`;
-      const rightP = `${n.x + n.w / 2},${n.y}`;
-      const bottomP = `${n.x},${y0 + n.h}`;
-      const leftP = `${n.x - n.w / 2},${n.y}`;
-      shapeEl.setAttribute('points', `${topP} ${rightP} ${bottomP} ${leftP}`);
-    } else if (n.type === 'io') {
-      fill = '#f5f3ff';
-      stroke = '#8b5cf6';
-      textColor = '#5b21b6';
-      shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-      const skew = 14;
-      const p1 = `${x0 + skew},${y0}`;
-      const p2 = `${x0 + n.w},${y0}`;
-      const p3 = `${x0 + n.w - skew},${y0 + n.h}`;
-      const p4 = `${x0},${y0 + n.h}`;
-      shapeEl.setAttribute('points', `${p1} ${p2} ${p3} ${p4}`);
-    } else if (n.type === 'sub') {
-      fill = '#f0fdfa';
-      stroke = '#14b8a6';
-      textColor = '#115e59';
-      shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      shapeEl.setAttribute('x', x0);
-      shapeEl.setAttribute('y', y0);
-      shapeEl.setAttribute('width', n.w);
-      shapeEl.setAttribute('height', n.h);
-      shapeEl.setAttribute('rx', '4');
-      shapeEl.setAttribute('ry', '4');
-    } else {
-      shapeEl = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      shapeEl.setAttribute('x', x0);
-      shapeEl.setAttribute('y', y0);
-      shapeEl.setAttribute('width', n.w);
-      shapeEl.setAttribute('height', n.h);
-      shapeEl.setAttribute('rx', '5');
-      shapeEl.setAttribute('ry', '5');
-    }
-
-    shapeEl.setAttribute('fill', fill);
-    shapeEl.setAttribute('stroke', stroke);
-    shapeEl.setAttribute('stroke-width', '2');
-    g.appendChild(shapeEl);
-
-    if (n.type === 'sub') {
-      const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line1.setAttribute('x1', x0 + 10);
-      line1.setAttribute('y1', y0);
-      line1.setAttribute('x2', x0 + 10);
-      line1.setAttribute('y2', y0 + n.h);
-      line1.setAttribute('stroke', stroke);
-      line1.setAttribute('stroke-width', '1.5');
-      g.appendChild(line1);
-
-      const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line2.setAttribute('x1', x0 + n.w - 10);
-      line2.setAttribute('y1', y0);
-      line2.setAttribute('x2', x0 + n.w - 10);
-      line2.setAttribute('y2', y0 + n.h);
-      line2.setAttribute('stroke', stroke);
-      line2.setAttribute('stroke-width', '1.5');
-      g.appendChild(line2);
-    }
-
-    const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    textEl.setAttribute('x', n.x);
-    textEl.setAttribute('text-anchor', 'middle');
-    textEl.setAttribute('font-size', '12');
-    textEl.setAttribute('font-weight', '600');
-    textEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-    textEl.setAttribute('fill', textColor);
-
-    const tLines = n.textLines || [n.text || n.id];
-    if (tLines.length === 1) {
-      textEl.setAttribute('y', n.y + 4.5);
-      textEl.textContent = tLines[0];
-    } else {
-      const lineH = 15;
-      const startY = n.y - ((tLines.length - 1) * lineH) / 2 + 4.5;
-      textEl.setAttribute('y', startY.toFixed(1));
-      tLines.forEach((lineText, idx) => {
-        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        tspan.setAttribute('x', n.x);
-        if (idx > 0) {
-          tspan.setAttribute('dy', lineH);
-        }
-        tspan.textContent = lineText;
-        textEl.appendChild(tspan);
-      });
-    }
-    g.appendChild(textEl);
-
-    nodesG.appendChild(g);
-  });
-
-  svg.appendChild(nodesG);
-
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  pts.forEach((p) => {
-    if (p.x < minX) minX = p.x;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y < minY) minY = p.y;
-    if (p.y > maxY) maxY = p.y;
-  });
-
-  const padX = 18;
-  const padY = 12;
-  const vbX = minX - padX;
-  const vbY = minY - padY;
-  const vbW = Math.max(120, maxX - minX + padX * 2);
-  const vbH = Math.max(60, maxY - minY + padY * 2);
-
-  svg.setAttribute('viewBox', `${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`);
-  svg.setAttribute('width', vbW.toFixed(1));
-  svg.setAttribute('height', vbH.toFixed(1));
-  svg.style.maxWidth = '100%';
-  svg.style.height = 'auto';
-
-  container.innerHTML = '';
-  container.appendChild(svg);
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
-}
-
-// ==========================================
-// 表（テーブル：LaTeX tabular / Markdown / CSV / TSV）パーサー & レンダラー
-// ==========================================
-function parseAnyTable(rawText) {
-  if (!rawText || typeof rawText !== 'string') return null;
-  let text = rawText.trim();
-
-  // \table{...} ラッパーのアンラップ
-  const tableWrapperMatch = text.match(/^\\table\{([\s\S]*)\}$/i);
-  if (tableWrapperMatch) {
-    text = tableWrapperMatch[1].trim();
-  }
-
-  // 1. LaTeX tabular / array 環境の判定
-  const latexMatch = text.match(/\\begin\{(tabular|array)\}(?:\{([^}]*)\})?([\s\S]*?)\\end\{(tabular|array)\}/i);
-  if (latexMatch) {
-    const colSpec = latexMatch[2] || '';
-    const body = latexMatch[3] || '';
-    const aligns = [];
-    for (const ch of colSpec) {
-      if (ch === 'l') aligns.push('left');
-      else if (ch === 'c') aligns.push('center');
-      else if (ch === 'r') aligns.push('right');
-    }
-
-    const rawRows = body.split(/\\\\/);
-    const parsedRows = [];
-    for (const raw of rawRows) {
-      const cleaned = raw.replace(/\\(hline|toprule|midrule|bottomrule)\b/g, '').trim();
-      if (!cleaned) continue;
-      const cells = cleaned.split('&').map((cell) => cell.trim());
-      if (cells.length > 0 && cells.some((c) => c.length > 0)) {
-        parsedRows.push(cells);
-      }
-    }
-
-    if (parsedRows.length > 0) {
-      const headers = parsedRows[0];
-      const rows = parsedRows.slice(1);
-      return { headers, rows, aligns };
-    }
-  }
-
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  if (lines.length < 2) return null;
-
-  // 2. Markdown 表の判定
-  const isMdLike = lines.every((l) => l.includes('|'));
-  if (isMdLike) {
-    const splitMdRow = (line) => {
-      let trimmed = line;
-      if (trimmed.startsWith('|')) trimmed = trimmed.substring(1);
-      if (trimmed.endsWith('|')) trimmed = trimmed.substring(0, trimmed.length - 1);
-      return trimmed.split('|').map((c) => c.trim());
-    };
-
-    const firstRow = splitMdRow(lines[0]);
-    if (firstRow.length >= 2) {
-      let aligns = [];
-      let rowsStartIndex = 1;
-
-      if (lines.length >= 2 && /^\|?(\s*:?-+:?\s*\|?)+$/.test(lines[1])) {
-        const sepCols = splitMdRow(lines[1]);
-        aligns = sepCols.map((c) => {
-          const l = c.startsWith(':');
-          const r = c.endsWith(':');
-          if (l && r) return 'center';
-          if (r) return 'right';
-          if (l) return 'left';
-          return 'left';
-        });
-        rowsStartIndex = 2;
-      }
-
-      const headers = firstRow;
-      const rows = [];
-      for (let i = rowsStartIndex; i < lines.length; i++) {
-        rows.push(splitMdRow(lines[i]));
-      }
-      return { headers, rows, aligns };
-    }
-  }
-
-  // 3. CSV / TSV の判定
-  const delimiter = lines[0].includes('\t') ? '\t' : (lines[0].includes(',') ? ',' : null);
-  if (delimiter) {
-    const parseCsvLine = (line, delim) => {
-      const result = [];
-      let current = '';
-      let inQuote = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') {
-          inQuote = !inQuote;
-        } else if (ch === delim && !inQuote) {
-          result.push(current.trim().replace(/^["']|["']$/g, ''));
-          current = '';
-        } else {
-          current += ch;
-        }
-      }
-      result.push(current.trim().replace(/^["']|["']$/g, ''));
-      return result;
-    };
-
-    const firstRow = parseCsvLine(lines[0], delimiter);
-    if (firstRow.length >= 2) {
-      const rows = [];
-      let valid = true;
-      for (let i = 1; i < lines.length; i++) {
-        const row = parseCsvLine(lines[i], delimiter);
-        if (row.length >= 2) {
-          rows.push(row);
-        } else {
-          valid = false;
-          break;
-        }
-      }
-      if (valid && rows.length > 0) {
-        return { headers: firstRow, rows, aligns: [] };
-      }
-    }
-  }
-
-  return null;
-}
-
-function renderTableCellHtml(rawCellText) {
-  if (!rawCellText) return '';
-  let str = rawCellText.trim();
-
-  // 1. $式$ のインライン数式置換（数式と通常テキスト・改行の混在に対応）
-  const mathRegex = /\$([^$]+)\$/g;
-  if (mathRegex.test(str)) {
-    str = str.replace(mathRegex, (_, expr) => {
-      if (typeof katex !== 'undefined') {
-        try {
-          return katex.renderToString(expr.trim(), { throwOnError: false });
-        } catch {
-          return expr;
-        }
-      }
-      return expr;
-    });
-  } else if (/^\\(text|frac|sqrt|vec|dot|theta|alpha|beta|omega|mu|sigma|lambda|Delta|nabla|partial|approx|pm|times|div)/i.test(str)) {
-    // 先頭が LaTeX コマンドの場合
-    if (typeof katex !== 'undefined') {
-      try {
-        str = katex.renderToString(str, { throwOnError: false });
-      } catch {
-        // fallback
-      }
-    }
-  }
-
-  // 2. KaTeX 未変換のテキストに対する HTML エスケープ
-  if (!str.includes('<span class="katex">')) {
-    str = str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  // 3. セル内改行: \n または <br> を <br> タグへ展開
-  str = str.replace(/\\n/g, '<br>').replace(/&lt;br\s*\/?&gt;/gi, '<br>');
-
-  return str;
-}
-
-function renderTableElement(tableData, container, labelText) {
-  container.innerHTML = '';
-  if (!tableData || !tableData.headers || tableData.headers.length === 0) return;
-
-  const table = document.createElement('table');
-  table.className = 'physi-table';
-
-  const thead = document.createElement('thead');
-  const headTr = document.createElement('tr');
-  tableData.headers.forEach((hText, colIdx) => {
-    const th = document.createElement('th');
-    th.innerHTML = renderTableCellHtml(hText);
-    const align = (tableData.aligns && tableData.aligns[colIdx]) || 'left';
-    th.style.textAlign = align;
-    headTr.appendChild(th);
-  });
-  thead.appendChild(headTr);
-  table.appendChild(thead);
-
-  const tbody = document.createElement('tbody');
-  tableData.rows.forEach((row) => {
-    const tr = document.createElement('tr');
-    row.forEach((cText, colIdx) => {
-      const td = document.createElement('td');
-      td.innerHTML = renderTableCellHtml(cText);
-      const align = (tableData.aligns && tableData.aligns[colIdx]) || 'left';
-      td.style.textAlign = align;
-      tr.appendChild(td);
-    });
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
-
-  container.appendChild(table);
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
-}
-
-// ==========================================
-// 2軸マップ・マトリクス図（ポジショニングマップ）パーサー & レンダラー
-// ==========================================
-function parseMatrixMap(rawText) {
-  if (!rawText || typeof rawText !== 'string') return null;
-  const lines = rawText.split(/[\n;]+/).map((l) => l.trim()).filter(Boolean);
-
-  let title = '';
-  let axisX = { label: 'X軸', left: '', right: '' };
-  let axisY = { label: 'Y軸', bottom: '', top: '' };
-  const quadrants = { tr: '', tl: '', br: '', bl: '' };
-  const items = [];
-
-  lines.forEach((line) => {
-    // 1. タイトル
-    const titleMatch = line.match(/^title\s*:\s*(.+)$/i);
-    if (titleMatch) {
-      title = titleMatch[1].trim().replace(/^["']|["']$/g, '');
-      return;
-    }
-
-    // 2. X軸 (例: axis-x: 価格帯 (低価格 -> 高価格);)
-    const xMatch = line.match(/^axis-x\s*:\s*(.+)$/i);
-    if (xMatch) {
-      const val = xMatch[1].trim();
-      const parenMatch = val.match(/^([^()]+)\s*(?:\(([^->()]+)\s*->\s*([^()]+)\))?/);
-      if (parenMatch) {
-        axisX.label = parenMatch[1].trim();
-        axisX.left = (parenMatch[2] || '').trim();
-        axisX.right = (parenMatch[3] || '').trim();
-      } else {
-        axisX.label = val;
-      }
-      return;
-    }
-
-    // 3. Y軸 (例: axis-y: 品質 (標準的 -> 高品質);)
-    const yMatch = line.match(/^axis-y\s*:\s*(.+)$/i);
-    if (yMatch) {
-      const val = yMatch[1].trim();
-      const parenMatch = val.match(/^([^()]+)\s*(?:\(([^->()]+)\s*->\s*([^()]+)\))?/);
-      if (parenMatch) {
-        axisY.label = parenMatch[1].trim();
-        axisY.bottom = (parenMatch[2] || '').trim();
-        axisY.top = (parenMatch[3] || '').trim();
-      } else {
-        axisY.label = val;
-      }
-      return;
-    }
-
-    // 4. 象限ラベル
-    const quadMatch = line.match(/^quadrant\s*:\s*(.+)$/i);
-    if (quadMatch) {
-      const val = quadMatch[1];
-      const qTokens = val.split(',').map((t) => t.trim());
-      qTokens.forEach((tok) => {
-        const m = tok.match(/\[([^\]]+)\]\s*(.+)/);
-        if (m) {
-          const pos = m[1].toLowerCase();
-          const name = m[2].trim().replace(/^["']|["']$/g, '');
-          if (/右上|tr|top-right|1|第一/i.test(pos)) quadrants.tr = name;
-          else if (/左上|tl|top-left|2|第二/i.test(pos)) quadrants.tl = name;
-          else if (/左下|bl|bottom-left|3|第三/i.test(pos)) quadrants.bl = name;
-          else if (/右下|br|bottom-right|4|第四/i.test(pos)) quadrants.br = name;
-        }
-      });
-      return;
-    }
-
-    // 5. プロット項目
-    const itemLine = line.replace(/^item\s*:\s*/i, '');
-    const coordMatch = itemLine.match(/^([^()\[\]]+)\s*\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)(?:\s*\[(.*)\])?/);
-    if (coordMatch) {
-      const name = coordMatch[1].trim().replace(/^["']|["']$/g, '');
-      const x = parseFloat(coordMatch[2]);
-      const y = parseFloat(coordMatch[3]);
-      const styleTag = (coordMatch[4] || '').toLowerCase().trim();
-      items.push({ name, x, y, styleTag });
-    }
-  });
-
-  return { title, axisX, axisY, quadrants, items };
-}
-
-function drawMatrixMapSvg(mapText, container, labelText) {
-  container.innerHTML = '';
-  const data = parseMatrixMap(mapText);
-  if (!data) {
-    container.innerHTML = '<span style="color:#ef4444; font-size:12px;">2軸マップの構文を解析できませんでした</span>';
-    return;
-  }
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  const svgW = 600;
-  const svgH = 480;
-  svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
-  svg.setAttribute('width', `${svgW}`);
-  svg.setAttribute('height', `${svgH}`);
-  svg.style.maxWidth = '100%';
-  svg.style.height = 'auto';
-
-  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-  marker.setAttribute('id', 'matrix-axis-arrow');
-  marker.setAttribute('viewBox', '0 0 10 10');
-  marker.setAttribute('refX', '6');
-  marker.setAttribute('refY', '5');
-  marker.setAttribute('markerWidth', '6');
-  marker.setAttribute('markerHeight', '6');
-  marker.setAttribute('orient', 'auto-start-reverse');
-  const arrPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  arrPath.setAttribute('d', 'M 0 2 L 7 5 L 0 8 z');
-  arrPath.setAttribute('fill', '#475569');
-  marker.appendChild(arrPath);
-  defs.appendChild(marker);
-  svg.appendChild(defs);
-
-  // プロット幾何領域（上下左右に軸ラベルクリアランスを確保）
-  const plotLeft = 65;
-  const plotRight = 465;
-  const plotTop = 92;
-  const plotBottom = 432;
-  const originX = (plotLeft + plotRight) / 2;
-  const originY = (plotTop + plotBottom) / 2;
-  const halfW = (plotRight - plotLeft) / 2;
-  const halfH = (plotBottom - plotTop) / 2;
-
-  // 1. 象限背景四角形
-  const quadConfigs = [
-    { x: originX, y: plotTop, w: halfW, h: halfH, fill: '#ecfdf5', label: data.quadrants.tr, tx: plotRight - 10, ty: plotTop + 16, anchor: 'end' },
-    { x: plotLeft, y: plotTop, w: halfW, h: halfH, fill: '#f0f9ff', label: data.quadrants.tl, tx: plotLeft + 10, ty: plotTop + 16, anchor: 'start' },
-    { x: plotLeft, y: originY, w: halfW, h: halfH, fill: '#f8fafc', label: data.quadrants.bl, tx: plotLeft + 10, ty: plotBottom - 10, anchor: 'start' },
-    { x: originX, y: originY, w: halfW, h: halfH, fill: '#fffbeb', label: data.quadrants.br, tx: plotRight - 10, ty: plotBottom - 10, anchor: 'end' }
-  ];
-
-  const quadG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  quadConfigs.forEach((q) => {
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rect.setAttribute('class', 'matrix-quadrant-bg');
-    rect.setAttribute('x', q.x);
-    rect.setAttribute('y', q.y);
-    rect.setAttribute('width', q.w);
-    rect.setAttribute('height', q.h);
-    rect.setAttribute('fill', q.fill);
-    rect.setAttribute('stroke', '#e2e8f0');
-    rect.setAttribute('stroke-width', '1');
-    quadG.appendChild(rect);
-
-    if (q.label) {
-      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      txt.setAttribute('x', q.tx);
-      txt.setAttribute('y', q.ty);
-      txt.setAttribute('text-anchor', q.anchor);
-      txt.setAttribute('font-size', '10.5');
-      txt.setAttribute('font-weight', '700');
-      txt.setAttribute('fill', '#94a3b8');
-      txt.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-      txt.textContent = q.label;
-      quadG.appendChild(txt);
-    }
-  });
-  svg.appendChild(quadG);
-
-  // 2. グリッド目盛り（補助点線）
-  const gridG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  [-0.5, 0.5].forEach((frac) => {
-    const gx = originX + frac * halfW;
-    const gy = originY - frac * halfH;
-
-    const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    vLine.setAttribute('x1', gx);
-    vLine.setAttribute('y1', plotTop);
-    vLine.setAttribute('x2', gx);
-    vLine.setAttribute('y2', plotBottom);
-    vLine.setAttribute('stroke', '#cbd5e1');
-    vLine.setAttribute('stroke-dasharray', '3,3');
-    vLine.setAttribute('stroke-width', '1');
-    gridG.appendChild(vLine);
-
-    const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    hLine.setAttribute('x1', plotLeft);
-    hLine.setAttribute('y1', gy);
-    hLine.setAttribute('x2', plotRight);
-    hLine.setAttribute('y2', gy);
-    hLine.setAttribute('stroke', '#cbd5e1');
-    hLine.setAttribute('stroke-dasharray', '3,3');
-    hLine.setAttribute('stroke-width', '1');
-    gridG.appendChild(hLine);
-  });
-  svg.appendChild(gridG);
-
-  // 3. メイン十字軸（矢印線）
-  const axisG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  xAxis.setAttribute('x1', plotLeft - 12);
-  xAxis.setAttribute('y1', originY);
-  xAxis.setAttribute('x2', plotRight + 14);
-  xAxis.setAttribute('y2', originY);
-  xAxis.setAttribute('stroke', '#475569');
-  xAxis.setAttribute('stroke-width', '2');
-  xAxis.setAttribute('marker-end', 'url(#matrix-axis-arrow)');
-  axisG.appendChild(xAxis);
-
-  const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  yAxis.setAttribute('x1', originX);
-  yAxis.setAttribute('y1', plotBottom + 12);
-  yAxis.setAttribute('x2', originX);
-  yAxis.setAttribute('y2', plotTop - 12);
-  yAxis.setAttribute('stroke', '#475569');
-  yAxis.setAttribute('stroke-width', '2');
-  yAxis.setAttribute('marker-end', 'url(#matrix-axis-arrow)');
-  axisG.appendChild(yAxis);
-
-  svg.appendChild(axisG);
-
-  // 4. 軸タイトル & 端点ラベル
-  const labelG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  labelG.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-
-  if (data.title) {
-    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tEl.setAttribute('x', originX);
-    tEl.setAttribute('y', 30);
-    tEl.setAttribute('text-anchor', 'middle');
-    tEl.setAttribute('font-size', '16');
-    tEl.setAttribute('font-weight', '700');
-    tEl.setAttribute('fill', '#0f172a');
-    tEl.textContent = data.title;
-    labelG.appendChild(tEl);
-  }
-
-  const xTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  xTitle.setAttribute('x', plotRight + 28);
-  xTitle.setAttribute('y', originY + 4);
-  xTitle.setAttribute('text-anchor', 'start');
-  xTitle.setAttribute('font-size', '12');
-  xTitle.setAttribute('font-weight', '700');
-  xTitle.setAttribute('fill', '#1e293b');
-  xTitle.textContent = data.axisX.label;
-  labelG.appendChild(xTitle);
-
-  if (data.axisX.right) {
-    const xr = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    xr.setAttribute('x', plotRight + 28);
-    xr.setAttribute('y', originY + 18);
-    xr.setAttribute('text-anchor', 'start');
-    xr.setAttribute('font-size', '10.5');
-    xr.setAttribute('fill', '#64748b');
-    xr.textContent = `[${data.axisX.right}]`;
-    labelG.appendChild(xr);
-  }
-  if (data.axisX.left) {
-    const xl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    xl.setAttribute('x', plotLeft - 22);
-    xl.setAttribute('y', originY + 4);
-    xl.setAttribute('text-anchor', 'end');
-    xl.setAttribute('font-size', '10.5');
-    xl.setAttribute('fill', '#64748b');
-    xl.textContent = data.axisX.left;
-    labelG.appendChild(xl);
-  }
-
-  const yTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  yTitle.setAttribute('x', originX);
-  yTitle.setAttribute('y', 50);
-  yTitle.setAttribute('text-anchor', 'middle');
-  yTitle.setAttribute('font-size', '12');
-  yTitle.setAttribute('font-weight', '700');
-  yTitle.setAttribute('fill', '#1e293b');
-  yTitle.textContent = data.axisY.label;
-  labelG.appendChild(yTitle);
-
-  if (data.axisY.top) {
-    const yt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    yt.setAttribute('x', originX);
-    yt.setAttribute('y', 66);
-    yt.setAttribute('text-anchor', 'middle');
-    yt.setAttribute('font-size', '10.5');
-    yt.setAttribute('fill', '#64748b');
-    yt.textContent = `[${data.axisY.top}]`;
-    labelG.appendChild(yt);
-  }
-  if (data.axisY.bottom) {
-    const yb = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    yb.setAttribute('x', originX);
-    yb.setAttribute('y', plotBottom + 28);
-    yb.setAttribute('text-anchor', 'middle');
-    yb.setAttribute('font-size', '10.5');
-    yb.setAttribute('fill', '#64748b');
-    yb.textContent = data.axisY.bottom;
-    labelG.appendChild(yb);
-  }
-
-  svg.appendChild(labelG);
-
-  // 5. プロットアイテムの描画（スマート衝突回避 + レイヤー順最適化）
-  const labelsG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  const dotsG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-  const resolvedItems = data.items.map((item) => {
-    const cx = originX + Math.max(-1.0, Math.min(1.0, item.x)) * halfW;
-    const cy = originY - Math.max(-1.0, Math.min(1.0, item.y)) * halfH;
-
-    let color = '#2563eb';
-    let isAccent = false;
-    if (/accent|highlight|red|pink/i.test(item.styleTag)) {
-      color = '#e11d48';
-      isAccent = true;
-    } else if (/warning|orange|yellow/i.test(item.styleTag)) {
-      color = '#f59e0b';
-    } else if (/success|green/i.test(item.styleTag)) {
-      color = '#10b981';
-    } else if (/danger|alert/i.test(item.styleTag)) {
-      color = '#dc2626';
-    } else if (/muted|gray/i.test(item.styleTag)) {
-      color = '#64748b';
-    }
-
-    const tw = Math.max(item.name.length * 11 + 14, 32);
-    const th = 20;
-
-    return {
-      raw: item,
-      name: item.name,
-      x: item.x,
-      y: item.y,
-      cx,
-      cy,
-      color,
-      isAccent,
-      tw,
-      th
-    };
-  });
-
-  const placedLabels = [];
-
-  resolvedItems.forEach((item, i) => {
-    const { cx, cy, tw, th } = item;
-
-    // 基本Y座標（上部・下部の初期退避）
-    let baseLy = cy - 10;
-    if (item.y > 0.45) {
-      baseLy = cy + 8;
-    } else if (item.y < -0.7) {
-      baseLy = cy - 26;
-    }
-
-    // 4方向の配置候補
-    const candidates = [
-      { lx: cx + 8, ly: baseLy, cost: 0 }, // 右
-      { lx: cx - tw - 8, ly: baseLy, cost: 10 }, // 左
-      { lx: Math.max(plotLeft - 10, Math.min(plotRight - tw + 10, cx - tw / 2)), ly: cy + 10, cost: 25 }, // 下中央
-      { lx: Math.max(plotLeft - 10, Math.min(plotRight - tw + 10, cx - tw / 2)), ly: cy - th - 10, cost: 35 } // 上中央
-    ];
-
-    let bestCand = candidates[0];
-    let minPenalty = Infinity;
-
-    candidates.forEach((cand) => {
-      let penalty = cand.cost;
-      const x1 = cand.lx;
-      const x2 = cand.lx + tw;
-      const y1 = cand.ly;
-      const y2 = cand.ly + th;
-
-      // 1. 他の全ドットとの衝突ペナルティ（最優先で回避）
-      resolvedItems.forEach((other, j) => {
-        if (i === j) return;
-        if (x1 - 6 <= other.cx && other.cx <= x2 + 6 && y1 - 6 <= other.cy && other.cy <= y2 + 6) {
-          penalty += 1200;
-        }
-      });
-
-      // 2. 既に配置された他ラベルとの重なりペナルティ
-      placedLabels.forEach((placed) => {
-        const overlap = !(x2 < placed.x1 || x1 > placed.x2 || y2 < placed.y1 || y1 > placed.y2);
-        if (overlap) {
-          penalty += 500;
-        }
-      });
-
-      // 3. マップ境界はみ出しペナルティ
-      if (x2 > plotRight + 15) penalty += 200;
-      if (x1 < plotLeft - 25) penalty += 200;
-      if (y1 < plotTop - 5) penalty += 300; // 上部象限名との重複防止
-      if (y2 > plotBottom + 15) penalty += 150;
-
-      if (penalty < minPenalty) {
-        minPenalty = penalty;
-        bestCand = cand;
-      }
-    });
-
-    // 決定した配置を保存
-    const finalLx = bestCand.lx;
-    const finalLy = bestCand.ly;
-    placedLabels.push({ x1: finalLx, x2: finalLx + tw, y1: finalLy, y2: finalLy + th });
-
-    // ラベル背景
-    const labelBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    labelBg.setAttribute('x', finalLx);
-    labelBg.setAttribute('y', finalLy);
-    labelBg.setAttribute('width', tw);
-    labelBg.setAttribute('height', th);
-    labelBg.setAttribute('rx', '4');
-    labelBg.setAttribute('fill', item.isAccent ? '#ffe4e6' : '#ffffff');
-    labelBg.setAttribute('stroke', item.isAccent ? '#fda4af' : '#cbd5e1');
-    labelBg.setAttribute('stroke-width', '1');
-    labelsG.appendChild(labelBg);
-
-    // ラベルテキスト
-    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    txt.setAttribute('x', finalLx + tw / 2);
-    txt.setAttribute('y', finalLy + 14);
-    txt.setAttribute('text-anchor', 'middle');
-    txt.setAttribute('font-size', '11');
-    txt.setAttribute('font-weight', item.isAccent ? '700' : '600');
-    txt.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-    txt.setAttribute('fill', item.isAccent ? '#9f1239' : '#1e293b');
-    txt.textContent = item.name;
-    labelsG.appendChild(txt);
-
-    // ドット（丸）とアクセントリング（最前面レイヤーへ配置）
-    if (item.isAccent) {
-      const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      ring.setAttribute('cx', cx);
-      ring.setAttribute('cy', cy);
-      ring.setAttribute('r', '10');
-      ring.setAttribute('fill', 'none');
-      ring.setAttribute('stroke', item.color);
-      ring.setAttribute('stroke-width', '1.5');
-      ring.setAttribute('opacity', '0.5');
-      dotsG.appendChild(ring);
-    }
-
-    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot.setAttribute('cx', cx);
-    dot.setAttribute('cy', cy);
-    dot.setAttribute('r', item.isAccent ? '6' : '5');
-    dot.setAttribute('fill', item.color);
-    dot.setAttribute('stroke', '#ffffff');
-    dot.setAttribute('stroke-width', '2');
-    dotsG.appendChild(dot);
-  });
-
-  svg.appendChild(labelsG);
-  svg.appendChild(dotsG);
-
-  container.appendChild(svg);
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
-}
-
-// ==========================================
-// ピラミッド図・階層図 パーサー & レンダラー
-// ==========================================
-function parsePyramid(rawText) {
-  if (!rawText || typeof rawText !== 'string') return null;
-  const lines = rawText.split(/[\n;]+/).map((l) => l.trim()).filter(Boolean);
-
-  let title = '';
-  const layers = [];
-
-  lines.forEach((line) => {
-    // 1. タイトル
-    const titleMatch = line.match(/^title\s*:\s*(.+)$/i);
-    if (titleMatch) {
-      title = titleMatch[1].trim().replace(/^["']|["']$/g, '');
-      return;
-    }
-
-    // 2. 階層定義 (例: layer: ジョックス & クイーンビーズ [gold] (運動部花形スター...);)
-    let rest = line.replace(/^(?:layer|level|step)\s*:\s*/i, '').trim();
-    let styleTag = '';
-
-    // 角括弧 [color/style] の抽出（位置に依存せず抽出して除去）
-    const tagMatch = rest.match(/\[([^\]]+)\]/);
-    if (tagMatch) {
-      styleTag = tagMatch[1].toLowerCase().trim();
-      rest = rest.replace(/\[([^\]]+)\]/, '').trim();
-    }
-
-    // 丸括弧 (note/description) の抽出
-    let note = '';
-    const noteMatch = rest.match(/\(([^)]+)\)/);
-    if (noteMatch) {
-      note = noteMatch[1].trim().replace(/^["']|["']$/g, '');
-      rest = rest.replace(/\(([^)]+)\)/, '').trim();
-    }
-
-    const name = rest.trim().replace(/^["']|["']$/g, '');
-    if (name) {
-      layers.push({ name, note, styleTag });
-    }
-  });
-
-  return { title, layers };
-}
-
-function drawPyramidSvg(pyramidText, container, labelText) {
-  container.innerHTML = '';
-  const data = parsePyramid(pyramidText);
-  if (!data || data.layers.length === 0) {
-    container.innerHTML = '<span style="color:#ef4444; font-size:12px;">ピラミッド図の構文を解析できませんでした（例: \\pyramid{ layer: 頂点 [gold]; layer: 底辺 [primary]; }）</span>';
-    return;
-  }
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  const svgW = 600;
-  const svgH = 460;
-  svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
-  svg.setAttribute('width', `${svgW}`);
-  svg.setAttribute('height', `${svgH}`);
-  svg.style.maxWidth = '100%';
-  svg.style.height = 'auto';
-
-  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-  svg.appendChild(defs);
-
-  // ピラミッド幾何パラメータ（左寄りに配置し、右側に引き出し線＋テキストを展開）
-  const pyrCenterX = 180;
-  const topY = 70;
-  const bottomY = 425;
-  const totalH = bottomY - topY; // 355
-  const baseW = 260; // 底辺の全幅（左右130ずつ: X=50〜310）
-  const N = data.layers.length;
-  const layerH = totalH / N;
-  const gap = N > 5 ? 2.5 : 3.5;
-
-  // デフォルトパレット
-  const defaultColors = [
-    '#f59e0b', // ゴールド/アンバー
-    '#ea580c', // オレンジ
-    '#2563eb', // ブルー
-    '#0891b2', // シアン
-    '#059669', // エメラルド
-    '#6366f1', // インディゴ
-    '#64748b'  // スレート
-  ];
-
-  // タイトル描画
-  if (data.title) {
-    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tEl.setAttribute('x', svgW / 2);
-    tEl.setAttribute('y', 36);
-    tEl.setAttribute('text-anchor', 'middle');
-    tEl.setAttribute('font-size', '16');
-    tEl.setAttribute('font-weight', '700');
-    tEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-    tEl.setAttribute('fill', '#0f172a');
-    tEl.textContent = data.title;
-    svg.appendChild(tEl);
-  }
-
-  const layersG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  const labelsG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-  data.layers.forEach((layer, i) => {
-    const t0 = i / N;
-    const t1 = (i + 1) / N;
-
-    const y0 = topY + t0 * totalH + (i > 0 ? gap / 2 : 0);
-    const y1 = topY + t1 * totalH - (i < N - 1 ? gap / 2 : 0);
-    const w0 = t0 * baseW;
-    const w1 = t1 * baseW;
-
-    // カラー判定
-    let color = defaultColors[i % defaultColors.length];
-    if (/gold|yellow/i.test(layer.styleTag)) color = '#f59e0b';
-    else if (/accent|red|rose|danger/i.test(layer.styleTag)) color = '#e11d48';
-    else if (/primary|blue/i.test(layer.styleTag)) color = '#2563eb';
-    else if (/success|green|emerald/i.test(layer.styleTag)) color = '#059669';
-    else if (/warning|orange/i.test(layer.styleTag)) color = '#ea580c';
-    else if (/purple|violet/i.test(layer.styleTag)) color = '#8b5cf6';
-    else if (/muted|gray|slate/i.test(layer.styleTag)) color = '#64748b';
-    else if (/cyan|teal/i.test(layer.styleTag)) color = '#0891b2';
-
-    // パス生成
-    const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    let d = '';
-    let rightEdgeX = 0;
-    if (i === 0) {
-      // 頂点三角形
-      d = `M ${pyrCenterX} ${y0.toFixed(1)} L ${(pyrCenterX + w1 / 2).toFixed(1)} ${y1.toFixed(1)} L ${(pyrCenterX - w1 / 2).toFixed(1)} ${y1.toFixed(1)} Z`;
-      rightEdgeX = pyrCenterX + w1 / 4;
-    } else {
-      // 台形
-      d = `M ${(pyrCenterX - w0 / 2).toFixed(1)} ${y0.toFixed(1)} L ${(pyrCenterX + w0 / 2).toFixed(1)} ${y0.toFixed(1)} L ${(pyrCenterX + w1 / 2).toFixed(1)} ${y1.toFixed(1)} L ${(pyrCenterX - w1 / 2).toFixed(1)} ${y1.toFixed(1)} Z`;
-      rightEdgeX = pyrCenterX + (w0 + w1) / 4;
-    }
-    pathEl.setAttribute('d', d);
-    pathEl.setAttribute('fill', color);
-    pathEl.setAttribute('stroke', '#ffffff');
-    pathEl.setAttribute('stroke-width', '1.5');
-    layersG.appendChild(pathEl);
-
-    const midY = (y0 + y1) / 2;
-
-    // ピラミッド内の階層番号バッジ（白文字）
-    const badgeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    badgeText.setAttribute('x', pyrCenterX);
-    badgeText.setAttribute('y', (midY + 4.5).toFixed(1));
-    badgeText.setAttribute('text-anchor', 'middle');
-    badgeText.setAttribute('fill', '#ffffff');
-    badgeText.setAttribute('font-weight', '800');
-    badgeText.setAttribute('font-size', N > 5 ? '12' : '13');
-    badgeText.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-    badgeText.textContent = (i + 1).toString();
-    layersG.appendChild(badgeText);
-
-    // 右側への引き出し線（アノテーション）
-    const lineX0 = rightEdgeX + 8;
-    const lineX1 = 330;
-    const textStartX = 340;
-
-    // ガイド引き出し線
-    const guideLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    guideLine.setAttribute('x1', lineX0.toFixed(1));
-    guideLine.setAttribute('y1', midY.toFixed(1));
-    guideLine.setAttribute('x2', lineX1.toFixed(1));
-    guideLine.setAttribute('y2', midY.toFixed(1));
-    guideLine.setAttribute('stroke', '#cbd5e1');
-    guideLine.setAttribute('stroke-width', '1.2');
-    guideLine.setAttribute('stroke-dasharray', '2 2');
-    labelsG.appendChild(guideLine);
-
-    // 引き出し線端点の丸ドット
-    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot.setAttribute('cx', lineX0.toFixed(1));
-    dot.setAttribute('cy', midY.toFixed(1));
-    dot.setAttribute('r', '2.5');
-    dot.setAttribute('fill', color);
-    labelsG.appendChild(dot);
-
-    // 右側のテキストグループ
-    const textG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    textG.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-
-    const nameEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    nameEl.setAttribute('x', textStartX);
-    nameEl.setAttribute('text-anchor', 'start');
-    nameEl.setAttribute('font-weight', '700');
-    nameEl.setAttribute('fill', '#0f172a');
-    nameEl.setAttribute('font-size', N > 5 ? '12' : '13');
-
-    if (layer.note && layerH >= 32) {
-      nameEl.setAttribute('y', (midY - 3).toFixed(1));
-      nameEl.textContent = layer.name;
-      textG.appendChild(nameEl);
-
-      const noteEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      noteEl.setAttribute('x', textStartX);
-      noteEl.setAttribute('y', (midY + 13).toFixed(1));
-      noteEl.setAttribute('text-anchor', 'start');
-      noteEl.setAttribute('fill', '#64748b');
-      noteEl.setAttribute('font-size', N > 5 ? '10.5' : '11.5');
-      noteEl.setAttribute('font-weight', '500');
-      noteEl.textContent = layer.note;
-      textG.appendChild(noteEl);
-    } else {
-      nameEl.setAttribute('y', (midY + 4.5).toFixed(1));
-      nameEl.textContent = layer.note ? `${layer.name} (${layer.note})` : layer.name;
-      textG.appendChild(nameEl);
-    }
-
-    labelsG.appendChild(textG);
-  });
-
-  svg.appendChild(layersG);
-  svg.appendChild(labelsG);
-  container.appendChild(svg);
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
-}
 
 function autoResizeInput() {
   if (!inputArea) return;
@@ -4473,8 +793,499 @@ function autoResizeInput() {
 }
 
 // ==========================================
-// 入力欄の構文書式 リアルタイム判定インジケーター
+// 独自ダイアグラム & チャート 統合マスターレジストリ
+// （入力欄インジケーター判定 & プレビュー描画ルーティングの一元化）
 // ==========================================
+const DIAGRAM_DEFINITIONS = [
+  // 1. グラフ・統計チャート（pgfplots / pgf-pie / 独自 \chart）※最優先
+  {
+    id: 'chart',
+    match: (t) => /\\(chart|barchart|linechart|piechart|donutchart|areachart)\{|\\pie(?:\[[^\]]*\])?\{|\\begin\{axis\}|\\addplot/i.test(t),
+    badge: {
+      text: 'グラフ・統計チャート (棒・折れ線・円)',
+      cls: 'badge-custom',
+      desc: '\\chart{ type: bar; categories: "A","B"; series: "値", 10, 20; } または \\begin{axis}'
+    },
+    cls: 'chart-preview-container',
+    label: 'グラフ・統計チャート',
+    getFn: () => typeof drawChartSvg === 'function' ? drawChartSvg : null
+  },
+  // 2. ピラミッド図・階層図 (smartdiagram priority または \pyramid)
+  {
+    id: 'pyramid',
+    match: (t) => /\\smartdiagram\[priority/i.test(t) || (/\\(pyramid|hierarchy)\{/i.test(t) && t.replace(/\\(pyramid|hierarchy)\{((?:[^{}]|\{[^{}]*\})*)\}/g, '').trim() === ''),
+    badge: {
+      text: '独自書式 / LaTeX (ピラミッド図)',
+      cls: 'badge-custom',
+      desc: '\\pyramid{ title: ...; layer: 項目名 [色] (説明); } または smartdiagram'
+    },
+    cls: 'pyramid-preview-container',
+    label: 'ピラミッド図',
+    getFn: () => typeof drawPyramidSvg === 'function' ? drawPyramidSvg : null
+  },
+  // 3. レーダーチャート (tkz-kiviat または \radar)
+  {
+    id: 'radar',
+    match: (t) => /\\(radar|spider)\{/i.test(t) || t.includes('\\tkzKiviatDiagram'),
+    badge: {
+      text: '独自書式 / LaTeX (レーダーチャート)',
+      cls: 'badge-custom',
+      desc: '\\radar{ title: ...; axis: 軸1, 軸2; series: 系列(値1, 値2); } または tkz-kiviat'
+    },
+    cls: 'radar-preview-container',
+    label: 'レーダーチャート',
+    getFn: () => typeof drawRadarSvg === 'function' ? drawRadarSvg : null
+  },
+  // 4. ウォーターフォール図 (pgfplots / TikZ または \waterfall)
+  {
+    id: 'waterfall',
+    match: (t) => /\\(waterfall|cascade)\{/i.test(t) || (t.includes('\\begin{tikzpicture}') && (t.includes('ybar stacked') || /waterfall|滝/i.test(t))),
+    badge: {
+      text: '独自書式 / LaTeX (ウォーターフォール図)',
+      cls: 'badge-custom',
+      desc: '\\waterfall{ title: ...; unit: 単位; bar: 項目名 (値) [type]; } または pgfplots / TikZ'
+    },
+    cls: 'waterfall-preview-container',
+    label: 'ウォーターフォール図',
+    getFn: () => typeof drawWaterfallSvg === 'function' ? drawWaterfallSvg : null
+  },
+  // 5. ツリーマップ
+  {
+    id: 'treemap',
+    match: (t) => /\\(treemap)\{/i.test(t) || (t.includes('\\begin{tikzpicture}') && (t.includes('treemap') || /ツリーマップ/i.test(t))),
+    badge: {
+      text: '独自書式 / LaTeX (ツリーマップ)',
+      cls: 'badge-custom',
+      desc: '\\treemap{ title: ...; unit: 単位; "項目名", 値, "騰落率"; } または TikZ'
+    },
+    cls: 'treemap-preview-container',
+    label: 'ツリーマップ',
+    getFn: () => typeof drawTreemapSvg === 'function' ? drawTreemapSvg : null
+  },
+  // 6. ガントチャート (pgfgantt または \gantt)
+  {
+    id: 'gantt',
+    match: (t) => /\\gantt\{|\\begin\{ganttchart\}/i.test(t),
+    badge: {
+      text: '独自書式 / LaTeX (ガントチャート)',
+      cls: 'badge-custom',
+      desc: '\\gantt{ title: ...; task: タスク, 開始, 終了; } または pgfgantt'
+    },
+    cls: 'gantt-preview-container',
+    label: 'ガントチャート',
+    getFn: () => typeof drawGanttSvg === 'function' ? drawGanttSvg : null
+  },
+  // 7. 資本構成ツリー図
+  {
+    id: 'capitaltree',
+    match: (t) => /\\(capitaltree|holdingtree)\{/i.test(t),
+    badge: {
+      text: '独自書式 (資本構成ツリー図)',
+      cls: 'badge-custom',
+      desc: '\\capitaltree{ title: ...; "親会社" -> "子会社" [比率, 区分]; }'
+    },
+    cls: 'capitaltree-preview-container',
+    label: '資本構成ツリー図',
+    getFn: () => typeof drawCapitalTreeSvg === 'function' ? drawCapitalTreeSvg : null
+  },
+  // 8. 放射状ツリー図
+  {
+    id: 'radialtree',
+    match: (t) => /\\(radialtree|radial)\{/i.test(t),
+    badge: {
+      text: '独自書式 (放射状ツリー図)',
+      cls: 'badge-custom',
+      desc: '\\radialtree{ title: ...; center: ...; "親会社" -> "子会社" [比率, 区分]; }'
+    },
+    cls: 'radialtree-preview-container',
+    label: '放射状ツリー図',
+    getFn: () => typeof drawRadialTreeSvg === 'function' ? drawRadialTreeSvg : null
+  },
+  // 9. 組織階層図
+  {
+    id: 'orgchart',
+    match: (t) => /\\(orgchart|organization|org)\{/i.test(t),
+    badge: {
+      text: '独自書式 (組織階層図)',
+      cls: 'badge-custom',
+      desc: '\\orgchart{ title: ...; "親" -> "子"; "親" -- "スタッフ" [タグ]; }'
+    },
+    cls: 'orgchart-preview-container',
+    label: '組織階層図',
+    getFn: () => typeof drawOrgChartSvg === 'function' ? drawOrgChartSvg : null
+  },
+  // 10. ブロック図
+  {
+    id: 'blockdiagram',
+    match: (t) => /\\(blockdiagram|sysblock|block)\{/i.test(t),
+    badge: {
+      text: '独自書式 (ブロック図)',
+      cls: 'badge-custom',
+      desc: '\\blockdiagram{ title: ...; "入力" -> sum1 [+] -> "ブロック" -> "出力"; }'
+    },
+    cls: 'blockdiagram-preview-container',
+    label: 'ブロック図',
+    getFn: () => typeof drawBlockDiagramSvg === 'function' ? drawBlockDiagramSvg : null
+  },
+  // 11. シーケンス図
+  {
+    id: 'sequence',
+    match: (t) => /\\(sequence|seq)\{/i.test(t),
+    badge: {
+      text: '独自書式 (シーケンス図)',
+      cls: 'badge-custom',
+      desc: '\\sequence{ title: ...; actor: "クライアント"; "クライアント" -> "サーバ": 要求; }'
+    },
+    cls: 'sequence-preview-container',
+    label: 'シーケンス図',
+    getFn: () => typeof drawSequenceDiagramSvg === 'function' ? drawSequenceDiagramSvg : null
+  },
+  // 12. 光学系配置図
+  {
+    id: 'optics',
+    match: (t) => /\\(optics|opticalbench)\{/i.test(t),
+    badge: {
+      text: '独自書式 (光学系配置図)',
+      cls: 'badge-custom',
+      desc: '\\optics{ title: ...; "レーザー" -> "レンズ" -> "スクリーン"; }'
+    },
+    cls: 'optics-preview-container',
+    label: '光学系配置図',
+    getFn: () => typeof drawOpticsDiagramSvg === 'function' ? drawOpticsDiagramSvg : null
+  },
+  // 13. エネルギー準位図
+  {
+    id: 'energylevel',
+    match: (t) => /\\(energylevel|energy|banddiagram)\{/i.test(t),
+    badge: {
+      text: '独自書式 (エネルギー準位図)',
+      cls: 'badge-custom',
+      desc: '\\energylevel{ title: ...; n1: "基底" [-13.6]; n2 -> n1: "放出"; }'
+    },
+    cls: 'energylevel-preview-container',
+    label: 'エネルギー準位図',
+    getFn: () => typeof drawEnergyLevelDiagramSvg === 'function' ? drawEnergyLevelDiagramSvg : null
+  },
+  // 14. ポテンシャル曲線
+  {
+    id: 'potential',
+    match: (t) => /\\(potential|potentialcurve|potentialwell)\{/i.test(t),
+    badge: {
+      text: '独自書式 (ポテンシャル曲線)',
+      cls: 'badge-custom',
+      desc: '\\potential{ type: morse; De: 4.5; re: 1.2; level: "v=0" [-4.2]; }'
+    },
+    cls: 'potential-preview-container',
+    label: 'ポテンシャルエネルギー曲線',
+    getFn: () => typeof drawPotentialDiagramSvg === 'function' ? drawPotentialDiagramSvg : null
+  },
+  // 15. フローチャート
+  {
+    id: 'flowchart',
+    match: (t) => /\\(flowchart|flow)\{/i.test(t),
+    badge: {
+      text: '独自書式 (フローチャート)',
+      cls: 'badge-custom',
+      desc: '\\flowchart{ ノード名 [種類]; ノードA -> ノードB; }'
+    },
+    cls: 'flowchart-preview-container',
+    label: 'フローチャート',
+    getFn: () => typeof drawFlowchartSvg === 'function' ? (text, container, label) => {
+      const m = text.match(/\\(?:flowchart|flow)\{([\s\S]*)\}/i);
+      drawFlowchartSvg(m ? m[1] : text, container, label);
+    } : null
+  },
+  // 16. サンキーダイアグラム
+  {
+    id: 'sankey',
+    match: (t) => /\\sankey\{/i.test(t) || (t.includes('\\begin{tikzpicture}') && (t.includes('sankey') || /サンキー/i.test(t))),
+    badge: {
+      text: '独自書式 / LaTeX (サンキー図)',
+      cls: 'badge-custom',
+      desc: '\\sankey{ 流量: 起点 -> 終点; } または TikZ'
+    },
+    cls: 'sankey-preview-container',
+    label: 'サンキーダイアグラム',
+    getFn: () => typeof drawSankeySvg === 'function' ? drawSankeySvg : null
+  },
+  // 17. 決算書B/Sサンキー図
+  {
+    id: 'bs',
+    match: (t) => /\\(bs|balancesheet|sankeybs)\{/i.test(t),
+    badge: {
+      text: '独自書式 (決算書B/Sサンキー図)',
+      cls: 'badge-custom',
+      desc: '\\bs{ company: ...; period: ...; 資産 -> 負債; ... }'
+    },
+    cls: 'sankey-preview-container bs-preview-container',
+    label: '決算書サンキーダイアグラム',
+    getFn: () => typeof drawBalanceSheetSvg === 'function' ? (text, container, label) => {
+      const m = text.match(/\\(?:bs|balancesheet|sankeybs)\{([\s\S]*)\}/i);
+      drawBalanceSheetSvg(m ? m[1] : text, container, label);
+    } : null
+  },
+  // 18. 決算書P/L損益計算書
+  {
+    id: 'pl',
+    match: (t) => /\\(pl|incomestatement)\{/i.test(t),
+    badge: {
+      text: '独自書式 (決算書P/L損益計算書)',
+      cls: 'badge-custom',
+      desc: '\\pl{ company: ...; period: ...; 売上高 -> 売上総利益; ... }'
+    },
+    cls: 'sankey-preview-container pl-preview-container',
+    label: '決算書P/Lサンキー図',
+    getFn: () => typeof drawProfitAndLossSvg === 'function' ? (text, container, label) => {
+      const m = text.match(/\\(?:pl|incomestatement)\{([\s\S]*)\}/i);
+      drawProfitAndLossSvg(m ? m[1] : text, container, label);
+    } : null
+  },
+  // 19. 状態遷移図 (FSM)
+  {
+    id: 'fsm',
+    match: (t) => /\\(fsm|automaton)\{/i.test(t),
+    badge: {
+      text: '独自書式 (状態遷移図)',
+      cls: 'badge-custom',
+      desc: '\\fsm{ 状態A -> 状態B: イベント; }'
+    },
+    cls: 'fsm-preview-container',
+    label: '状態遷移図',
+    getFn: () => typeof drawFsmSvg === 'function' ? (text, container, label) => {
+      const m = text.match(/\\(?:fsm|automaton)\{([\s\S]*)\}/i);
+      drawFsmSvg(m ? m[1] : text, container, label);
+    } : null
+  },
+  // 20. タイミングチャート（波形）
+  {
+    id: 'timing',
+    match: (t) => /\\timing\{/i.test(t),
+    badge: {
+      text: '独自書式 (波形チャート)',
+      cls: 'badge-custom',
+      desc: '\\timing{ 信号名: H.L...; }'
+    },
+    cls: 'timing-preview-container',
+    label: 'タイミングチャート',
+    getFn: () => typeof drawTimingSvg === 'function' ? drawTimingSvg : null
+  },
+  // 21. 電気回路図 (CircuiTikZ / \circuit)
+  {
+    id: 'circuit',
+    match: (t) => /\\circuit\{|\\begin\{circuitikz\}/i.test(t) ||
+      (/\\begin\{tikzpicture\}/i.test(t) && /to\s*\[|node\s*\[\s*loop/i.test(t)) ||
+      (/\\draw\s*\([^;]+;/i.test(t) && !/\\begin\{tikzpicture\}/i.test(t)),
+    badge: {
+      text: '独自書式 / LaTeX (電気回路図)',
+      cls: 'badge-custom',
+      desc: '\\circuit{ R1 [resistor]; ノードA -- ノードB; } または CircuiTikZ'
+    },
+    cls: 'circuit-preview-container',
+    label: '電子回路図',
+    getFn: () => typeof drawCircuitSvg === 'function' ? drawCircuitSvg : null
+  },
+  // 22. ファインマン・ダイアグラム
+  {
+    id: 'feynman',
+    match: (t) => /\\feynman\{/i.test(t),
+    badge: {
+      text: '独自書式 (ファインマン図)',
+      cls: 'badge-custom',
+      desc: '\\feynman{ 粒子 [fermion]; 光子 [photon]; }'
+    },
+    cls: 'feynman-preview-container',
+    label: 'ファインマン・ダイアグラム',
+    getFn: () => typeof drawFeynmanSvg === 'function' ? (text, container, label) => {
+      const m = text.match(/\\feynman\{([\s\S]*)\}/i);
+      drawFeynmanSvg(m ? m[1] : text, container, label);
+    } : null
+  },
+  // 23. コード進行 (ChordPro)
+  {
+    id: 'chordpro',
+    match: (t) => /\\chordpro\{/i.test(t),
+    badge: {
+      text: 'コード進行 (ChordPro)',
+      cls: 'badge-custom',
+      desc: '\\chordpro{ [C]歌詞 [G]歌詞; } または小節進行 (| C | G |)'
+    },
+    cls: 'chordpro-preview-container',
+    label: 'コード進行',
+    getFn: () => typeof drawChordPro === 'function' ? drawChordPro : null
+  },
+  // 24. ギターコード図 (guitarchords)
+  {
+    id: 'guitarchords',
+    match: (t) => /\\(guitarchords|chord)\{/i.test(t),
+    badge: {
+      text: 'ギターコード図 (guitarchords)',
+      cls: 'badge-custom',
+      desc: '\\guitarchords{ \\chord{t}{x,3,2,0,1,0}{C} } または C -> G -> Am -> F'
+    },
+    cls: 'guitarchords-preview-container',
+    label: 'ギターコード図',
+    getFn: () => typeof drawGuitarChords === 'function' ? drawGuitarChords : null
+  },
+  // 25. コード進行フロー (ChordFlow)
+  {
+    id: 'chordflow',
+    match: (t) => /\\chordflow\{/i.test(t),
+    badge: {
+      text: 'コード進行フロー (ChordFlow)',
+      cls: 'badge-custom',
+      desc: '\\chordflow{ Im [Fm] -> IVm [Bbm] -> bIII [Ab]; }'
+    },
+    cls: 'chordflow-preview-container',
+    label: 'コード進行フロー',
+    getFn: () => typeof drawChordFlow === 'function' ? drawChordFlow : null
+  },
+  // 26. ニューラルネットワーク構造図 (NN)
+  {
+    id: 'neuralnet',
+    match: (t) => /\\(nn|neuralnet|neuralnetwork)\{/i.test(t),
+    badge: {
+      text: 'ニューラルネットワーク構造図 (NN)',
+      cls: 'badge-custom',
+      desc: '\\nn{ layers: [4, 6, 6, 2]; labels: ["入力層", "中間層1", "中間層2", "出力層"]; }'
+    },
+    cls: 'neuralnet-preview-container',
+    label: 'ニューラルネットワーク構造図',
+    getFn: () => typeof drawNeuralNetworkSvg === 'function' ? drawNeuralNetworkSvg : null
+  },
+  // 27. 有向グラフ / ネットワーク図 (Graph)
+  {
+    id: 'graph',
+    match: (t) => /\\(graph|digraph|network)\{/i.test(t),
+    badge: {
+      text: '有向グラフ / ネットワーク図 (Graph)',
+      cls: 'badge-custom',
+      desc: '\\graph{ S -> A : 4; S -> B : 2; A -> G : 3; B -> G : 5; }'
+    },
+    cls: 'graph-preview-container',
+    label: '有向グラフ・ネットワーク図',
+    getFn: () => typeof drawGraphSvg === 'function' ? drawGraphSvg : null
+  },
+  // 28. ベン図 (Venn Diagram / LaTeX)
+  {
+    id: 'venn',
+    match: (t) => /\\(venn|venndiagram)\{|\\begin\{venndiagram[23]sets\}|(?:\\begin\{tikzpicture\}[\s\S]*?(?:venn|ベン図))/i.test(t),
+    badge: {
+      text: 'ベン図 (Venn Diagram / LaTeX)',
+      cls: 'badge-custom',
+      desc: '\\venn{ set A "A"; set B "B"; AB: "共通部分"; } または \\begin{venndiagram2sets}'
+    },
+    cls: 'venn-preview-container',
+    label: 'ベン図',
+    getFn: () => typeof drawVennSvg === 'function' ? drawVennSvg : null
+  },
+  // 29. フィッシュボーン図 (特性要因図 / LaTeX)
+  {
+    id: 'fishbone',
+    match: (t) => /\\(fishbone|ishikawa|causeeffect)\{|(?:\\begin\{tikzpicture\}[\s\S]*?(?:fishbone|ishikawa|特性要因))/i.test(t),
+    badge: {
+      text: 'フィッシュボーン図 (特性要因図 / LaTeX)',
+      cls: 'badge-custom',
+      desc: '\\fishbone{ effect: "結果"; "人": "要因1", "要因2"; } または \\begin{tikzpicture}'
+    },
+    cls: 'fishbone-preview-container',
+    label: '特性要因図 (フィッシュボーン)',
+    getFn: () => typeof drawFishboneSvg === 'function' ? drawFishboneSvg : null
+  },
+  // 30. SWOT分析マトリクス
+  {
+    id: 'swot',
+    match: (t) => /\\(swot|swotmatrix)\{/i.test(t),
+    badge: {
+      text: 'SWOT分析マトリクス (2×2 戦略マップ)',
+      cls: 'badge-custom',
+      desc: '\\swot{ title: "戦略SWOT"; S: "強み"; W: "弱み"; O: "機会"; T: "脅威"; }'
+    },
+    cls: 'swot-preview-container',
+    label: 'SWOT分析マトリクス',
+    getFn: () => typeof drawSwotSvg === 'function' ? drawSwotSvg : null
+  },
+  // 31. ロードマップ図 (マイルストーン年表・タイムライン)
+  {
+    id: 'roadmap',
+    match: (t) => /\\(roadmap|timeline)\{|\\(?:startchronology|chronoevent|chronoperiod)|\\smartdiagram(?!\s*\[\s*priority)/i.test(t),
+    badge: {
+      text: 'ロードマップ図 (マイルストーン年表・タイムライン)',
+      cls: 'badge-custom',
+      desc: '\\roadmap{ title: "開発計画"; "2026 Q1": "αリリース"; } または chronosys'
+    },
+    cls: 'roadmap-preview-container',
+    label: 'ロードマップ図',
+    getFn: () => typeof drawRoadmapSvg === 'function' ? drawRoadmapSvg : null
+  },
+  // 32. 結晶構造・格子モデル
+  {
+    id: 'crystal',
+    match: (t) => /\\(crystal|lattice)\{/i.test(t),
+    badge: {
+      text: '独自書式 (結晶構造・格子モデル)',
+      cls: 'badge-custom',
+      desc: '\\crystal{ type: fcc; title: ...; plane: (1,1,1); } (固体物理・ブラベ格子)'
+    },
+    cls: 'crystal-preview-container',
+    label: '結晶構造・格子モデル',
+    getFn: () => typeof drawCrystalSvg === 'function' ? drawCrystalSvg : null
+  },
+  // 33. 汎用シナリオ・概念図 (フリーフロー)
+  {
+    id: 'scenario',
+    match: (t) => /\\(scenario|freeflow)\{/i.test(t),
+    badge: {
+      text: '汎用シナリオ・概念図 (フリーフロー)',
+      cls: 'badge-custom',
+      desc: '\\scenario{ title: ...; fork: -> ...; または merge: <- ...; } (攻撃・業務シナリオ)'
+    },
+    cls: 'scenario-preview-container',
+    label: '汎用シナリオ・概念図',
+    getFn: () => typeof drawScenarioSvg === 'function' ? drawScenarioSvg : null
+  },
+  // 34. テンソルネットワーク・ペンローズ記法
+  {
+    id: 'tensor',
+    match: (t) => /\\(tensornetwork|penrose|tensor)\{/i.test(t),
+    badge: {
+      text: '独自書式 (テンソルネットワーク・ペンローズ記法)',
+      cls: 'badge-custom',
+      desc: '\\tensornetwork{ type: mps; sites: 5; bond: χ; } (量子情報・物性物理)'
+    },
+    cls: 'tensor-preview-container',
+    label: 'テンソルネットワーク図',
+    getFn: () => typeof drawTensorSvg === 'function' ? drawTensorSvg : null
+  },
+  // 35. 2軸マップ独自書式
+  {
+    id: 'matrixmap',
+    match: (t) => /\\(matrixmap|positioning|matrix)\{/i.test(t),
+    badge: {
+      text: '独自書式 (2軸マップ)',
+      cls: 'badge-custom',
+      desc: '\\matrixmap{ title: ...; axis-x: ...; axis-y: ...; quadrant: ...; item: 名前(x, y); }'
+    },
+    cls: 'matrix-preview-container',
+    label: '2軸マップ',
+    getFn: () => typeof drawMatrixMapSvg === 'function' ? drawMatrixMapSvg : null
+  },
+  // 36. LaTeX TikZ 4象限ポジショニングマップ・マトリクス図
+  {
+    id: 'tikz-matrix',
+    match: (t) => /\\begin\{tikzpicture\}/i.test(t) &&
+      /(?:<->|<--|-->|node\s*\[\s*(?:above|below|left|right)\s*\]|positioning|4象限|マトリクス)/i.test(t) &&
+      !/\\begin\{axis\}|\\addplot|\\pie(?:\[[^\]]*\])?\{|fishbone|ishikawa|特性要因|venn|venndiagram|sankey|サンキー|waterfall|滝|treemap|ツリーマップ|gantt|pgfgantt|kiviat|circuit|circuitikz|to\s*\[/i.test(t),
+    badge: {
+      text: 'LaTeX (TikZ マトリクス図)',
+      cls: 'badge-latex',
+      desc: '\\begin{tikzpicture} ... \\draw[<->] ... \\node ... \\end{tikzpicture}'
+    },
+    cls: 'matrix-preview-container',
+    label: 'LaTeX TikZ マトリクス',
+    getFn: () => typeof drawMatrixMapSvg === 'function' ? drawMatrixMapSvg : null
+  }
+];
+
 function updateSyntaxIndicator(rawText) {
   const badgeEl = document.getElementById('syntax-type-badge');
   const descEl = document.getElementById('syntax-type-desc');
@@ -4488,66 +1299,14 @@ function updateSyntaxIndicator(rawText) {
     return;
   }
 
-  // 1. 独自書式（PhysiNote DSL）の検出
-  if (/\\(matrixmap|positioning|matrix)\{/i.test(trimmed)) {
-    badgeEl.textContent = '独自書式 (2軸マップ)';
-    badgeEl.className = 'syntax-badge badge-custom';
-    descEl.textContent = '\\matrixmap{ title: ...; axis-x: ...; axis-y: ...; quadrant: ...; item: 名前(x, y); }';
-    return;
-  }
-  if (/\\(pyramid|hierarchy)\{/i.test(trimmed)) {
-    badgeEl.textContent = '独自書式 (ピラミッド図)';
-    badgeEl.className = 'syntax-badge badge-custom';
-    descEl.textContent = '\\pyramid{ title: ...; layer: 項目名 [色] (説明); }';
-    return;
-  }
-  if (/\\(flowchart|flow)\{/i.test(trimmed)) {
-    badgeEl.textContent = '独自書式 (フローチャート)';
-    badgeEl.className = 'syntax-badge badge-custom';
-    descEl.textContent = '\\flowchart{ ノード名 [種類]; ノードA -> ノードB; }';
-    return;
-  }
-  if (/\\sankey\{/i.test(trimmed)) {
-    badgeEl.textContent = '独自書式 (サンキー図)';
-    badgeEl.className = 'syntax-badge badge-custom';
-    descEl.textContent = '\\sankey{ 流量: 起点 -> 終点; }';
-    return;
-  }
-  if (/\\(fsm|automaton)\{/i.test(trimmed)) {
-    badgeEl.textContent = '独自書式 (状態遷移図)';
-    badgeEl.className = 'syntax-badge badge-custom';
-    descEl.textContent = '\\fsm{ 状態A -> 状態B: イベント; }';
-    return;
-  }
-  if (/\\timing\{/i.test(trimmed)) {
-    badgeEl.textContent = '独自書式 (波形チャート)';
-    badgeEl.className = 'syntax-badge badge-custom';
-    descEl.textContent = '\\timing{ 信号名: H.L...; }';
-    return;
-  }
-  if (/\\circuit\{/i.test(trimmed)) {
-    badgeEl.textContent = '独自書式 (電気回路図)';
-    badgeEl.className = 'syntax-badge badge-custom';
-    descEl.textContent = '\\circuit{ R1 [resistor]; ノードA -- ノードB; }';
-    return;
-  }
-  if (/\\feynman\{/i.test(trimmed)) {
-    badgeEl.textContent = '独自書式 (ファインマン図)';
-    badgeEl.className = 'syntax-badge badge-custom';
-    descEl.textContent = '\\feynman{ 粒子 [fermion]; 光子 [photon]; }';
-    return;
-  }
-  if (/\\(chemfig|smiles)\{/i.test(trimmed)) {
-    badgeEl.textContent = '化学構造式 (平面構造式)';
-    badgeEl.className = 'syntax-badge badge-chem-struct';
-    descEl.textContent = 'SMILES / ChemFig (例: \\smiles{...})';
-    return;
-  }
-  if (/\\ce\{/i.test(trimmed)) {
-    badgeEl.textContent = '化学式 (分子式・反応式)';
-    badgeEl.className = 'syntax-badge badge-chem-formula';
-    descEl.textContent = 'mhchem準拠 (例: \\ce{H2O}, \\ce{C8H10N4O2}, \\ce{2H2 + O2 -> 2H2O})';
-    return;
+  // 1. マスターレジストリから走査
+  for (const def of DIAGRAM_DEFINITIONS) {
+    if (def.match(trimmed)) {
+      badgeEl.textContent = def.badge.text;
+      badgeEl.className = `syntax-badge ${def.badge.cls}`;
+      descEl.textContent = def.badge.desc;
+      return;
+    }
   }
 
   // 2. 表形式の検出 (parseAnyTable で判定)
@@ -4558,10 +1317,53 @@ function updateSyntaxIndicator(rawText) {
     return;
   }
 
-  // 3. デフォルトは LaTeX数式
+  // 3. 化学構造式 (平面構造式)
+  if (/\\(chemfig|smiles)\{/i.test(trimmed)) {
+    badgeEl.textContent = '化学構造式 (平面構造式)';
+    badgeEl.className = 'syntax-badge badge-chem-struct';
+    descEl.textContent = 'SMILES / ChemFig (例: \\smiles{...})';
+    return;
+  }
+
+  // 4. 化学式 (分子式・反応式)
+  if (/\\ce\{/i.test(trimmed)) {
+    badgeEl.textContent = '化学式 (分子式・反応式)';
+    badgeEl.className = 'syntax-badge badge-chem-formula';
+    descEl.textContent = 'mhchem準拠 (例: \\ce{H2O}, \\ce{C8H10N4O2}, \\ce{2H2 + O2 -> 2H2O})';
+    return;
+  }
+
+  // 5. 汎用 LaTeX TikZ 図形環境
+  if (/\\begin\{tikzpicture\}/i.test(trimmed)) {
+    badgeEl.textContent = 'LaTeX (TikZ 図形)';
+    badgeEl.className = 'syntax-badge badge-latex';
+    descEl.textContent = '\\begin{tikzpicture} ... \\end{tikzpicture} (汎用TikZ描画環境)';
+    return;
+  }
+
+  // 6. デフォルトは LaTeX数式
   badgeEl.textContent = 'LaTeX数式';
   badgeEl.className = 'syntax-badge badge-latex';
   descEl.textContent = 'KaTeX準拠 (例: F = m * a, \\frac{a}{b}, \\int, 行列)';
+}
+
+// ==========================================
+// 独自ダイアグラムのプレビュー描画共通ヘルパー
+// ==========================================
+function renderCustomDiagramElement(containerClass, label, drawFn, text, previewArea, warningBadge, previewBox, explanationCard) {
+  previewArea.innerHTML = '';
+  const container = document.createElement('div');
+  container.className = containerClass;
+  drawFn(text, container, label);
+  previewArea.appendChild(container);
+
+  if (warningBadge) warningBadge.style.display = 'none';
+  if (previewBox) {
+    previewBox.style.opacity = '1.0';
+    previewBox.removeAttribute('data-formula-tip');
+  }
+  if (explanationCard) explanationCard.style.display = 'none';
+  return true;
 }
 
 function updatePreview() {
@@ -4589,246 +1391,24 @@ function updatePreview() {
   const explanationTime = document.getElementById('explanation-time');
 
   // ==========================================
-  // 電子回路図 (\circuit / \draw) の検出と処理
+  // ダイアグラム・チャート（DIAGRAM_DEFINITIONS）の一括判定＆描画
   // ==========================================
-  const circuitRegex = /(\\circuit\{((?:[^{}]|\{[^{}]*\})*)\}|\\draw\s*\([^;]+;)/g;
-  const circuitMatches = [];
-  let circuitMatch;
-  while ((circuitMatch = circuitRegex.exec(text)) !== null) {
-    const raw = circuitMatch[0];
-    const content = circuitMatch[2] ? circuitMatch[2] : raw;
-    circuitMatches.push({ raw, content, label: '電子回路図' });
-  }
-
-  // 入力が回路図のみの場合：直接SVG描画
-  const textWithoutCircuit = text.replace(circuitRegex, '').trim();
-  if (circuitMatches.length > 0 && textWithoutCircuit === '') {
-    previewArea.innerHTML = '';
-    circuitMatches.forEach((item) => {
-      const container = document.createElement('div');
-      container.className = 'circuit-preview-container';
-      drawCircuitSvg(item.content, container, item.label);
-      previewArea.appendChild(container);
-    });
-
-    warningBadge.style.display = 'none';
-    previewBox.style.opacity = '1.0';
-    previewBox.removeAttribute('data-formula-tip');
-    if (explanationCard) explanationCard.style.display = 'none';
-    return;
-  }
-
-  // ==========================================
-  // タイミングチャート (\timing) の検出と処理
-  // ==========================================
-  const timingRegex = /\\timing\{((?:[^{}]|\{[^{}]*\})*)\}/g;
-  const timingMatches = [];
-  let timingMatch;
-  while ((timingMatch = timingRegex.exec(text)) !== null) {
-    timingMatches.push({ raw: timingMatch[0], content: timingMatch[1], label: 'タイミングチャート' });
-  }
-
-  // 入力が波形のみの場合：直接SVG描画
-  const textWithoutTiming = text.replace(timingRegex, '').trim();
-  if (timingMatches.length > 0 && textWithoutTiming === '' && circuitMatches.length === 0) {
-    previewArea.innerHTML = '';
-    timingMatches.forEach((item) => {
-      const container = document.createElement('div');
-      container.className = 'timing-preview-container';
-      drawTimingSvg(item.content, container, item.label);
-      previewArea.appendChild(container);
-    });
-
-    warningBadge.style.display = 'none';
-    previewBox.style.opacity = '1.0';
-    previewBox.removeAttribute('data-formula-tip');
-    if (explanationCard) explanationCard.style.display = 'none';
-    return;
-  }
-
-  // ==========================================
-  // 状態遷移図 (\fsm / \automaton) の検出と処理
-  // ==========================================
-  const fsmRegex = /\\(fsm|automaton)\{((?:[^{}]|\{[^{}]*\})*)\}/g;
-  const fsmMatches = [];
-  let fsmMatch;
-  while ((fsmMatch = fsmRegex.exec(text)) !== null) {
-    fsmMatches.push({ raw: fsmMatch[0], content: fsmMatch[2], label: '状態遷移図' });
-  }
-
-  // 入力が状態遷移図のみの場合：直接SVG描画
-  const textWithoutFsm = text.replace(fsmRegex, '').trim();
-  if (fsmMatches.length > 0 && textWithoutFsm === '' && circuitMatches.length === 0 && timingMatches.length === 0) {
-    previewArea.innerHTML = '';
-    fsmMatches.forEach((item) => {
-      const container = document.createElement('div');
-      container.className = 'fsm-preview-container';
-      drawFsmSvg(item.content, container, item.label);
-      previewArea.appendChild(container);
-    });
-
-    warningBadge.style.display = 'none';
-    previewBox.style.opacity = '1.0';
-    previewBox.removeAttribute('data-formula-tip');
-    if (explanationCard) explanationCard.style.display = 'none';
-    return;
-  }
-
-  // ==========================================
-  // ファインマン・ダイアグラム (\feynman) の検出と処理
-  // ==========================================
-  const feynmanRegex = /\\feynman\{((?:[^{}]|\{[^{}]*\})*)\}/g;
-  const feynmanMatches = [];
-  let feynmanMatch;
-  while ((feynmanMatch = feynmanRegex.exec(text)) !== null) {
-    feynmanMatches.push({ raw: feynmanMatch[0], content: feynmanMatch[1], label: 'ファインマン・ダイアグラム' });
-  }
-
-  // 入力がファインマン図のみの場合：直接SVG描画
-  const textWithoutFeynman = text.replace(feynmanRegex, '').trim();
-  if (feynmanMatches.length > 0 && textWithoutFeynman === '' && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0) {
-    previewArea.innerHTML = '';
-    feynmanMatches.forEach((item) => {
-      const container = document.createElement('div');
-      container.className = 'feynman-preview-container';
-      drawFeynmanSvg(item.content, container, item.label);
-      previewArea.appendChild(container);
-    });
-
-    warningBadge.style.display = 'none';
-    previewBox.style.opacity = '1.0';
-    previewBox.removeAttribute('data-formula-tip');
-    if (explanationCard) explanationCard.style.display = 'none';
-    return;
-  }
-
-  // ==========================================
-  // サンキーダイアグラム (\sankey) の検出と処理
-  // ==========================================
-  const sankeyRegex = /\\sankey\{((?:[^{}]|\{[^{}]*\})*)\}/g;
-  const sankeyMatches = [];
-  let sankeyMatch;
-  while ((sankeyMatch = sankeyRegex.exec(text)) !== null) {
-    sankeyMatches.push({ raw: sankeyMatch[0], content: sankeyMatch[1], label: 'サンキーダイアグラム' });
-  }
-
-  // ==========================================
-  // フローチャート (\flowchart / \flow) の検出と処理
-  // ==========================================
-  const flowchartRegex = /\\(flowchart|flow)\{((?:[^{}]|\{[^{}]*\})*)\}/g;
-  const flowchartMatches = [];
-  let flowchartMatch;
-  while ((flowchartMatch = flowchartRegex.exec(text)) !== null) {
-    flowchartMatches.push({ raw: flowchartMatch[0], content: flowchartMatch[2], label: 'フローチャート' });
-  }
-
-  // 入力がフローチャートのみの場合：直接SVG描画
-  const textWithoutFlowchart = text.replace(flowchartRegex, '').trim();
-  if (flowchartMatches.length > 0 && textWithoutFlowchart === '' && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0 && sankeyMatches.length === 0) {
-    previewArea.innerHTML = '';
-    flowchartMatches.forEach((item) => {
-      const container = document.createElement('div');
-      container.className = 'flowchart-preview-container';
-      drawFlowchartSvg(item.content, container, item.label);
-      previewArea.appendChild(container);
-    });
-
-    warningBadge.style.display = 'none';
-    previewBox.style.opacity = '1.0';
-    previewBox.removeAttribute('data-formula-tip');
-    if (explanationCard) explanationCard.style.display = 'none';
-    return;
-  }
-
-  // 入力がサンキー図のみの場合：直接SVG描画
-  const textWithoutSankey = text.replace(sankeyRegex, '').trim();
-  if (sankeyMatches.length > 0 && textWithoutSankey === '' && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0 && flowchartMatches.length === 0) {
-    previewArea.innerHTML = '';
-    sankeyMatches.forEach((item) => {
-      const container = document.createElement('div');
-      container.className = 'sankey-preview-container';
-      drawSankeySvg(item.content, container, item.label);
-      previewArea.appendChild(container);
-    });
-
-    warningBadge.style.display = 'none';
-    previewBox.style.opacity = '1.0';
-    previewBox.removeAttribute('data-formula-tip');
-    if (explanationCard) explanationCard.style.display = 'none';
-    return;
-  }
-
-  // ==========================================
-  // 2軸マップ・マトリクス図 (\matrixmap / \positioning) の検出と処理
-  // ==========================================
-  const matrixRegex = /\\(matrixmap|positioning|matrix)\{((?:[^{}]|\{[^{}]*\})*)\}/g;
-  const matrixMatches = [];
-  let matrixMatch;
-  while ((matrixMatch = matrixRegex.exec(text)) !== null) {
-    matrixMatches.push({ raw: matrixMatch[0], content: matrixMatch[2], label: '2軸マップ' });
-  }
-
-  // 入力が2軸マップのみの場合：直接SVG描画
-  const textWithoutMatrix = text.replace(matrixRegex, '').trim();
-  if (matrixMatches.length > 0 && textWithoutMatrix === '' && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0 && sankeyMatches.length === 0 && flowchartMatches.length === 0) {
-    previewArea.innerHTML = '';
-    matrixMatches.forEach((item) => {
-      const container = document.createElement('div');
-      container.className = 'matrix-preview-container';
-      drawMatrixMapSvg(item.content, container, item.label);
-      previewArea.appendChild(container);
-    });
-
-    warningBadge.style.display = 'none';
-    previewBox.style.opacity = '1.0';
-    previewBox.removeAttribute('data-formula-tip');
-    if (explanationCard) explanationCard.style.display = 'none';
-    return;
-  }
-
-  // ==========================================
-  // ピラミッド図・階層図 (\pyramid / \hierarchy) の検出と処理
-  // ==========================================
-  const pyramidRegex = /\\(pyramid|hierarchy)\{((?:[^{}]|\{[^{}]*\})*)\}/g;
-  const pyramidMatches = [];
-  let pyramidMatch;
-  while ((pyramidMatch = pyramidRegex.exec(text)) !== null) {
-    pyramidMatches.push({ raw: pyramidMatch[0], content: pyramidMatch[2], label: 'ピラミッド図' });
-  }
-
-  // 入力がピラミッド図のみの場合：直接SVG描画
-  const textWithoutPyramid = text.replace(pyramidRegex, '').trim();
-  if (pyramidMatches.length > 0 && textWithoutPyramid === '' && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0 && sankeyMatches.length === 0 && flowchartMatches.length === 0 && matrixMatches.length === 0) {
-    previewArea.innerHTML = '';
-    pyramidMatches.forEach((item) => {
-      const container = document.createElement('div');
-      container.className = 'pyramid-preview-container';
-      drawPyramidSvg(item.content, container, item.label);
-      previewArea.appendChild(container);
-    });
-
-    warningBadge.style.display = 'none';
-    previewBox.style.opacity = '1.0';
-    previewBox.removeAttribute('data-formula-tip');
-    if (explanationCard) explanationCard.style.display = 'none';
-    return;
+  for (const def of DIAGRAM_DEFINITIONS) {
+    if (def.match(text)) {
+      const fn = def.getFn();
+      if (fn) {
+        renderCustomDiagramElement(def.cls, def.label, fn, text, previewArea, warningBadge, previewBox, explanationCard);
+        return;
+      }
+    }
   }
 
   // ==========================================
   // 表（テーブル：Markdown / CSV / TSV / LaTeX tabular）の検出と処理
   // ==========================================
   const tableData = parseAnyTable(text);
-  if (tableData && circuitMatches.length === 0 && timingMatches.length === 0 && fsmMatches.length === 0 && feynmanMatches.length === 0 && sankeyMatches.length === 0 && flowchartMatches.length === 0 && matrixMatches.length === 0 && pyramidMatches.length === 0) {
-    previewArea.innerHTML = '';
-    const container = document.createElement('div');
-    container.className = 'table-preview-container';
-    renderTableElement(tableData, container, 'データ表');
-    previewArea.appendChild(container);
-
-    warningBadge.style.display = 'none';
-    previewBox.style.opacity = '1.0';
-    previewBox.removeAttribute('data-formula-tip');
-    if (explanationCard) explanationCard.style.display = 'none';
+  if (tableData) {
+    renderCustomDiagramElement('table-preview-container', 'データ表', (t, c, l) => renderTableElement(tableData, c, l), text, previewArea, warningBadge, previewBox, explanationCard);
     return;
   }
 
@@ -4884,6 +1464,14 @@ function updatePreview() {
       const id = chemIdx++;
       return `\\htmlClass{chem-structure-slot chem-slot-${id}}{\\phantom{WW}}`;
     });
+  }
+
+  // 1-2. 外側数式デリミタ ($$ ... $$ または $ ... $) の自動除去
+  const trimmedFormula = text.trim();
+  if (trimmedFormula.startsWith('$$') && trimmedFormula.endsWith('$$') && trimmedFormula.length >= 4) {
+    text = trimmedFormula.slice(2, -2).trim();
+  } else if (trimmedFormula.startsWith('$') && trimmedFormula.endsWith('$') && trimmedFormula.length >= 2) {
+    text = trimmedFormula.slice(1, -1).trim();
   }
 
   // 2. 数式全体の意味・物理的解説を検知してセット
@@ -5117,364 +1705,44 @@ inputArea.addEventListener('input', () => {
   updatePreview();
 });
 
-// 数式ライブラリのプリセットデータ定義（全42公式）
-const formulaLibrary = [
-  // --- 力学 ---
-  {
-    id: 'mechanics-01',
-    name: 'ニュートンの運動方程式',
-    category: '力学',
-    description: '物体に加わる力と加速度、質量の関係を表す力学の基本原理。',
-    latex: 'F = m * a',
-    tags: ['力学', '加速度', '質量', '運動方程式']
-  },
-  {
-    id: 'mechanics-02',
-    name: '万有引力の法則',
-    category: '力学',
-    description: 'すべての物体間に働く引き合う力。質量に比例し距離の2乗に反比例する。',
-    latex: 'F = G \\frac{M m}{r^2}',
-    tags: ['重力', '引力', '天体']
-  },
-  {
-    id: 'mechanics-03',
-    name: 'フックの法則',
-    category: '力学',
-    description: '弾性体の変形量と復元力の比例関係を表す法則。',
-    latex: 'F = -kx',
-    tags: ['弾性', 'ばね', '復元力']
-  },
-  {
-    id: 'mechanics-04',
-    name: '等加速度直線運動の速度式',
-    category: '力学',
-    description: '一定の加速度で運動する物体の速度の時間変化を表す式。',
-    latex: 'v = v_0 + at',
-    tags: ['等加速度', '速度', '直線運動']
-  },
-  {
-    id: 'special-relativity',
-    name: '特殊相対性理論（質量エネルギー等価性）',
-    category: '力学',
-    description: '質量とエネルギーが相互に変換可能であることを示すアインシュタインの公式。',
-    latex: 'E = m * c^2',
-    tags: ['相対性理論', '光速', 'エネルギー']
-  },
+// ==========================================
+// プレビュー全画面表示（拡大）切り替え制御
+// ==========================================
+const previewContainer = document.querySelector('.preview-container');
+const previewFullscreenBtn = document.getElementById('preview-fullscreen-btn');
 
-  // --- 電磁気学 ---
-  {
-    id: 'em-01',
-    name: 'クーロンの法則',
-    category: '電磁気学',
-    description: '静止した2つの荷電粒子の間に働く静電気力の大きさを表す法則。',
-    latex: 'F = \\frac{1}{4\\pi\\varepsilon_0}\\frac{q_1 q_2}{r^2}',
-    tags: ['静電気', '電荷', 'クーロン力']
-  },
-  {
-    id: 'em-02',
-    name: 'オームの法則',
-    category: '電磁気学',
-    description: '導体を流れる電流と両端の電位差、抵抗の比例関係を表す。',
-    latex: 'V = IR',
-    tags: ['電流', '電圧', '電気抵抗']
-  },
-  {
-    id: 'em-03',
-    name: 'ローレンツ力',
-    category: '電磁気学',
-    description: '電磁場中を運動する荷電粒子が受ける電場と磁場による力の合力。',
-    latex: 'F = q(E + v \\times B)',
-    tags: ['電磁場', '荷電粒子', '磁気力']
-  },
-  {
-    id: 'em-04',
-    name: 'ファラデーの電磁誘導の法則',
-    category: '電磁気学',
-    description: '磁束の変化率に比例して逆向きの起電力が発生する現象。',
-    latex: 'V = -\\frac{d\\Phi}{dt}',
-    tags: ['電磁誘導', '磁束', '起電力']
-  },
-  {
-    id: 'em-maxwell-gauss',
-    name: 'ガウスの法則（電場）',
-    category: '電磁気学',
-    description: '電荷の存在によって電場が空間へ湧き出す関係を示すマクスウェル方程式の第1式。',
-    latex: '\\nabla \\cdot \\boldsymbol{E} = \\frac{\\rho}{\\varepsilon_0}',
-    tags: ['電磁気学', 'マクスウェル方程式', 'ガウスの法則', '電荷密度']
-  },
-  {
-    id: 'em-maxwell-ampere',
-    name: 'アンペール・マクスウェルの法則',
-    category: '電磁気学',
-    description: '電流だけでなく電場の時間変化によっても磁場が誘起される関係を記述する式。',
-    latex: '\\nabla \\times \\boldsymbol{B} = \\mu_0 \\boldsymbol{j} + \\mu_0 \\varepsilon_0 \\frac{\\partial \\boldsymbol{E}}{\\partial t}',
-    tags: ['電磁気学', 'マクスウェル方程式', '磁場', '変位電流']
-  },
+function togglePreviewFullscreen() {
+  if (!previewContainer || !previewFullscreenBtn) return;
+  const isFullscreen = previewContainer.classList.toggle('is-fullscreen');
+  document.body.classList.toggle('preview-fullscreen-active', isFullscreen);
 
-  // --- 熱力学 ---
-  {
-    id: 'thermo-01',
-    name: '理想気体の状態方程式',
-    category: '熱力学',
-    description: '低圧・高温気体の圧力・体積・物質量・温度の間の平衡関係式。',
-    latex: 'PV = nRT',
-    tags: ['気体', '状態方程式', '熱平衡']
-  },
-  {
-    id: 'thermo-02',
-    name: '熱伝導方程式',
-    category: '熱力学',
-    description: '均質媒質中における巨視的な熱拡散過程を記述する偏微分方程式。',
-    latex: '\\frac{\\partial T}{\\partial t} = \\alpha \\nabla^2 T',
-    tags: ['熱伝導', '拡散', '偏微分']
-  },
-  {
-    id: 'thermo-03',
-    name: '熱力学第一法則',
-    category: '熱力学',
-    description: '熱と仕事の出入りと内部エネルギー変化を関連づけるエネルギー保存則。',
-    latex: '\\Delta U = Q + W',
-    tags: ['エネルギー保存', '熱', '仕事']
-  },
-  {
-    id: 'thermo-second-law',
-    name: '熱力学第二法則（エントロピー増大則）',
-    category: '熱力学',
-    description: '熱が自発的に低温から高温へ移動しないこと、および不可逆変化に伴うエントロピーの増大を示す式。',
-    latex: 'dS \\ge \\frac{dQ}{T}',
-    tags: ['熱力学', 'エントロピー', '不可逆性', 'クラウジウス']
-  },
+  const iconEl = previewFullscreenBtn.querySelector('.fullscreen-btn-icon');
+  const textEl = previewFullscreenBtn.querySelector('.fullscreen-btn-text');
 
-  // --- 統計力学 ---
-  {
-    id: 'thermo_stat_boltzmann',
-    name: 'ボルツマンの原理',
-    category: '統計力学',
-    description: '微視的な状態数と巨視的なエントロピーを結びつける統計力学の基礎式。',
-    latex: 'S = k_B \\ln W',
-    tags: ['エントロピー', '状態数', '統計力学']
-  },
-  {
-    id: 'thermo_stat_distribution',
-    name: 'ボルツマン分布',
-    category: '統計力学',
-    description: '熱平衡状態にある系において、エネルギー状態が出現する確率を表す分布則。',
-    latex: 'P_i \\propto e^{-\\frac{E_i}{k_B T}}',
-    tags: ['統計力学', 'エネルギー準位', '熱平衡']
-  },
-  {
-    id: 'stat-partition-function',
-    name: '分配関数（カノニカル分布）',
-    category: '統計力学',
-    description: 'すべての微視的状態の確率重みを足し合わせ、熱力学量を計算する土台となる式。',
-    latex: 'Z = \\sum_i e^{-\\beta E_i}',
-    tags: ['統計力学', '分配関数', 'カノニカル分布', '自由エネルギー']
-  },
-  {
-    id: 'stat-equipartition',
-    name: 'エネルギー等分配定理',
-    category: '統計力学',
-    description: '古典的な熱平衡系において、2乗形式で現れる自由度1つあたりに分配される平均エネルギーを示す式。',
-    latex: '\\langle E \\rangle = \\frac{1}{2} k_B T',
-    tags: ['統計力学', '等分配定理', '熱平衡', 'ボルツマン定数']
-  },
-
-  // --- 流体力学 ---
-  {
-    id: 'fluid_bernoulli',
-    name: 'ベルヌーイの定理',
-    category: '流体力学',
-    description: '非圧縮・非粘性流体の定常流において、単位体積あたりの力学的エネルギーが保存されることを示す式。',
-    latex: 'P + \\frac{1}{2}\\rho v^2 + \\rho gh = \\text{const}',
-    tags: ['流体', 'エネルギー保存', '圧力', '流速']
-  },
-  {
-    id: 'fluid_continuity',
-    name: '連続の式（流体）',
-    category: '流体力学',
-    description: '流体内における質量保存則を微分形式で表現した基礎方程式。',
-    latex: '\\frac{\\partial \\rho}{\\partial t} + \\nabla \\cdot (\\rho \\boldsymbol{v}) = 0',
-    tags: ['流体', '質量保存', '発散']
-  },
-  {
-    id: 'navier-stokes',
-    name: 'ナビエ–ストークス方程式',
-    category: '流体力学',
-    description: '粘性流体の運動を記述する流体力学の基礎方程式。',
-    latex: '\\begin{aligned} &\\rho \\left( \\frac{\\partial u}{\\partial t} + u \\frac{\\partial u}{\\partial x} + v \\frac{\\partial u}{\\partial y} + w \\frac{\\partial u}{\\partial z} \\right) = -\\frac{\\partial p}{\\partial x} \\\\ &\\qquad + \\mu \\left( \\frac{\\partial^2 u}{\\partial x^2} + \\frac{\\partial^2 u}{\\partial y^2} + \\frac{\\partial^2 u}{\\partial z^2} \\right) + \\rho g_x \\end{aligned}',
-    tags: ['流体', '粘性', '運動方程式']
-  },
-
-  // --- 波動・光学 ---
-  {
-    id: 'wave_wave_equation',
-    name: '1次元波動方程式',
-    category: '波動・光学',
-    description: '波が空間中を一定の速さで伝播していく様子を記述する偏微分方程式。',
-    latex: '\\frac{\\partial^2 u}{\\partial t^2} = v^2 \\frac{\\partial^2 u}{\\partial x^2}',
-    tags: ['波動', '伝播速度', '振動']
-  },
-  {
-    id: 'optics_snell',
-    name: 'スネルの法則（屈折の法則）',
-    category: '波動・光学',
-    description: '屈折率が異なる媒質の境界を光が通過する際の入射角と屈折角の関係式。',
-    latex: 'n_1 \\sin \\theta_1 = n_2 \\sin \\theta_2',
-    tags: ['光学', '屈折率', '幾何光学']
-  },
-  {
-    id: 'wave-grating-interference',
-    name: '回折・干渉条件',
-    category: '波動・光学',
-    description: 'スリットや回折格子によって波の位相が揃い強め合う条件を表す波動光学の基本式。',
-    latex: 'd \\sin \\theta = m \\lambda',
-    tags: ['波動', '光学', '干渉', '回折', 'ヤングの実験']
-  },
-  {
-    id: 'wave-doppler-effect',
-    name: 'ドップラー効果の式',
-    category: '波動・光学',
-    description: '波源や観測者の相対運動によって観測される振動数が変化する現象を記述する式。',
-    latex: 'f\' = f \\frac{v \\pm v_o}{v \\mp v_s}',
-    tags: ['波動', '音波', 'ドップラー効果', '振動数']
-  },
-
-  // --- 量子力学 ---
-  {
-    id: 'quantum_schrodinger',
-    name: 'シュレーディンガー方程式',
-    category: '量子力学',
-    description: '微視的な粒子の状態（波動関数）の時間発展を決定づける量子力学の基本方程式。',
-    latex: 'i\\hbar \\frac{\\partial}{\\partial t}\\psi = \\hat{H}\\psi',
-    tags: ['量子力学', '波動関数', 'ハミルトニアン']
-  },
-  {
-    id: 'quantum-photoelectric',
-    name: 'アインシュタインの光量子仮説',
-    category: '量子力学',
-    description: '光がエネルギーの塊（光子）として振る舞う関係式。前期量子論の起点。',
-    latex: 'E = h\\nu = \\hbar \\omega',
-    tags: ['量子力学', '光電効果', '光子', 'プランク定数']
-  },
-  {
-    id: 'quantum_uncertainty',
-    name: '不確定性原理',
-    category: '量子力学',
-    description: '粒子の位置と運動量を同時に無限の精度で確定することはできないことを示す原理。',
-    latex: '\\Delta x \\Delta p \\ge \\frac{\\hbar}{2}',
-    tags: ['量子力学', '位置', '運動量', 'ハイゼンベルク']
-  },
-  {
-    id: 'quantum-commutation-relation',
-    name: '正準交換関係',
-    category: '量子力学',
-    description: '位置と運動量の演算子が非可換であることを示し、不確定性原理の根底をなす方程式。',
-    latex: '[\\hat{x}, \\hat{p}] = i\\hbar',
-    tags: ['量子力学', '演算子', '交換子', '不確定性']
-  },
-  {
-    id: 'quantum_de_broglie',
-    name: 'ド・ブロイ波の波長',
-    category: '量子力学',
-    description: '物質粒子が波動としての性質（物質波）を併せ持つことを表す式。',
-    latex: '\\lambda = \\frac{h}{p}',
-    tags: ['物質波', '量子力学', '波長']
-  },
-
-  // --- 解析力学 ---
-  {
-    id: 'analytical-euler-lagrange',
-    name: 'オイラー・ラグランジュ方程式',
-    category: '解析力学',
-    description: '最小作用の原理から、あらゆる座標系において運動方程式を導出する解析力学の基本式。',
-    latex: '\\frac{d}{dt}\\left(\\frac{\\partial L}{\\partial \\dot{q}}\\right) - \\frac{\\partial L}{\\partial q} = 0',
-    tags: ['解析力学', 'ラグランジアン', '最小作用の原理', '変分法']
-  },
-  {
-    id: 'analytical-hamilton',
-    name: 'ハミルトンの正準方程式',
-    category: '解析力学',
-    description: '位置と運動量を対等な独立変数として扱い、位相空間上での系の時間発展を記述する式。',
-    latex: '\\frac{dq}{dt} = \\frac{\\partial H}{\\partial p}, \\quad \\frac{dp}{dt} = -\\frac{\\partial H}{\\partial q}',
-    tags: ['解析力学', 'ハミルトニアン', '正準変数', '位相空間']
-  },
-
-  // --- 線形代数 ---
-  {
-    id: 'math_eigenvalue',
-    name: '固有値方程式',
-    category: '線形代数',
-    description: '線形変換を施しても方向が変わらないベクトル（固有ベクトル）とその拡大率（固有値）の関係式。',
-    latex: 'A\\boldsymbol{x} = \\lambda \\boldsymbol{x}',
-    tags: ['線形代数', '固有値', '行列']
-  },
-  {
-    id: 'math-unitary-transformation',
-    name: '直交性・ユニタリ変換',
-    category: '線形代数',
-    description: 'ベクトルの内積や長さを変えない回転操作。量子力学の確率保存の基本条件。',
-    latex: 'U^\\dagger U = I',
-    tags: ['線形代数', 'ユニタリ行列', 'エルミート共役', '内積保存']
-  },
-  {
-    id: 'math-cauchy-schwarz',
-    name: 'コーシー・シュワルツの不等式',
-    category: '線形代数',
-    description: '内積空間において不確定性関係などを一般的に導出する基礎不等式。',
-    latex: '|\\langle \\boldsymbol{x}, \\boldsymbol{y} \\rangle|^2 \\le \\langle \\boldsymbol{x}, \\boldsymbol{x} \\rangle \\langle \\boldsymbol{y}, \\boldsymbol{y} \\rangle',
-    tags: ['線形代数', '内積', 'ヒルベルト空間', '不等式']
-  },
-
-  // --- 解析学 ---
-  {
-    id: 'math_euler_formula',
-    name: 'オイラーの公式',
-    category: '解析学',
-    description: '指数関数と三角関数を複素数の世界で統一的に結びつける関係式。',
-    latex: 'e^{i\\theta} = \\cos\\theta + i\\sin\\theta',
-    tags: ['複素数', '三角関数', '解析学']
-  },
-  {
-    id: 'analysis_fourier',
-    name: 'フーリエ変換',
-    category: '解析学',
-    description: '時間や空間の関数を周波数成分へと分解・変換する積分変換。',
-    latex: '\\hat{f}(\\xi) = \\int_{-\\infty}^{\\infty} f(x) e^{-2\\pi i x \\xi} dx',
-    tags: ['フーリエ解析', '周波数', '積分変換']
-  },
-  {
-    id: 'analysis_gauss_divergence',
-    name: 'ガウスの発散定理',
-    category: '解析学',
-    description: '立体領域内のベクトルの発散の総和が、閉曲面を通過する流束に一致することを示す定理。',
-    latex: '\\iiint_V (\\nabla \\cdot \\boldsymbol{F}) dV = \\iint_S (\\boldsymbol{F} \\cdot \\boldsymbol{n}) dS',
-    tags: ['ベクトル解析', '体積積分', '面積分']
-  },
-  {
-    id: 'analysis-stokes-theorem',
-    name: 'ストークスの定理',
-    category: '解析学',
-    description: '閉曲線の線積分と曲面の面積分を回転作用素（渦）を通じて結ぶ基本定理。',
-    latex: '\\iint_S (\\nabla \\times \\boldsymbol{A}) \\cdot d\\boldsymbol{S} = \\oint_C \\boldsymbol{A} \\cdot d\\boldsymbol{r}',
-    tags: ['解析学', 'ベクトル解析', '線積分', '面積分', '回転']
-  },
-  {
-    id: 'analysis-dirac-delta',
-    name: 'ディラックのデルタ関数',
-    category: '解析学',
-    description: '点電荷や瞬間的インパルスなど局在した特異点を厳密に扱う超関数の性質。',
-    latex: '\\int_{-\\infty}^{\\infty} f(x)\\delta(x - a)dx = f(a)',
-    tags: ['解析学', 'デルタ関数', '超関数', '積分']
-  },
-  {
-    id: 'taylor-expansion',
-    name: 'テイラー展開',
-    category: '解析学',
-    description: '滑らかな関数を特定の点のまわりの多項式で近似する展開公式。',
-    latex: '\\begin{aligned} f(x) &= f(a) + f\'(a)(x-a) \\\\ &\\quad + \\frac{f\'\'(a)}{2!}(x-a)^2 + \\dots \\end{aligned}',
-    tags: ['級数展開', '多項式近似', '微分']
+  if (isFullscreen) {
+    if (iconEl) iconEl.textContent = '✕';
+    if (textEl) textEl.textContent = '戻る';
+    previewFullscreenBtn.title = '通常表示に戻る (Esc)';
+    previewFullscreenBtn.setAttribute('aria-label', '通常表示に戻る');
+  } else {
+    if (iconEl) iconEl.textContent = '⛶';
+    if (textEl) textEl.textContent = '全画面';
+    previewFullscreenBtn.title = '全画面表示（拡大）';
+    previewFullscreenBtn.setAttribute('aria-label', '全画面表示');
   }
-];
+}
+
+if (previewFullscreenBtn) {
+  previewFullscreenBtn.addEventListener('click', togglePreviewFullscreen);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && previewContainer && previewContainer.classList.contains('is-fullscreen')) {
+    togglePreviewFullscreen();
+  }
+});
+
+
 
 // 数式ライブラリモーダルの制御
 const libraryModal = document.getElementById('library-modal');
@@ -5604,2488 +1872,670 @@ categoryTabs.forEach((tab) => {
   });
 });
 
+
 // ==========================================
-// 化学式（分子式・反応式）ライブラリ データ
+// 共通 図表・ライブラリ モーダル制御
 // ==========================================
-const chemFormulaLibrary = [
-  // --- 無機物質・単体 ---
-  {
-    id: 'cf-water',
-    name: '水（Water）',
-    category: '無機物質・単体',
-    description: '常温常圧で液体。強い水素結合を持ち、極性溶媒として生命活動の基盤となる。',
-    code: '\\ce{H2O}',
-    tags: ['水', 'H2O', '酸化二水素', '無機物質']
-  },
-  {
-    id: 'cf-carbon-dioxide',
-    name: '二酸化炭素（Carbon Dioxide）',
-    category: '無機物質・単体',
-    description: '直線形分子。炭素の完全燃焼や生物の呼吸によって生じる温室効果ガス。',
-    code: '\\ce{CO2}',
-    tags: ['二酸化炭素', 'CO2', '炭酸ガス', '無機物質']
-  },
-  {
-    id: 'cf-ammonia',
-    name: 'アンモニア（Ammonia）',
-    category: '無機物質・単体',
-    description: '三角錐形の極性分子。刺激臭を持つ弱塩基性気体。窒素肥料の原料。',
-    code: '\\ce{NH3}',
-    tags: ['アンモニア', 'NH3', '無機物質', '塩基']
-  },
-  {
-    id: 'cf-oxygen-ozone',
-    name: '酸素とオゾン（同素体）',
-    category: '無機物質・単体',
-    description: '酸素原子の同素体。常磁性を持つ二酸素と酸化力の強い淡青色の三酸素。',
-    code: '\\ce{O2 \\quad \\text{と} \\quad O3}',
-    tags: ['酸素', 'オゾン', 'O2', 'O3', '同素体']
-  },
-  {
-    id: 'cf-hydrogen-peroxide',
-    name: '過酸化水素（Hydrogen Peroxide）',
-    category: '無機物質・単体',
-    description: 'ヒドロペルオキシド結合を持つ不安定な酸化剤。消毒薬（オキシドール）や漂白剤。',
-    code: '\\ce{H2O2}',
-    tags: ['過酸化水素', 'H2O2', '酸化剤']
-  },
 
-  // --- 有機化合物 ---
-  {
-    id: 'cf-methane',
-    name: 'メタン（Methane）',
-    category: '有機化合物',
-    description: '正四面体構造を持つ最も単純なアルカン。天然ガスの主成分。',
-    code: '\\ce{CH4}',
-    tags: ['メタン', 'CH4', 'アルカン', '天然ガス']
-  },
-  {
-    id: 'cf-ethanol',
-    name: 'エタノール（Ethanol）',
-    category: '有機化合物',
-    description: 'ヒドロキシ基を持つ一価アルコール。酒類の主成分、消毒用アルコール。',
-    code: '\\ce{C2H5OH}',
-    tags: ['エタノール', 'C2H5OH', 'アルコール', '有機化合物']
-  },
-  {
-    id: 'cf-acetic-acid',
-    name: '酢酸（Acetic Acid）',
-    category: '有機化合物',
-    description: 'カルボキシ基を持つ代表的なカルボン酸。食酢の酸味成分。',
-    code: '\\ce{CH3COOH}',
-    tags: ['酢酸', 'CH3COOH', 'カルボン酸', '食酢']
-  },
-  {
-    id: 'cf-benzene',
-    name: 'ベンゼン（Benzene）',
-    category: '有機化合物',
-    description: '6個の炭素原子が平面正六角形を形成する代表的芳香族炭化水素。共鳴安定化。',
-    code: '\\ce{C6H6}',
-    tags: ['ベンゼン', 'C6H6', '芳香族', '亀の甲']
-  },
-  {
-    id: 'cf-glucose',
-    name: 'グルコース（ブドウ糖）',
-    category: '有機化合物',
-    description: '六炭糖（ヘキソース）のアルドース。生体の主要なエネルギー代謝源。',
-    code: '\\ce{C6H12O6}',
-    tags: ['グルコース', 'ブドウ糖', '糖質', '炭水化物']
-  },
-  {
-    id: 'cf-caffeine',
-    name: 'カフェイン（分子式）',
-    category: '有機化合物',
-    description: 'プリン環骨格を持つ中枢神経興奮性アルカロイド。コーヒーや緑茶に含まれる。',
-    code: '\\ce{C8H10N4O2}',
-    tags: ['カフェイン', 'C8H10N4O2', 'アルカロイド', '分子式']
-  },
-  {
-    id: 'cf-aspirin',
-    name: 'アスピリン（アセチルサリチル酸）',
-    category: '有機化合物',
-    description: 'サリチル酸のアセチル化誘導体。解熱・鎮痛・抗炎症作用。',
-    code: '\\ce{C9H8O4}',
-    tags: ['アスピリン', 'アセチルサリチル酸', '医薬品', '分子式']
-  },
+const diagramLibraryModal = document.getElementById('diagram-library-modal');
+const diagramModalTitle = document.getElementById('diagram-modal-title');
+const diagramModalCloseX = document.getElementById('diagram-modal-close-x');
+const diagramModalCloseFooter = document.getElementById('diagram-modal-close-footer');
+const diagramSearchInput = document.getElementById('diagram-library-search-input');
+const diagramCategoryTabs = document.getElementById('diagram-library-category-tabs');
+const diagramCardGrid = document.getElementById('diagram-library-card-grid');
+const diagramEmptyMessage = document.getElementById('diagram-library-empty-message');
 
-  // --- イオン・酸・塩 ---
-  {
-    id: 'cf-sulfuric-acid',
-    name: '硫酸（Sulfuric Acid）',
-    category: 'イオン・酸・塩',
-    description: '二価の不揮発性強酸。吸湿性・脱水作用を持ち化学工業の最重要基礎原料。',
-    code: '\\ce{H2SO4}',
-    tags: ['硫酸', 'H2SO4', '強酸', '不揮発性']
-  },
-  {
-    id: 'cf-hydrochloric-acid',
-    name: '塩酸（塩化水素水溶液）',
-    category: 'イオン・酸・塩',
-    description: '塩化水素の水溶液。揮発性の代表的一価強酸。胃液に含まれる。',
-    code: '\\ce{HCl}',
-    tags: ['塩酸', '塩化水素', 'HCl', '強酸']
-  },
-  {
-    id: 'cf-sodium-hydroxide',
-    name: '水酸化ナトリウム（苛性ソーダ）',
-    category: 'イオン・酸・塩',
-    description: '潮解性を持つ代表的一価強塩基。二酸化炭素を吸収しやすい。',
-    code: '\\ce{NaOH}',
-    tags: ['水酸化ナトリウム', 'NaOH', '強塩基', '苛性ソーダ']
-  },
-  {
-    id: 'cf-sodium-chloride',
-    name: '塩化ナトリウム（食塩）',
-    category: 'イオン・酸・塩',
-    description: '面心立方格子構造をとる典型的なイオン結晶。食塩の主成分。',
-    code: '\\ce{NaCl}',
-    tags: ['塩化ナトリウム', 'NaCl', '食塩', '塩']
-  },
-  {
-    id: 'cf-copper-sulfate-hydrate',
-    name: '硫酸銅(II)五水和物',
-    category: 'イオン・酸・塩',
-    description: '青色の三斜晶系結晶。加熱すると無水物（白色粉末）となる。',
-    code: '\\ce{CuSO4 . 5H2O}',
-    tags: ['硫酸銅', '水和物', '無水物', '銅']
-  },
-  {
-    id: 'cf-water-ionization',
-    name: '水の自己電離（オキソニウムイオン）',
-    category: 'イオン・酸・塩',
-    description: '極微量の水分子がプロトン移動により解離して生成するイオン平衡。',
-    code: '\\ce{2H2O <=> H3O+ + OH-}',
-    tags: ['自己電離', '電離平衡', 'pH', 'オキソニウム']
-  },
+let currentDiagramType = '';
+let currentDiagramCategory = 'すべて';
 
-  // --- 化学反応式 ---
-  {
-    id: 'cf-water-synthesis',
-    name: '水の生成反応（燃焼）',
-    category: '化学反応式',
-    description: '水素と酸素が爆鳴気を形成して発熱的に化合し、水を生成する基本反応。',
-    code: '\\ce{2H2 + O2 -> 2H2O}',
-    tags: ['水の生成', '水素燃焼', '発熱反応', '酸化還元']
-  },
-  {
-    id: 'cf-methane-combustion',
-    name: 'メタンの完全燃焼反応',
-    category: '化学反応式',
-    description: '都市ガスの主成分メタンが酸素と反応し、二酸化炭素と水を生じる酸化反応。',
-    code: '\\ce{CH4 + 2O2 -> CO2 + 2H2O}',
-    tags: ['メタン燃焼', '完全燃焼', '炭化水素', '発熱']
-  },
-  {
-    id: 'cf-neutralization',
-    name: '中和反応（塩酸と水酸化ナトリウム）',
-    category: '化学反応式',
-    description: '酸と塩基が反応して塩と水を生じる典型的な中和反応式。',
-    code: '\\ce{HCl + NaOH -> NaCl + H2O}',
-    tags: ['中和反応', '酸塩基', '塩']
-  },
-  {
-    id: 'cf-photosynthesis',
-    name: '光合成の全体化学反応式',
-    category: '化学反応式',
-    description: '植物が光エネルギーを用いて二酸化炭素と水からグルコースと酸素を合成。',
-    code: '\\ce{6CO2 + 6H2O -> C6H12O6 + 6O2}',
-    tags: ['光合成', '炭酸固定', '生化学', '葉緑体']
-  },
-  {
-    id: 'cf-gas-evolution-caco3',
-    name: '炭酸カルシウムと塩酸の気体発生反応',
-    category: '化学反応式',
-    description: '弱酸の塩に強酸を加えることで、二酸化炭素の気体が発生する弱酸遊離反応。',
-    code: '\\ce{CaCO3 + 2HCl -> CaCl2 + H2O + CO2 ^}',
-    tags: ['気体発生', '二酸化炭素発生', '弱酸の遊離', '石灰石']
-  },
-  {
-    id: 'cf-haber-bosch',
-    name: 'ハーバー・ボッシュ法（アンモニア合成平衡）',
-    category: '化学反応式',
-    description: '鉄触媒・高温高圧下で窒素と水素からアンモニアを合成する可逆発熱平衡反応。',
-    code: '\\ce{N2 + 3H2 <=> 2NH3}',
-    tags: ['ハーバーボッシュ法', 'アンモニア合成', '化学平衡', 'ルシャトリエ']
-  },
-  {
-    id: 'cf-esterification',
-    name: 'エステル化反応（酢酸エチル合成）',
-    category: '化学反応式',
-    description: 'カルボン酸とアルコールから酸触媒下でエステルと水が可逆的に生成。',
-    code: '\\ce{CH3COOH + C2H5OH <=> CH3COOC2H5 + H2O}',
-    tags: ['エステル化', '酢酸エチル', '可逆反応', '有機化学']
-  }
-];
-
-// 化学式（分子式・反応式）ライブラリモーダルの制御
-const chemFormulaLibraryModal = document.getElementById('chem-formula-library-modal');
-const closeChemFormulaXBtn = document.getElementById('chem-formula-modal-close-x');
-const closeChemFormulaFooterBtn = document.getElementById('chem-formula-modal-close-footer');
-const chemFormulaSearchInput = document.getElementById('chem-formula-library-search-input');
-const chemFormulaCategoryTabs = document.querySelectorAll('.chem-formula-category-tab');
-const chemFormulaCardGrid = document.getElementById('chem-formula-library-card-grid');
-const chemFormulaEmptyMessage = document.getElementById('chem-formula-library-empty-message');
-
-let currentChemFormulaCategory = 'すべて';
-
-function openChemFormulaModal() {
-  if (!chemFormulaLibraryModal) return;
-  chemFormulaLibraryModal.classList.add('active');
-  chemFormulaLibraryModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-  if (chemFormulaSearchInput) chemFormulaSearchInput.value = '';
-  currentChemFormulaCategory = 'すべて';
-  chemFormulaCategoryTabs.forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.category === 'すべて');
-  });
-  renderChemFormulaCards();
-  if (chemFormulaSearchInput) chemFormulaSearchInput.focus();
-}
-
-function closeChemFormulaModal() {
-  if (!chemFormulaLibraryModal) return;
-  chemFormulaLibraryModal.classList.remove('active');
-  chemFormulaLibraryModal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-
-function renderChemFormulaCards() {
-  if (!chemFormulaCardGrid || !chemFormulaSearchInput) return;
-  const query = chemFormulaSearchInput.value.trim().toLowerCase();
-  chemFormulaCardGrid.innerHTML = '';
-
-  const filtered = chemFormulaLibrary.filter((item) => {
-    const matchCategory = currentChemFormulaCategory === 'すべて' || item.category === currentChemFormulaCategory;
-    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
-    const matchQuery =
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
-      item.code.toLowerCase().includes(query) ||
-      matchTags;
-    return matchCategory && matchQuery;
-  });
-
-  if (filtered.length === 0) {
-    if (chemFormulaEmptyMessage) chemFormulaEmptyMessage.style.display = 'block';
-  } else {
-    if (chemFormulaEmptyMessage) chemFormulaEmptyMessage.style.display = 'none';
-    filtered.forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'formula-card chem-formula-card';
-
-      const top = document.createElement('div');
-      top.className = 'card-top';
-
-      const name = document.createElement('span');
-      name.className = 'card-name';
-      name.textContent = item.name;
-
-      const tag = document.createElement('span');
-      tag.className = 'card-tag chem-formula-card-tag';
-      tag.textContent = item.category;
-
-      top.appendChild(name);
-      top.appendChild(tag);
-
-      const preview = document.createElement('div');
-      preview.className = 'card-preview';
+const diagramLibraryConfigs = {
+  'chem-formula': {
+    modalTitle: '化学式（分子式・反応式）ライブラリ',
+    getData: () => (typeof chemFormulaLibrary !== 'undefined' ? chemFormulaLibrary : []),
+    cardClass: 'chem-formula-card',
+    tagClass: 'chem-formula-card-tag',
+    renderPreview: (item, el) => {
       if (typeof katex !== 'undefined') {
-        try {
-          katex.render(item.code, preview, { throwOnError: false, displayMode: true });
-        } catch {
-          preview.textContent = item.code;
-        }
+        katex.render(item.code, el, { throwOnError: false, displayMode: true });
       } else {
-        preview.textContent = item.code;
+        el.textContent = item.code;
       }
-
-      const desc = document.createElement('p');
-      desc.className = 'card-desc';
-      desc.textContent = item.description;
-
-      card.appendChild(top);
-      card.appendChild(preview);
-      card.appendChild(desc);
-
-      card.addEventListener('click', () => {
-        inputArea.value = item.code;
-        closeChemFormulaModal();
-        updatePreview();
-      });
-
-      chemFormulaCardGrid.appendChild(card);
-    });
-  }
-}
-
-if (closeChemFormulaXBtn) closeChemFormulaXBtn.addEventListener('click', closeChemFormulaModal);
-if (closeChemFormulaFooterBtn) closeChemFormulaFooterBtn.addEventListener('click', closeChemFormulaModal);
-
-if (chemFormulaLibraryModal) {
-  chemFormulaLibraryModal.addEventListener('click', (e) => {
-    if (e.target === chemFormulaLibraryModal) {
-      closeChemFormulaModal();
     }
-  });
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && chemFormulaLibraryModal && chemFormulaLibraryModal.classList.contains('active')) {
-    closeChemFormulaModal();
-  }
-});
-
-if (chemFormulaSearchInput) {
-  chemFormulaSearchInput.addEventListener('input', renderChemFormulaCards);
-}
-
-chemFormulaCategoryTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    chemFormulaCategoryTabs.forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentChemFormulaCategory = tab.dataset.category;
-    renderChemFormulaCards();
-  });
-});
-
-// ==========================================
-// 化学構造式（平面構造式）ライブラリ データ
-// ==========================================
-const chemLibrary = [
-  // --- 医薬品・生体分子 ---
-  {
-    id: 'chem-aspirin',
-    name: 'アスピリン（アセチルサリチル酸）',
-    category: '医薬品・生体分子',
-    description: '代表的な非ステロイド性抗炎症薬（NSAIDs）。解熱・鎮痛作用を持ち、サリチル酸をアセチル化して合成。',
-    code: '\\chemfig{*6(-(-COOH)=-(-OCOCH3)=-=)}',
-    smiles: 'O=C(O)c1ccccc1OC(=O)C',
-    renderType: 'smiles',
-    tags: ['アスピリン', 'アセチルサリチル酸', '医薬品', '鎮痛剤', '解熱剤', 'ベンゼン環']
   },
-  {
-    id: 'chem-salicylic-acid',
-    name: 'サリチル酸',
-    category: '医薬品・生体分子',
-    description: 'カルボキシ基とフェノール性ヒドロキシ基を持つ芳香族オキシ酸。アスピリンの合成原料。',
-    code: '\\chemfig{*6(-(-COOH)=-(-OH)=-=)}',
-    smiles: 'O=C(O)c1ccccc1O',
-    renderType: 'smiles',
-    tags: ['サリチル酸', '医薬品', '芳香族', '原料']
-  },
-  {
-    id: 'chem-acetaminophen',
-    name: 'アセトアミノフェン（パラセタモール）',
-    category: '医薬品・生体分子',
-    description: '中枢性に作用する代表的な解熱鎮痛薬。胃腸障害が少なく広く使用される。',
-    code: '\\smiles{CC(=O)Nc1ccc(O)cc1}',
-    smiles: 'CC(=O)Nc1ccc(O)cc1',
-    renderType: 'smiles',
-    tags: ['アセトアミノフェン', 'パラセタモール', '解熱鎮痛', '医薬品']
-  },
-  {
-    id: 'chem-caffeine',
-    name: 'カフェイン',
-    category: '医薬品・生体分子',
-    description: 'プリン環骨格を持つ中枢神経興奮作用のあるアルカロイド。コーヒーや茶葉に含まれる。',
-    code: '\\smiles{Cn1cnc2c1c(=O)n(c(=O)n2C)C}',
-    smiles: 'Cn1cnc2c1c(=O)n(c(=O)n2C)C',
-    renderType: 'smiles',
-    tags: ['カフェイン', 'アルカロイド', 'プリン環', '興奮作用']
-  },
-  {
-    id: 'chem-glucose',
-    name: 'グルコース（ブドウ糖）',
-    category: '医薬品・生体分子',
-    description: '生体の主要なエネルギー源となる単糖（アルドヘキソース）。ピラノース環構造。',
-    code: '\\smiles{OC[C@@H]1OC(O)[C@H](O)[C@@H](O)[C@@H]1O}',
-    smiles: 'OC[C@@H]1OC(O)[C@H](O)[C@@H](O)[C@@H]1O',
-    renderType: 'smiles',
-    tags: ['グルコース', 'ブドウ糖', '糖質', '生化学', '六単糖']
-  },
-  {
-    id: 'chem-adrenaline',
-    name: 'アドレナリン（エピネフリン）',
-    category: '医薬品・生体分子',
-    description: '副腎髄質から分泌される神経伝達物質・ホルモン。心拍数や血圧を上昇させる。',
-    code: '\\smiles{CNC[C@H](O)c1ccc(O)c(O)c1}',
-    smiles: 'CNC[C@H](O)c1ccc(O)c(O)c1',
-    renderType: 'smiles',
-    tags: ['アドレナリン', 'エピネフリン', 'ホルモン', 'カテコールアミン']
-  },
-
-  // --- 芳香族化合物 ---
-  {
-    id: 'chem-benzene',
-    name: 'ベンゼン（C₆H₆）',
-    category: '芳香族化合物',
-    description: '6つの炭素原子が平面正六角形を形成し、非局在化π電子により共鳴安定化した芳香族化合物。',
-    code: '\\chemfig{*6(=-=-=-)}',
-    smiles: 'c1ccccc1',
-    renderType: 'smiles',
-    tags: ['ベンゼン', '芳香族', '共鳴', '六角形']
-  },
-  {
-    id: 'chem-toluene',
-    name: 'トルエン（メチルベンゼン）',
-    category: '芳香族化合物',
-    description: 'ベンゼン環にメチル基が直結した構造。有機溶媒や化学原料として広く使用。',
-    code: '\\chemfig{*6(-(-CH3)=-=-=-)}',
-    smiles: 'Cc1ccccc1',
-    renderType: 'smiles',
-    tags: ['トルエン', 'メチル基', '芳香族', '溶媒']
-  },
-  {
-    id: 'chem-phenol',
-    name: 'フェノール',
-    category: '芳香族化合物',
-    description: 'ベンゼン環にヒドロキシ基が直結した芳香族化合物。弱酸性を示し塩化鉄(III)で青紫色に呈色。',
-    code: '\\chemfig{*6(-(-OH)=-=-=-)}',
-    smiles: 'Oc1ccccc1',
-    renderType: 'smiles',
-    tags: ['フェノール', '芳香族', 'ヒドロキシ基', '弱酸性']
-  },
-  {
-    id: 'chem-benzoic-acid',
-    name: '安息香酸',
-    category: '芳香族化合物',
-    description: 'ベンゼン環にカルボキシ基が結合した最も単純な芳香族カルボン酸。食品保存料等に使用。',
-    code: '\\chemfig{*6(-(-COOH)=-=-=-)}',
-    smiles: 'O=C(O)c1ccccc1',
-    renderType: 'smiles',
-    tags: ['安息香酸', 'カルボン酸', '芳香族']
-  },
-  {
-    id: 'chem-aniline',
-    name: 'アニリン',
-    category: '芳香族化合物',
-    description: 'ベンゼン環にアミノ基が直結した芳香族アミン。合成染料や医薬品の中間原料。',
-    code: '\\chemfig{*6(-(-NH2)=-=-=-)}',
-    smiles: 'Nc1ccccc1',
-    renderType: 'smiles',
-    tags: ['アニリン', 'アミノ基', '芳香族アミン', '染料']
-  },
-  {
-    id: 'chem-nitrobenzene',
-    name: 'ニトロベンゼン',
-    category: '芳香族化合物',
-    description: 'ベンゼンを混酸でニトロ化して得られる淡黄色液体。アニリンの製造原料。',
-    code: '\\chemfig{*6(-(-NO2)=-=-=-)}',
-    smiles: '[N+](=O)([O-])c1ccccc1',
-    renderType: 'smiles',
-    tags: ['ニトロベンゼン', 'ニトロ化', '芳香族']
-  },
-
-  // --- 有機化合物 ---
-  {
-    id: 'chem-methane',
-    name: 'メタン（CH₄）',
-    category: '有機化合物',
-    description: '炭素原子を中心とする正四面体構造のアルカン。都市ガスや天然ガスの主成分。',
-    code: '\\chemfig{C}',
-    smiles: 'C',
-    renderType: 'smiles',
-    tags: ['メタン', 'アルカン', '炭化水素', '天然ガス']
-  },
-  {
-    id: 'chem-ethanol',
-    name: 'エタノール（C₂H₅OH）',
-    category: '有機化合物',
-    description: '酒類に含まれる揮発性液体。消毒薬や燃料、化学合成溶媒として汎用。',
-    code: '\\chemfig{CCO}',
-    smiles: 'CCO',
-    renderType: 'smiles',
-    tags: ['エタノール', 'アルコール', '消毒']
-  },
-  {
-    id: 'chem-acetic-acid',
-    name: '酢酸（CH₃COOH）',
-    category: '有機化合物',
-    description: '食酢の主成分であるカルボン酸。水溶液中で弱酸として電離する。',
-    code: '\\chemfig{CC(=O)O}',
-    smiles: 'CC(=O)O',
-    renderType: 'smiles',
-    tags: ['酢酸', 'カルボン酸', '弱酸']
-  },
-  {
-    id: 'chem-acetone',
-    name: 'アセトン（(CH₃)₂CO）',
-    category: '有機化合物',
-    description: 'カルボニル基を持つ最も単純なケトン。優れた溶解性を持つ有機溶媒。',
-    code: '\\smiles{CC(=O)C}',
-    smiles: 'CC(=O)C',
-    renderType: 'smiles',
-    tags: ['アセトン', 'ケトン', 'カルボニル', '溶媒']
-  },
-  {
-    id: 'chem-ethylene',
-    name: 'エチレン（エテン, C₂H₄）',
-    category: '有機化合物',
-    description: '炭素間二重結合を有する最も単純なアルケン。ポリエチレンの原料や植物ホルモン。',
-    code: '\\smiles{C=C}',
-    smiles: 'C=C',
-    renderType: 'smiles',
-    tags: ['エチレン', 'アルケン', '二重結合']
-  },
-  {
-    id: 'chem-acetylene',
-    name: 'アセチレン（エチン, C₂H₂）',
-    category: '有機化合物',
-    description: '直線構造をとる炭素間三重結合化合物。高温火炎を生じる溶接用ガス。',
-    code: '\\smiles{C#C}',
-    smiles: 'C#C',
-    renderType: 'smiles',
-    tags: ['アセチレン', 'アルキン', '三重結合']
-  },
-  {
-    id: 'chem-cyclohexane',
-    name: 'シクロヘキサン',
-    category: '有機化合物',
-    description: '炭素6個からなる脂環式炭化水素。イス型配座により立体ひずみが極めて小さい。',
-    code: '\\chemfig{C1CCCCC1}',
-    smiles: 'C1CCCCC1',
-    renderType: 'smiles',
-    tags: ['シクロヘキサン', '脂環式', 'イス型']
-  },
-
-  // --- 無機化合物 ---
-  {
-    id: 'chem-water',
-    name: '水（H₂O）',
-    category: '無機化合物',
-    description: '折れ線型（約104.5度）の極性分子。分子間水素結合により特異的に高い沸点を示す。',
-    code: '\\chemfig{H_2O}',
-    smiles: 'WATER',
-    renderType: 'smiles',
-    tags: ['水', '水素結合', '折れ線型', '無機']
-  },
-  {
-    id: 'chem-carbon-dioxide',
-    name: '二酸化炭素（CO₂）',
-    category: '無機化合物',
-    description: '炭素原子を中心に酸素が対称に並ぶ直線型分子。双極子モーメントは相殺される。',
-    code: '\\smiles{O=C=O}',
-    smiles: 'O=C=O',
-    renderType: 'smiles',
-    tags: ['二酸化炭素', '直線型', '無機']
-  },
-  {
-    id: 'chem-ammonia',
-    name: 'アンモニア（NH₃）',
-    category: '無機化合物',
-    description: '窒素原子の孤立電子対による三角錐型分子。水に極めてよく溶け弱塩基性を示す。',
-    code: '\\smiles{N}',
-    smiles: 'N',
-    renderType: 'smiles',
-    tags: ['アンモニア', '三角錐型', '弱塩基']
-  },
-  {
-    id: 'chem-hydrochloric-acid',
-    name: '塩酸（塩化水素, HCl）',
-    category: '無機化合物',
-    description: '塩化水素の水溶液。水中で完全に電離（強酸性）し、強い刺激臭を持つ。',
-    code: '\\ce{HCl}',
-    renderType: 'katex',
-    tags: ['塩酸', '塩化水素', '強酸', 'ハロゲン']
-  },
-  {
-    id: 'chem-sulfuric-acid',
-    name: '硫酸（H₂SO₄）',
-    category: '無機化合物',
-    description: '脱水性・吸湿性・強酸性・不揮発性を兼ね備える極めて重要な二価の強酸。',
-    code: '\\ce{H2SO4}',
-    renderType: 'katex',
-    tags: ['硫酸', '強酸', '脱水作用', '無機酸']
-  },
-  {
-    id: 'chem-sodium-hydroxide',
-    name: '水酸化ナトリウム（NaOH）',
-    category: '無機化合物',
-    description: '苛性ソーダとも呼ばれる強塩基。空気中の水分を吸って溶ける潮解性を持つ。',
-    code: '\\ce{NaOH}',
-    renderType: 'katex',
-    tags: ['水酸化ナトリウム', '強塩基', '潮解性']
-  },
-  {
-    id: 'chem-nitric-acid',
-    name: '硝酸（HNO₃）',
-    category: '無機化合物',
-    description: '強力な酸化作用を持ち、銅や銀をも酸化溶解させる代表的な一価の強酸。',
-    code: '\\ce{HNO3}',
-    renderType: 'katex',
-    tags: ['硝酸', '強酸', '酸化力']
-  },
-
-  // --- 化学反応式 ---
-  {
-    id: 'chem-neutralization',
-    name: '中和反応（強酸＋強塩基）',
-    category: '化学反応式',
-    description: '塩酸と水酸化ナトリウムが反応して中性の塩と水を生じる基礎的反応。',
-    code: '\\ce{HCl + NaOH -> NaCl + H2O}',
-    renderType: 'katex',
-    tags: ['中和', '酸塩基', '反応式', '塩']
-  },
-  {
-    id: 'chem-water-ionization',
-    name: '水の自己電離平衡',
-    category: '化学反応式',
-    description: '水分子間でプロトンが授受されオキソニウムイオンと水酸化物イオンが生じる平衡。',
-    code: '\\ce{2H2O <=> H3O+ + OH-}',
-    renderType: 'katex',
-    tags: ['自己電離', '電離平衡', 'イオン積', 'pH']
-  },
-  {
-    id: 'chem-esterification',
-    name: '酢酸エチルのエステル化',
-    category: '化学反応式',
-    description: '酢酸とエタノールから酸触媒存在下で酢酸エチルと水が可逆的に生じる縮合反応。',
-    code: '\\ce{CH3COOH + C2H5OH <=> CH3COOC2H5 + H2O}',
-    renderType: 'katex',
-    tags: ['エステル化', '可逆反応', '縮合', '有機化学']
-  },
-  {
-    id: 'chem-habber-bosch',
-    name: 'ハーバー・ボッシュ法',
-    category: '化学反応式',
-    description: '鉄触媒と高温高圧下で大気中の窒素と水素から直接アンモニアを合成する平衡反応。',
-    code: '\\ce{N2 + 3H2 <=> 2NH3}',
-    renderType: 'katex',
-    tags: ['ハーバーボッシュ法', 'アンモニア合成', '平衡', 'ルシャトリエ']
-  },
-  {
-    id: 'chem-photosynthesis',
-    name: '光合成の全体反応式',
-    category: '化学反応式',
-    description: '植物が光エネルギーを吸収して二酸化炭素と水からグルコースと酸素を産生する代謝反応。',
-    code: '\\ce{6CO2 + 6H2O -> C6H12O6 + 6O2}',
-    renderType: 'katex',
-    tags: ['光合成', '炭水化物', '生化学', '代謝']
-  }
-];
-
-// 化学式ライブラリモーダルの制御
-const chemLibraryModal = document.getElementById('chem-library-modal');
-const closeChemLibraryXBtn = document.getElementById('chem-modal-close-x');
-const closeChemLibraryFooterBtn = document.getElementById('chem-modal-close-footer');
-const chemSearchInput = document.getElementById('chem-library-search-input');
-const chemCategoryTabs = document.querySelectorAll('.chem-category-tab');
-const chemCardGrid = document.getElementById('chem-library-card-grid');
-const chemEmptyMessage = document.getElementById('chem-library-empty-message');
-
-let currentChemCategory = 'すべて';
-
-function openChemModal() {
-  if (!chemLibraryModal) return;
-  chemLibraryModal.classList.add('active');
-  chemLibraryModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-  if (chemSearchInput) chemSearchInput.value = '';
-  currentChemCategory = 'すべて';
-  chemCategoryTabs.forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.category === 'すべて');
-  });
-  renderChemCards();
-  if (chemSearchInput) chemSearchInput.focus();
-}
-
-function closeChemModal() {
-  if (!chemLibraryModal) return;
-  chemLibraryModal.classList.remove('active');
-  chemLibraryModal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-
-function renderChemCards() {
-  if (!chemCardGrid || !chemSearchInput) return;
-  const query = chemSearchInput.value.trim().toLowerCase();
-  chemCardGrid.innerHTML = '';
-
-  const filtered = chemLibrary.filter((item) => {
-    const matchCategory = currentChemCategory === 'すべて' || item.category === currentChemCategory;
-    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
-    const matchQuery =
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query) ||
-      item.code.toLowerCase().includes(query) ||
-      matchTags;
-    return matchCategory && matchQuery;
-  });
-
-  if (filtered.length === 0) {
-    if (chemEmptyMessage) chemEmptyMessage.style.display = 'block';
-  } else {
-    if (chemEmptyMessage) chemEmptyMessage.style.display = 'none';
-    filtered.forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'formula-card chem-card';
-
-      const top = document.createElement('div');
-      top.className = 'card-top';
-
-      const name = document.createElement('span');
-      name.className = 'card-name';
-      name.textContent = item.name;
-
-      const tag = document.createElement('span');
-      tag.className = 'card-tag chem-card-tag';
-      tag.textContent = item.category;
-
-      top.appendChild(name);
-      top.appendChild(tag);
-
-      const preview = document.createElement('div');
-      preview.className = 'card-preview chem-card-preview';
-
+  chem: {
+    modalTitle: '化学構造式ライブラリ',
+    getData: () => (typeof chemLibrary !== 'undefined' ? chemLibrary : []),
+    cardClass: 'chem-card',
+    tagClass: 'chem-card-tag',
+    previewClass: 'chem-card-preview',
+    renderPreview: (item, el) => {
       if (item.renderType === 'smiles' && item.smiles) {
-        drawSmilesToElement(item.smiles, preview, item.name);
+        drawSmilesToElement(item.smiles, el, item.name);
+      } else if (typeof katex !== 'undefined') {
+        katex.render(item.code, el, { throwOnError: false, displayMode: true });
       } else {
-        if (typeof katex !== 'undefined') {
-          try {
-            katex.render(item.code, preview, {
-              throwOnError: false,
-              displayMode: true
-            });
-          } catch {
-            preview.textContent = item.code;
-          }
-        } else {
-          preview.textContent = item.code;
-        }
+        el.textContent = item.code;
       }
-
-      const desc = document.createElement('p');
-      desc.className = 'card-desc';
-      desc.textContent = item.description;
-
-      card.appendChild(top);
-      card.appendChild(preview);
-      card.appendChild(desc);
-
-      card.addEventListener('click', () => {
-        inputArea.value = item.code;
-        closeChemModal();
-        updatePreview();
-      });
-
-      chemCardGrid.appendChild(card);
-    });
-  }
-}
-
-if (closeChemLibraryXBtn) closeChemLibraryXBtn.addEventListener('click', closeChemModal);
-if (closeChemLibraryFooterBtn) closeChemLibraryFooterBtn.addEventListener('click', closeChemModal);
-
-if (chemLibraryModal) {
-  chemLibraryModal.addEventListener('click', (e) => {
-    if (e.target === chemLibraryModal) {
-      closeChemModal();
     }
-  });
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && chemLibraryModal && chemLibraryModal.classList.contains('active')) {
-    closeChemModal();
-  }
-});
-
-if (chemSearchInput) {
-  chemSearchInput.addEventListener('input', renderChemCards);
-}
-
-chemCategoryTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    chemCategoryTabs.forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentChemCategory = tab.dataset.category;
-    renderChemCards();
-  });
-});
-
-// ==========================================
-// 電子回路ライブラリ データ
-// ==========================================
-const circuitLibrary = [
-  // --- 基本回路・受動回路 ---
-  {
-    id: 'circ-rc-series',
-    name: 'RC直列回路（過渡現象・充放電）',
-    category: '基本回路・受動回路',
-    description: '抵抗とコンデンサが直列接続された基本回路。時定数 τ = RC で電荷の蓄積・放電が行われる。',
-    code: '\\circuit{\\draw (0,0) to[battery=$E$] (0,2) to[R=$R$] (3,2) to[C=$C$] (3,0) -- (0,0);}',
-    tags: ['RC回路', '過渡現象', '時定数', 'コンデンサ', '充放電']
   },
-  {
-    id: 'circ-voltage-divider',
-    name: '分圧回路（抵抗分圧）',
-    category: '基本回路・受動回路',
-    description: '2つの抵抗値の比により入力電圧を出力電圧に減衰させる基本受動回路。',
-    code: '\\circuit{\\draw (0,0) to[battery=$V_{in}$] (0,3) to[R=$R_1$] (2,3) to[R=$R_2$] (2,0) -- (0,0); \\draw (2,1.5) -- (3.5,1.5);}',
-    tags: ['分圧回路', '抵抗', 'オームの法則', '基準電圧']
+  circuit: {
+    modalTitle: '電子回路ライブラリ',
+    getData: () => (typeof circuitLibrary !== 'undefined' ? circuitLibrary : []),
+    cardClass: 'circuit-card',
+    tagClass: 'circuit-card-tag',
+    previewClass: 'circuit-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => drawCircuitSvg(item.code, el, null)
   },
-  {
-    id: 'circ-rl-series',
-    name: 'RL直列回路（インダクタ過渡現象）',
-    category: '基本回路・受動回路',
-    description: '抵抗とインダクタが直列接続された回路。時定数 τ = L/R に従って自己誘導起電力が立ち上がる。',
-    code: '\\circuit{\\draw (0,0) to[battery=$E$] (0,2) to[R=$R$] (3,2) to[L=$L$] (3,0) -- (0,0);}',
-    tags: ['RL回路', 'コイル', 'インダクタンス', '過渡現象']
+  timing: {
+    modalTitle: 'タイミングチャート ライブラリ',
+    getData: () => (typeof timingLibrary !== 'undefined' ? timingLibrary : []),
+    cardClass: 'timing-card',
+    tagClass: 'timing-card-tag',
+    previewClass: 'timing-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => drawTimingSvg(item.code, el, null)
   },
-
-  // --- 交流・共振回路 ---
-  {
-    id: 'circ-rlc-series',
-    name: 'RLC直列共振回路',
-    category: '交流・共振回路',
-    description: '共振角周波数 ω₀ = 1/√(LC) で回路のインピーダンスが最小（純抵抗）となる交流基本回路。',
-    code: '\\circuit{\\draw (0,0) to[sV=$v(t)$] (0,2) to[R=$R$] (2,2) to[L=$L$] (4,2) to[C=$C$] (4,0) -- (0,0);}',
-    tags: ['RLC', '共振', '交流回路', 'インピーダンス', 'Q値']
+  fsm: {
+    modalTitle: '状態遷移図（オートマトン）ライブラリ',
+    getData: () => (typeof fsmLibrary !== 'undefined' ? fsmLibrary : []),
+    cardClass: 'fsm-card',
+    tagClass: 'fsm-card-tag',
+    previewClass: 'fsm-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => drawFsmSvg(item.code, el, null)
   },
-  {
-    id: 'circ-lc-parallel',
-    name: 'LC並列共振回路（タンク回路）',
-    category: '交流・共振回路',
-    description: 'コイルとコンデンサが並列接続され、特定の共振周波数で電磁エネルギーが相互変換される発振・選択回路。',
-    code: '\\circuit{\\draw (0,0) to[sV=$v$] (0,2) -- (2,2); \\draw (2,2) to[L=$L$] (2,0); \\draw (2,2) -- (4,2) to[C=$C$] (4,0) -- (0,0);}',
-    tags: ['LC回路', 'タンク回路', '並列共振', '発振回路']
+  feynman: {
+    modalTitle: 'ファインマン・ダイアグラム ライブラリ',
+    getData: () => (typeof feynmanLibrary !== 'undefined' ? feynmanLibrary : []),
+    cardClass: 'feynman-card',
+    tagClass: 'feynman-card-tag',
+    previewClass: 'feynman-card-preview',
+    renderPreview: (item, el) => drawFeynmanSvg(item.code, el, null)
   },
-  {
-    id: 'circ-rlc-transient-mesh',
-    name: 'RLC過渡応答回路（2メッシュ・スイッチ付き）',
-    category: '交流・共振回路',
-    description: '直流電源とスイッチ投入時のRLC回路。各閉ループのメッシュ電流（I1, I2）と過渡現象を解析する回路。',
-    code: '\\circuit{\\draw (0,0) to[battery=$E=12\\text{[V]}$] (0,1.5) to[switch=スイッチ\\n(t=0)] (0,3) to[L=$L=1\\text{[H]}$] (2.5,3) to[R=$R_1=4\\text{[\\Omega]}$, right] (2.5,0) -- (0,0); \\draw (2.5,3) to[C=$C=0.25\\text{[F]}$] (5,3) -- (5,0) to[R=$R_2=6\\text{[\\Omega]}$] (2.5,0); \\draw (1.25, 1.5) node[loop=$I_1$]; \\draw (3.75, 1.5) node[loop=$I_2$];}',
-    tags: ['RLC', '過渡応答', 'メッシュ電流', 'スイッチ', '閉ループ', '回路']
-  },
-
-  // --- 半導体・能動素子 ---
-  {
-    id: 'circ-half-wave-rectifier',
-    name: 'ダイオード半波整流回路',
-    category: '半導体・能動素子',
-    description: 'ダイオードの一方向導通性を利用し、交流電圧の正の半サイクルのみを負荷抵抗に取り出す整流回路。',
-    code: '\\circuit{\\draw (0,0) to[sV=$v_{in}$] (0,2) to[D=$D$] (3,2) to[R=$R_L$] (3,0) -- (0,0);}',
-    tags: ['ダイオード', '整流回路', 'AC-DC', '半導体']
-  },
-  {
-    id: 'circ-rc-lpf',
-    name: 'RCローパスフィルタ（LPF）',
-    category: '半導体・能動素子',
-    description: 'カットオフ周波数 fc = 1/(2πRC) より低い周波数を通過させ、高周波ノイズを減衰させるフィルタ回路。',
-    code: '\\circuit{\\draw (0,0) to[sV=$V_{in}$] (0,2) to[R=$R$] (2.5,2) to[C=$C$] (2.5,0) -- (0,0); \\draw (2.5,2) -- (4,2);}',
-    tags: ['フィルタ', 'LPF', '周波数応答', 'カットオフ周波数']
-  }
-];
-
-// 電子回路ライブラリモーダルの制御
-const circuitLibraryModal = document.getElementById('circuit-library-modal');
-const closeCircuitLibraryXBtn = document.getElementById('circuit-modal-close-x');
-const closeCircuitLibraryFooterBtn = document.getElementById('circuit-modal-close-footer');
-const circuitSearchInput = document.getElementById('circuit-library-search-input');
-const circuitCategoryTabs = document.querySelectorAll('.circuit-category-tab');
-const circuitCardGrid = document.getElementById('circuit-library-card-grid');
-const circuitEmptyMessage = document.getElementById('circuit-library-empty-message');
-
-let currentCircuitCategory = 'すべて';
-
-function openCircuitModal() {
-  if (!circuitLibraryModal) return;
-  circuitLibraryModal.classList.add('active');
-  circuitLibraryModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-  if (circuitSearchInput) circuitSearchInput.value = '';
-  currentCircuitCategory = 'すべて';
-  circuitCategoryTabs.forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.category === 'すべて');
-  });
-  renderCircuitCards();
-  if (circuitSearchInput) circuitSearchInput.focus();
-}
-
-function closeCircuitModal() {
-  if (!circuitLibraryModal) return;
-  circuitLibraryModal.classList.remove('active');
-  circuitLibraryModal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-
-function renderCircuitCards() {
-  if (!circuitCardGrid || !circuitSearchInput) return;
-  const query = circuitSearchInput.value.trim().toLowerCase();
-  circuitCardGrid.innerHTML = '';
-
-  const filtered = circuitLibrary.filter((item) => {
-    const matchCategory = currentCircuitCategory === 'すべて' || item.category === currentCircuitCategory;
-    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
-    const matchQuery =
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query) ||
-      item.code.toLowerCase().includes(query) ||
-      matchTags;
-    return matchCategory && matchQuery;
-  });
-
-  if (filtered.length === 0) {
-    if (circuitEmptyMessage) circuitEmptyMessage.style.display = 'block';
-  } else {
-    if (circuitEmptyMessage) circuitEmptyMessage.style.display = 'none';
-    filtered.forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'formula-card circuit-card';
-
-      const top = document.createElement('div');
-      top.className = 'card-top';
-
-      const name = document.createElement('span');
-      name.className = 'card-name';
-      name.textContent = item.name;
-
-      const tag = document.createElement('span');
-      tag.className = 'card-tag circuit-card-tag';
-      tag.textContent = item.category;
-
-      top.appendChild(name);
-      top.appendChild(tag);
-
-      const preview = document.createElement('div');
-      preview.className = 'card-preview circuit-card-preview';
-      drawCircuitSvg(item.code, preview, null);
-
-      const desc = document.createElement('p');
-      desc.className = 'card-desc';
-      desc.textContent = item.description;
-
-      card.appendChild(top);
-      card.appendChild(preview);
-      card.appendChild(desc);
-
-      card.addEventListener('click', () => {
-        inputArea.value = item.code;
-        closeCircuitModal();
-        updatePreview();
-      });
-
-      circuitCardGrid.appendChild(card);
-    });
-  }
-}
-
-if (closeCircuitLibraryXBtn) closeCircuitLibraryXBtn.addEventListener('click', closeCircuitModal);
-if (closeCircuitLibraryFooterBtn) closeCircuitLibraryFooterBtn.addEventListener('click', closeCircuitModal);
-
-if (circuitLibraryModal) {
-  circuitLibraryModal.addEventListener('click', (e) => {
-    if (e.target === circuitLibraryModal) {
-      closeCircuitModal();
-    }
-  });
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && circuitLibraryModal && circuitLibraryModal.classList.contains('active')) {
-    closeCircuitModal();
-  }
-});
-
-if (circuitSearchInput) {
-  circuitSearchInput.addEventListener('input', renderCircuitCards);
-}
-
-circuitCategoryTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    circuitCategoryTabs.forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentCircuitCategory = tab.dataset.category;
-    renderCircuitCards();
-  });
-});
-
-// ==========================================
-// タイミングチャート（波形）ライブラリ データ
-// ==========================================
-const timingLibrary = [
-  // --- 基本ロジック・同期回路 ---
-  {
-    id: 'timing-dff',
-    name: 'Dフリップフロップ（クロック同期動作）',
-    category: '基本ロジック・同期回路',
-    description: 'クロックの立ち上がりエッジで入力Dの値をラッチし、出力Qへと伝搬させる同期基本回路。',
-    code: '\\timing{\n  CLK: P P P P P P;\n  D:   0 1 1 0 1 0;\n  Q:   0 0 1 1 0 1;\n}',
-    tags: ['D-FF', 'フリップフロップ', 'クロック同期', 'ラッチ', 'セットアップ時間']
-  },
-  {
-    id: 'timing-clock-div2',
-    name: '2分周クロック回路（周波数1/2）',
-    category: '基本ロジック・同期回路',
-    description: '入力クロックの立ち上がりごとに状態が反転し、周期が2倍（周波数が半分）になる分周動作。',
-    code: '\\timing{\n  CLK_IN:  P P P P P P P P;\n  CLK_OUT: 0 0 1 1 0 0 1 1;\n}',
-    tags: ['分周', 'クロック', 'カウンタ', 'トグル']
-  },
-
-  // --- シリアル通信 ---
-  {
-    id: 'timing-spi',
-    name: 'SPI通信（Mode 0: 4線式シリアルバス）',
-    category: 'シリアル通信',
-    description: 'CS#がアクティブ（LOW）の期間に、SCKの立ち上がりでMOSI/MISOのデータビットをサンプリング。',
-    code: '\\timing{\n  CS#:  1 0 0 0 0 0 1;\n  SCK:  0 P P P P 0 0;\n  MOSI: =IDLE =B3 =B2 =B1 =B0 =IDLE;\n  MISO: Z =D3 =D2 =D1 =D0 Z;\n}',
-    tags: ['SPI', 'シリアル通信', 'MOSI', 'MISO', 'SCK', 'CS']
-  },
-  {
-    id: 'timing-i2c',
-    name: 'I2C通信（スタート条件＆バイト転送）',
-    category: 'シリアル通信',
-    description: 'SCLがHIGHの間にSDAが立ち下がるスタート条件、クロック同期データ転送、ACKの返答。',
-    code: '\\timing{\n  SCL: 1 P P P P 1;\n  SDA: 1 =START =D7 =D6 =ACK 1;\n}',
-    tags: ['I2C', 'SCL', 'SDA', 'スタート条件', 'ACK', '2線式']
-  },
-  {
-    id: 'timing-uart',
-    name: 'UART調歩同期通信（1フレーム転送）',
-    category: 'シリアル通信',
-    description: 'アイドル（HIGH）からスタートビット（LOW）、8ビットデータ、ストップビット（HIGH）へと続く非同期シリアル。',
-    code: '\\timing{\n  TXD: 1 =START =D0 =D1 =D2 =STOP 1;\n}',
-    tags: ['UART', 'シリアル通信', '調歩同期', 'ボーレート', 'スタートビット']
-  },
-
-  // --- バス制御・メモリ ---
-  {
-    id: 'timing-sram-read',
-    name: 'SRAMリードサイクル（非同期メモリ読み出し）',
-    category: 'バス制御・メモリ',
-    description: 'アドレス確定後、チップセレクトCE#と出力イネーブルOE#をアサートしてデータバスからデータを読み出す。',
-    code: '\\timing{\n  ADDR: =A0 =ADDR =ADDR =A1;\n  CE#:  1 0 0 1;\n  OE#:  1 0 0 1;\n  DATA: Z =VALID =VALID Z;\n}',
-    tags: ['メモリ', 'SRAM', 'リードサイクル', 'アドレスバス', 'データバス']
-  }
-];
-
-// タイミングチャートライブラリモーダルの制御
-const timingLibraryModal = document.getElementById('timing-library-modal');
-const closeTimingLibraryXBtn = document.getElementById('timing-modal-close-x');
-const closeTimingLibraryFooterBtn = document.getElementById('timing-modal-close-footer');
-const timingSearchInput = document.getElementById('timing-library-search-input');
-const timingCategoryTabs = document.querySelectorAll('.timing-category-tab');
-const timingCardGrid = document.getElementById('timing-library-card-grid');
-const timingEmptyMessage = document.getElementById('timing-library-empty-message');
-
-let currentTimingCategory = 'すべて';
-
-function openTimingModal() {
-  if (!timingLibraryModal) return;
-  timingLibraryModal.classList.add('active');
-  timingLibraryModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-  if (timingSearchInput) timingSearchInput.value = '';
-  currentTimingCategory = 'すべて';
-  timingCategoryTabs.forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.category === 'すべて');
-  });
-  renderTimingCards();
-  if (timingSearchInput) timingSearchInput.focus();
-}
-
-function closeTimingModal() {
-  if (!timingLibraryModal) return;
-  timingLibraryModal.classList.remove('active');
-  timingLibraryModal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-
-function renderTimingCards() {
-  if (!timingCardGrid || !timingSearchInput) return;
-  const query = timingSearchInput.value.trim().toLowerCase();
-  timingCardGrid.innerHTML = '';
-
-  const filtered = timingLibrary.filter((item) => {
-    const matchCategory = currentTimingCategory === 'すべて' || item.category === currentTimingCategory;
-    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
-    const matchQuery =
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query) ||
-      item.code.toLowerCase().includes(query) ||
-      matchTags;
-    return matchCategory && matchQuery;
-  });
-
-  if (filtered.length === 0) {
-    if (timingEmptyMessage) timingEmptyMessage.style.display = 'block';
-  } else {
-    if (timingEmptyMessage) timingEmptyMessage.style.display = 'none';
-    filtered.forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'formula-card timing-card';
-
-      const top = document.createElement('div');
-      top.className = 'card-top';
-
-      const name = document.createElement('span');
-      name.className = 'card-name';
-      name.textContent = item.name;
-
-      const tag = document.createElement('span');
-      tag.className = 'card-tag timing-card-tag';
-      tag.textContent = item.category;
-
-      top.appendChild(name);
-      top.appendChild(tag);
-
-      const preview = document.createElement('div');
-      preview.className = 'card-preview timing-card-preview';
-      drawTimingSvg(item.code, preview, null);
-
-      const desc = document.createElement('p');
-      desc.className = 'card-desc';
-      desc.textContent = item.description;
-
-      card.appendChild(top);
-      card.appendChild(preview);
-      card.appendChild(desc);
-
-      card.addEventListener('click', () => {
-        inputArea.value = item.code;
-        closeTimingModal();
-        updatePreview();
-      });
-
-      timingCardGrid.appendChild(card);
-    });
-  }
-}
-
-if (closeTimingLibraryXBtn) closeTimingLibraryXBtn.addEventListener('click', closeTimingModal);
-if (closeTimingLibraryFooterBtn) closeTimingLibraryFooterBtn.addEventListener('click', closeTimingModal);
-
-if (timingLibraryModal) {
-  timingLibraryModal.addEventListener('click', (e) => {
-    if (e.target === timingLibraryModal) {
-      closeTimingModal();
-    }
-  });
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && timingLibraryModal && timingLibraryModal.classList.contains('active')) {
-    closeTimingModal();
-  }
-});
-
-if (timingSearchInput) {
-  timingSearchInput.addEventListener('input', renderTimingCards);
-}
-
-timingCategoryTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    timingCategoryTabs.forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentTimingCategory = tab.dataset.category;
-    renderTimingCards();
-  });
-});
-
-// ==========================================
-// 状態遷移図（オートマトン）ライブラリデータ定義
-// ==========================================
-const fsmLibrary = [
-  // --- 有限オートマトン (DFA/NFA) ---
-  {
-    id: 'fsm-even-parity',
-    name: '偶数パリティ判定オートマトン（DFA）',
-    category: '有限オートマトン(DFA/NFA)',
-    description: '入力ビット列に含まれる「1」の個数が偶数個であるか判定。Evenが初期状態かつ受理状態。',
-    code: '\\fsm{\n  state: Even (0, 0) start, accept;\n  state: Odd  (140, 0);\n  Even -> Odd: "1" [bend];\n  Odd  -> Even: "1" [bend];\n  Even -> Even: "0";\n  Odd  -> Odd:  "0";\n}',
-    tags: ['DFA', 'オートマトン', 'パリティ', '偶数', '奇数', '2進数']
-  },
-  {
-    id: 'fsm-pattern-01',
-    name: 'パターン「01」検出オートマトン',
-    category: '有限オートマトン(DFA/NFA)',
-    description: '入力文字列の中から部分列 "01" が現れたことを検出して受理状態 q2 に遷移する決定性オートマトン。',
-    code: '\\fsm{\n  state: q0 (0, 0) start;\n  state: q1 (120, 0);\n  state: q2 (240, 0) accept;\n  q0 -> q1: "0";\n  q0 -> q0: "1";\n  q1 -> q2: "1";\n  q1 -> q1: "0";\n  q2 -> q2: "0, 1";\n}',
-    tags: ['パターン検出', 'DFA', '文字列検索', '受理状態', '01']
-  },
-
-  // --- 論理回路・順序回路 ---
-  {
-    id: 'fsm-t-ff',
-    name: 'Tフリップフロップ状態遷移図',
-    category: '論理回路・順序回路',
-    description: '入力T=1のクロックパルスで出力Qが0と1の間をトグル（反転）し、T=0で状態を保持する順序回路。',
-    code: '\\fsm{\n  state: Q0 (0, 0) start;\n  state: Q1 (140, 0);\n  Q0 -> Q1: "T=1" [bend];\n  Q1 -> Q0: "T=1" [bend];\n  Q0 -> Q0: "T=0";\n  Q1 -> Q1: "T=0";\n}',
-    tags: ['T-FF', 'フリップフロップ', 'トグル', '順序回路', '状態遷移']
-  },
-  {
-    id: 'fsm-modulo3-counter',
-    name: '3進カウンタ（Modulo-3 Counter）',
-    category: '論理回路・順序回路',
-    description: 'クロック入力ごとに S0 → S1 → S2 → S0 と循環し、3回に1回キャリー（受理）を出力する順序回路。',
-    code: '\\fsm{\n  state: S0 (0, 50) start;\n  state: S1 (120, -20);\n  state: S2 (240, 50) accept;\n  S0 -> S1: "CLK";\n  S1 -> S2: "CLK";\n  S2 -> S0: "CLK" [bend];\n}',
-    tags: ['カウンタ', '3進', 'クロック', '同期回路', '状態マシン']
-  },
-
-  // --- システム・制御モデル ---
-  {
-    id: 'fsm-vending-machine',
-    name: '簡易自動販売機（50円/100円投入モデル）',
-    category: 'システム・制御モデル',
-    description: '50円硬貨と100円硬貨の投入により残高が遷移し、100円以上で商品排出状態（Buy）に到達するモデル。',
-    code: '\\fsm{\n  state: 0円   (0, 0) start;\n  state: 50円  (120, 0);\n  state: 100円 (240, 0) accept;\n  0円   -> 50円:  "+50";\n  0円   -> 100円: "+100" [bend];\n  50円  -> 100円: "+50";\n  100円 -> 0円:   "購入/返却" [bend];\n}',
-    tags: ['自動販売機', '状態機械', '制御', '組み込み', 'イベント駆動']
-  },
-  {
-    id: 'fsm-traffic-light',
-    name: '交通信号機コントローラ（青・黄・赤遷移）',
-    category: 'システム・制御モデル',
-    description: 'タイマー割り込みにより、青（Green）→ 黄（Yellow）→ 赤（Red）→ 青へと順次循環する状態遷移。',
-    code: '\\fsm{\n  state: 青 (0, 0) start;\n  state: 黄 (120, -30);\n  state: 赤 (240, 0);\n  青 -> 黄: "タイマー";\n  黄 -> 赤: "タイマー";\n  赤 -> 青: "タイマー" [bend];\n}',
-    tags: ['信号機', '制御システム', 'タイマー', '組込みシステム']
-  }
-];
-
-// 状態遷移図（オートマトン）ライブラリモーダルの制御
-const fsmLibraryModal = document.getElementById('fsm-library-modal');
-const closeFsmLibraryXBtn = document.getElementById('fsm-modal-close-x');
-const closeFsmLibraryFooterBtn = document.getElementById('fsm-modal-close-footer');
-const fsmSearchInput = document.getElementById('fsm-library-search-input');
-const fsmCategoryTabs = document.querySelectorAll('.fsm-category-tab');
-const fsmCardGrid = document.getElementById('fsm-library-card-grid');
-const fsmEmptyMessage = document.getElementById('fsm-library-empty-message');
-
-let currentFsmCategory = 'すべて';
-
-function openFsmModal() {
-  if (!fsmLibraryModal) return;
-  fsmLibraryModal.classList.add('active');
-  fsmLibraryModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-  if (fsmSearchInput) fsmSearchInput.value = '';
-  currentFsmCategory = 'すべて';
-  fsmCategoryTabs.forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.category === 'すべて');
-  });
-  renderFsmCards();
-  if (fsmSearchInput) fsmSearchInput.focus();
-}
-
-function closeFsmModal() {
-  if (!fsmLibraryModal) return;
-  fsmLibraryModal.classList.remove('active');
-  fsmLibraryModal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-
-function renderFsmCards() {
-  if (!fsmCardGrid || !fsmSearchInput) return;
-  const query = fsmSearchInput.value.trim().toLowerCase();
-  fsmCardGrid.innerHTML = '';
-
-  const filtered = fsmLibrary.filter((item) => {
-    const matchCategory = currentFsmCategory === 'すべて' || item.category === currentFsmCategory;
-    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
-    const matchQuery =
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query) ||
-      item.code.toLowerCase().includes(query) ||
-      matchTags;
-    return matchCategory && matchQuery;
-  });
-
-  if (filtered.length === 0) {
-    if (fsmEmptyMessage) fsmEmptyMessage.style.display = 'block';
-  } else {
-    if (fsmEmptyMessage) fsmEmptyMessage.style.display = 'none';
-    filtered.forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'formula-card fsm-card';
-
-      const top = document.createElement('div');
-      top.className = 'card-top';
-
-      const name = document.createElement('span');
-      name.className = 'card-name';
-      name.textContent = item.name;
-
-      const tag = document.createElement('span');
-      tag.className = 'card-tag fsm-card-tag';
-      tag.textContent = item.category;
-
-      top.appendChild(name);
-      top.appendChild(tag);
-
-      const preview = document.createElement('div');
-      preview.className = 'card-preview fsm-card-preview';
-      drawFsmSvg(item.code, preview, null);
-
-      const desc = document.createElement('p');
-      desc.className = 'card-desc';
-      desc.textContent = item.description;
-
-      card.appendChild(top);
-      card.appendChild(preview);
-      card.appendChild(desc);
-
-      card.addEventListener('click', () => {
-        inputArea.value = item.code;
-        closeFsmModal();
-        updatePreview();
-      });
-
-      fsmCardGrid.appendChild(card);
-    });
-  }
-}
-
-if (closeFsmLibraryXBtn) closeFsmLibraryXBtn.addEventListener('click', closeFsmModal);
-if (closeFsmLibraryFooterBtn) closeFsmLibraryFooterBtn.addEventListener('click', closeFsmModal);
-
-if (fsmLibraryModal) {
-  fsmLibraryModal.addEventListener('click', (e) => {
-    if (e.target === fsmLibraryModal) {
-      closeFsmModal();
-    }
-  });
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && fsmLibraryModal && fsmLibraryModal.classList.contains('active')) {
-    closeFsmModal();
-  }
-});
-
-if (fsmSearchInput) {
-  fsmSearchInput.addEventListener('input', renderFsmCards);
-}
-
-fsmCategoryTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    fsmCategoryTabs.forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentFsmCategory = tab.dataset.category;
-    renderFsmCards();
-  });
-});
-
-// ==========================================
-// ファインマン・ダイアグラム ライブラリデータ定義
-// ==========================================
-const feynmanLibrary = [
-  // --- 電磁相互作用 (QED) ---
-  {
-    id: 'feynman-muon-pair',
-    name: '電子・陽電子対消滅（ミューオン対生成）',
-    category: '電磁相互作用(QED)',
-    description: '電子と陽電子が衝突・対消滅して仮想光子を生じ、ミューオン対（μ⁻, μ⁺）へ変換する基本過程。',
-    code: '\\feynman{\n  fermion:     (0, 40) to (60, 0) "e^-";\n  antifermion: (0, -40) to (60, 0) "e^+";\n  photon:      (60, 0) to (140, 0) "\\gamma";\n  fermion:     (140, 0) to (200, 40) "\\mu^-";\n  antifermion: (140, 0) to (200, -40) "\\mu^+";\n}',
-    tags: ['QED', '対消滅', '対生成', 'ミューオン', '光子', '散乱']
-  },
-  {
-    id: 'feynman-compton',
-    name: 'コンプトン散乱（電子と光子の散乱）',
-    category: '電磁相互作用(QED)',
-    description: '入射光子が静止電子と衝突し、エネルギーを失って散乱光子と反跳電子になる素過程。',
-    code: '\\feynman{\n  fermion: (0, -30) to (60, 0) "e^-";\n  photon:  (0, 30) to (60, 0) "\\gamma";\n  fermion: (60, 0) to (130, 0) "e^-";\n  fermion: (130, 0) to (190, -30) "e^-";\n  photon:  (130, 0) to (190, 30) "\\gamma";\n}',
-    tags: ['コンプトン散乱', 'QED', '電子', '光子', '散乱']
-  },
-  {
-    id: 'feynman-bhabha',
-    name: 'バーバ散乱（電子・陽電子弾性散乱）',
-    category: '電磁相互作用(QED)',
-    description: '電子と陽電子の弾性散乱（tチャネル光子交換過程）。',
-    code: '\\feynman{\n  fermion:     (0, 40) to (80, 30) "e^-";\n  antifermion: (0, -40) to (80, -30) "e^+";\n  photon:      (80, 30) to (80, -30) "\\gamma";\n  fermion:     (80, 30) to (160, 40) "e^-";\n  antifermion: (80, -30) to (160, -40) "e^+";\n}',
-    tags: ['バーバ散乱', 'QED', '電子', '陽電子', '弾性散乱']
-  },
-
-  // --- 弱相互作用 (Electroweak) ---
-  {
-    id: 'feynman-beta-decay',
-    name: '中性子のベータ崩壊（W⁻ボソン媒介）',
-    category: '弱相互作用(Electroweak)',
-    description: 'dクォークがW⁻ボソンを放出してuクォークに変化し、W⁻が電子と反電子ニュートリノに崩壊。',
-    code: '\\feynman{\n  fermion:     (0, 0) to (70, 0) "d";\n  fermion:     (70, 0) to (140, 35) "u";\n  boson:       (70, 0) to (140, -25) "W^-";\n  fermion:     (140, -25) to (205, -5) "e^-";\n  antifermion: (140, -25) to (205, -45) "\\bar{\\nu}_e" [flip];\n}',
-    tags: ['ベータ崩壊', '弱相互作用', 'Wボソン', 'ニュートリノ', 'クォーク']
-  },
-  {
-    id: 'feynman-muon-decay',
-    name: 'ミューオン崩壊（弱相互作用崩壊過程）',
-    category: '弱相互作用(Electroweak)',
-    description: 'ミューオンがW⁻ボソンを放出してミューニュートリノになり、W⁻が電子と反電子ニュートリノに崩壊。',
-    code: '\\feynman{\n  fermion:     (0, 0) to (60, 0) "\\mu^-";\n  fermion:     (60, 0) to (120, -25) "\\nu_\\mu";\n  boson:       (60, 0) to (120, 25) "W^-";\n  antifermion: (120, 25) to (180, 42) "\\bar{\\nu}_e";\n  fermion:     (120, 25) to (180, 8) "e^-" [flip];\n}',
-    tags: ['ミューオン崩壊', '弱相互作用', 'レプトン', 'ニュートリノ']
-  },
-
-  // --- 強い相互作用(QCD)・ヒッグス ---
-  {
-    id: 'feynman-higgs-decay',
-    name: 'ヒッグス粒子の2光子崩壊（トップループ媒介）',
-    category: '強い相互作用(QCD)・ヒッグス',
-    description: 'ヒッグス粒子Hがトップクォークループを経て2光子（γ, γ）へと崩壊するLHC重要発見チャンネル。',
-    code: '\\feynman{\n  scalar:  (0, 0) to (60, 0) "H";\n  fermion: (60, 0) to (110, 25) "t";\n  fermion: (110, 25) to (110, -25) "t";\n  fermion: (110, -25) to (60, 0) "t";\n  photon:  (110, 25) to (170, 45) "\\gamma";\n  photon:  (110, -25) to (170, -45) "\\gamma";\n}',
-    tags: ['ヒッグス', 'Higgs', 'トップクォーク', 'ループ', '光子']
-  },
-  {
-    id: 'feynman-gluon-vertex',
-    name: 'グルーオン3点自己相互作用（QCD非可換性）',
-    category: '強い相互作用(QCD)・ヒッグス',
-    description: '強い相互作用のゲージ対称性SU(3)により、グルーオン同士が直接結合する3点バーテックス。',
-    code: '\\feynman{\n  gluon: (0, 40) to (70, 0) "g";\n  gluon: (0, -40) to (70, 0) "g";\n  gluon: (70, 0) to (150, 0) "g";\n}',
-    tags: ['QCD', 'グルーオン', '強い相互作用', 'ゲージ理論', '3点相互作用']
-  }
-];
-
-// ファインマン・ダイアグラム ライブラリモーダルの制御
-const feynmanLibraryModal = document.getElementById('feynman-library-modal');
-const closeFeynmanLibraryXBtn = document.getElementById('feynman-modal-close-x');
-const closeFeynmanLibraryFooterBtn = document.getElementById('feynman-modal-close-footer');
-const feynmanSearchInput = document.getElementById('feynman-library-search-input');
-const feynmanCategoryTabs = document.querySelectorAll('.feynman-category-tab');
-const feynmanCardGrid = document.getElementById('feynman-library-card-grid');
-const feynmanEmptyMessage = document.getElementById('feynman-library-empty-message');
-
-let currentFeynmanCategory = 'すべて';
-
-function openFeynmanModal() {
-  if (!feynmanLibraryModal) return;
-  feynmanLibraryModal.classList.add('active');
-  feynmanLibraryModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-  if (feynmanSearchInput) feynmanSearchInput.value = '';
-  currentFeynmanCategory = 'すべて';
-  feynmanCategoryTabs.forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.category === 'すべて');
-  });
-  renderFeynmanCards();
-  if (feynmanSearchInput) feynmanSearchInput.focus();
-}
-
-function closeFeynmanModal() {
-  if (!feynmanLibraryModal) return;
-  feynmanLibraryModal.classList.remove('active');
-  feynmanLibraryModal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-
-function renderFeynmanCards() {
-  if (!feynmanCardGrid || !feynmanSearchInput) return;
-  const query = feynmanSearchInput.value.trim().toLowerCase();
-  feynmanCardGrid.innerHTML = '';
-
-  const filtered = feynmanLibrary.filter((item) => {
-    const matchCategory = currentFeynmanCategory === 'すべて' || item.category === currentFeynmanCategory;
-    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
-    const matchQuery =
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query) ||
-      item.code.toLowerCase().includes(query) ||
-      matchTags;
-    return matchCategory && matchQuery;
-  });
-
-  if (filtered.length === 0) {
-    if (feynmanEmptyMessage) feynmanEmptyMessage.style.display = 'block';
-  } else {
-    if (feynmanEmptyMessage) feynmanEmptyMessage.style.display = 'none';
-    filtered.forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'formula-card feynman-card';
-
-      const top = document.createElement('div');
-      top.className = 'card-top';
-
-      const name = document.createElement('span');
-      name.className = 'card-name';
-      name.textContent = item.name;
-
-      const tag = document.createElement('span');
-      tag.className = 'card-tag feynman-card-tag';
-      tag.textContent = item.category;
-
-      top.appendChild(name);
-      top.appendChild(tag);
-
-      const preview = document.createElement('div');
-      preview.className = 'card-preview feynman-card-preview';
-      drawFeynmanSvg(item.code, preview, null);
-
-      const desc = document.createElement('p');
-      desc.className = 'card-desc';
-      desc.textContent = item.description;
-
-      card.appendChild(top);
-      card.appendChild(preview);
-      card.appendChild(desc);
-
-      card.addEventListener('click', () => {
-        inputArea.value = item.code;
-        closeFeynmanModal();
-        updatePreview();
-      });
-
-      feynmanCardGrid.appendChild(card);
-    });
-  }
-}
-
-if (closeFeynmanLibraryXBtn) closeFeynmanLibraryXBtn.addEventListener('click', closeFeynmanModal);
-if (closeFeynmanLibraryFooterBtn) closeFeynmanLibraryFooterBtn.addEventListener('click', closeFeynmanModal);
-
-if (feynmanLibraryModal) {
-  feynmanLibraryModal.addEventListener('click', (e) => {
-    if (e.target === feynmanLibraryModal) {
-      closeFeynmanModal();
-    }
-  });
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && feynmanLibraryModal && feynmanLibraryModal.classList.contains('active')) {
-    closeFeynmanModal();
-  }
-});
-
-if (feynmanSearchInput) {
-  feynmanSearchInput.addEventListener('input', renderFeynmanCards);
-}
-
-feynmanCategoryTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    feynmanCategoryTabs.forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentFeynmanCategory = tab.dataset.category;
-    renderFeynmanCards();
-  });
-});
-
-// ==========================================
-// サンキーダイアグラム プリセットライブラリ
-// ==========================================
-const sankeyLibrary = [
-  // --- 熱機関・エネルギー収支 ---
-  {
-    id: 'sankey-carnot-heat-engine',
-    name: '熱機関（カルノーサイクル）の熱収支',
-    category: '熱機関・エネルギー収支',
-    description: '高温熱源から吸熱したエネルギーが、有効な外部仕事と低温熱源への排熱に分配される基本収支。',
-    code: '\\sankey{\n  高温熱源Q_H [100] -> 有効仕事W [40];\n  高温熱源Q_H -> 低温排熱Q_L [60];\n}',
-    tags: ['熱力学', 'カルノーサイクル', '熱効率', '排熱', '仕事']
-  },
-  {
-    id: 'sankey-thermal-power-plant',
-    name: '火力発電所のエネルギー損失フロー',
-    category: '熱機関・エネルギー収支',
-    description: '燃料燃焼熱からボイラー・蒸気タービンを経て発電に至る多段損失フロー。',
-    code: '\\sankey{\n  燃料化学エネルギー [100] -> ボイラー熱量 [88];\n  燃料化学エネルギー -> 排煙・不完全燃焼損失 [12];\n  ボイラー熱量 -> 蒸気タービン仕事 [42];\n  ボイラー熱量 -> 配管放熱・内部損失 [46];\n  蒸気タービン仕事 -> 発電電力出力 [38];\n  蒸気タービン仕事 -> 発電機機械摩擦 [4];\n}',
-    tags: ['火力発電', 'ボイラー', 'タービン', '発電', '熱損失']
-  },
-  {
-    id: 'sankey-internal-combustion-engine',
-    name: '自動車ガソリンエンジンの熱効率配分',
-    category: '熱機関・エネルギー収支',
-    description: '燃料ガソリンの熱エネルギーが駆動出力、冷却水排熱、排気ガス熱、機械摩擦に分配される実測モデル。',
-    code: '\\sankey{\n  燃料燃焼熱 [100] -> 車両駆動軸出力 [28];\n  燃料燃焼熱 -> 冷却水損失 [30];\n  燃料燃焼熱 -> 排気ガス熱損失 [34];\n  燃料燃焼熱 -> 機械摩擦損失 [8];\n}',
-    tags: ['自動車', '内燃機関', 'ガソリン', '冷却水', '駆動仕事']
-  },
-  {
-    id: 'sankey-heat-pump',
-    name: 'ヒートポンプ（暖房サイクル）の成績係数(COP)',
-    category: '熱機関・エネルギー収支',
-    description: '消費電力と外気吸熱量を合算し、暖房供給熱量（COP = 4.0）として室内に放出する熱移動バランス。',
-    code: '\\sankey{\n  消費電力 [25] -> 室内暖房熱量 [100];\n  大気・地中吸熱 [75] -> 室内暖房熱量 [100];\n}',
-    tags: ['ヒートポンプ', '冷凍サイクル', 'COP', '暖房', '省エネ']
-  },
-
-  // --- 電力・発電システム ---
-  {
-    id: 'sankey-solar-photovoltaic',
-    name: '太陽光発電（メガソーラー）の変換損失',
-    category: '電力・発電システム',
-    description: '受光日射エネルギーから太陽電池セル変換、パワーコンディショナー(PCS)変換を経て売電されるフロー。',
-    code: '\\sankey{\n  入射日射エネルギー [100] -> PVセルDC電力 [20];\n  入射日射エネルギー -> 反射・未吸収熱損失 [80];\n  PVセルDC電力 -> インバータAC系統出力 [18];\n  PVセルDC電力 -> パワコン変換損失 [2];\n}',
-    tags: ['太陽光発電', '再生可能エネルギー', 'インバータ', '光電効果']
-  },
-  {
-    id: 'sankey-nuclear-power-plant',
-    name: '軽水炉（原子力発電所）の熱・電力バランス',
-    category: '電力・発電システム',
-    description: '核分裂熱出力から蒸気発生器・タービンを経て発電し、復水器により海水へ冷却放熱される収支。',
-    code: '\\sankey{\n  原子炉熱出力 [100] -> タービン主蒸気 [99];\n  原子炉熱出力 -> 格納容器放熱 [1];\n  タービン主蒸気 -> 送電端電気出力 [33];\n  タービン主蒸気 -> 復水器海水排熱 [66];\n}',
-    tags: ['原子力発電', '軽水炉', '核分裂', '復水器', '熱効率']
-  },
-  {
-    id: 'sankey-grid-transmission-loss',
-    name: '送配電系統（グリッド）の送電ジュール熱損失',
-    category: '電力・発電システム',
-    description: '発電所総出力から超高圧送電線、配電用変圧器を経て需要家へ届くまでの系統損失。',
-    code: '\\sankey{\n  総発電量 [100] -> 超高圧送電 [97];\n  総発電量 -> 送電線ジュール熱損失 [3];\n  超高圧送電 -> 最終需要家受電 [94];\n  超高圧送電 -> 配電用変圧器損失 [3];\n}',
-    tags: ['送電線', '配電網', '変電所', 'ジュール熱', '電力グリッド']
-  },
-
-  // --- 化学・プロセス工学 ---
-  {
-    id: 'sankey-haber-bosch',
-    name: 'ハーバー・ボッシュ法（アンモニア合成）の物質収支',
-    category: '化学・プロセス工学',
-    description: '窒素・水素の供給ガスから高圧反応器、凝縮分離を経て生成アンモニアと循環ガスに分かれる物質収支。',
-    code: '\\sankey{\n  原料ガスN2+3H2 [100] -> 反応器通過ガス [100];\n  反応器通過ガス -> 生成液体NH3 [25];\n  反応器通過ガス -> 未反応循環ガス [72];\n  反応器通過ガス -> パージオフガス [3];\n}',
-    tags: ['ハーバー・ボッシュ法', 'アンモニア', '化学平衡', '物質収支', 'プロセス工学']
-  },
-  {
-    id: 'sankey-water-electrolysis',
-    name: '水電解（水素製造PEM型）のエネルギー効率',
-    category: '化学・プロセス工学',
-    description: '投入電気エネルギーが高位発熱量(HHV)の水素ガスエネルギーと過電圧ジュール熱に変換される収支。',
-    code: '\\sankey{\n  投入電力量 [100] -> 製造水素化学エネルギー [72];\n  投入電力量 -> 過電圧・セル発熱損失 [22];\n  投入電力量 -> BOP補機電力 [6];\n}',
-    tags: ['水電解', '水素', '電気化学', 'エネルギー変換', '脱炭素']
-  },
-  {
-    id: 'sankey-methanation-biomass',
-    name: 'バイオマスガス化メタネーション収支',
-    category: '化学・プロセス工学',
-    description: '木質バイオマス炭素源がガス化・メタン化反応を経て合成天然ガス(SNG)と残渣に移行する炭素収支。',
-    code: '\\sankey{\n  バイオマス炭素 [100] -> 合成粗ガスCO+H2 [75];\n  バイオマス炭素 -> 炭化チャー・灰分 [25];\n  合成粗ガスCO+H2 -> 精製メタンSNG [58];\n  合成粗ガスCO+H2 -> CO2分離ロス [17];\n}',
-    tags: ['メタネーション', 'バイオマス', '炭素循環', '合成天然ガス']
-  }
-];
-
-// サンキーダイアグラム ライブラリモーダルの制御
-const sankeyLibraryModal = document.getElementById('sankey-library-modal');
-const closeSankeyLibraryXBtn = document.getElementById('sankey-modal-close-x');
-const closeSankeyLibraryFooterBtn = document.getElementById('sankey-modal-close-footer');
-const sankeySearchInput = document.getElementById('sankey-library-search-input');
-const sankeyCategoryTabs = document.querySelectorAll('.sankey-category-tab');
-const sankeyCardGrid = document.getElementById('sankey-library-card-grid');
-const sankeyEmptyMessage = document.getElementById('sankey-library-empty-message');
-
-let currentSankeyCategory = 'すべて';
-
-function openSankeyModal() {
-  if (!sankeyLibraryModal) return;
-  sankeyLibraryModal.classList.add('active');
-  sankeyLibraryModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-  if (sankeySearchInput) sankeySearchInput.value = '';
-  currentSankeyCategory = 'すべて';
-  sankeyCategoryTabs.forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.category === 'すべて');
-  });
-  renderSankeyCards();
-  if (sankeySearchInput) sankeySearchInput.focus();
-}
-
-function closeSankeyModal() {
-  if (!sankeyLibraryModal) return;
-  sankeyLibraryModal.classList.remove('active');
-  sankeyLibraryModal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-
-function renderSankeyCards() {
-  if (!sankeyCardGrid || !sankeySearchInput) return;
-  const query = sankeySearchInput.value.trim().toLowerCase();
-  sankeyCardGrid.innerHTML = '';
-
-  const filtered = sankeyLibrary.filter((item) => {
-    const matchCategory = currentSankeyCategory === 'すべて' || item.category === currentSankeyCategory;
-    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
-    const matchQuery =
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query) ||
-      item.code.toLowerCase().includes(query) ||
-      matchTags;
-    return matchCategory && matchQuery;
-  });
-
-  if (filtered.length === 0) {
-    if (sankeyEmptyMessage) sankeyEmptyMessage.style.display = 'block';
-  } else {
-    if (sankeyEmptyMessage) sankeyEmptyMessage.style.display = 'none';
-    filtered.forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'formula-card sankey-card';
-
-      const top = document.createElement('div');
-      top.className = 'card-top';
-
-      const name = document.createElement('span');
-      name.className = 'card-name';
-      name.textContent = item.name;
-
-      const tag = document.createElement('span');
-      tag.className = 'card-tag sankey-card-tag';
-      tag.textContent = item.category;
-
-      top.appendChild(name);
-      top.appendChild(tag);
-
-      const preview = document.createElement('div');
-      preview.className = 'card-preview sankey-card-preview';
-      drawSankeySvg(item.code, preview, null);
-
-      const desc = document.createElement('p');
-      desc.className = 'card-desc';
-      desc.textContent = item.description;
-
-      card.appendChild(top);
-      card.appendChild(preview);
-      card.appendChild(desc);
-
-      card.addEventListener('click', () => {
-        inputArea.value = item.code;
-        closeSankeyModal();
-        updatePreview();
-      });
-
-      sankeyCardGrid.appendChild(card);
-    });
-  }
-}
-
-if (closeSankeyLibraryXBtn) closeSankeyLibraryXBtn.addEventListener('click', closeSankeyModal);
-if (closeSankeyLibraryFooterBtn) closeSankeyLibraryFooterBtn.addEventListener('click', closeSankeyModal);
-
-if (sankeyLibraryModal) {
-  sankeyLibraryModal.addEventListener('click', (e) => {
-    if (e.target === sankeyLibraryModal) {
-      closeSankeyModal();
-    }
-  });
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && sankeyLibraryModal && sankeyLibraryModal.classList.contains('active')) {
-    closeSankeyModal();
-  }
-});
-
-if (sankeySearchInput) {
-  sankeySearchInput.addEventListener('input', renderSankeyCards);
-}
-
-sankeyCategoryTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    sankeyCategoryTabs.forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentSankeyCategory = tab.dataset.category;
-    renderSankeyCards();
-  });
-});
-
-// ==========================================
-// フローチャート ライブラリ データ & モーダル制御
-// ==========================================
-const flowchartLibrary = [
-  {
-    id: 'flow-max-val',
-    name: '2値の最大値判定（基本条件分岐）',
-    category: '基本アルゴリズム',
-    description: '2つの数値 a, b を入力し、条件分岐で大きい方の値を最大値として出力する基本的なアルゴリズム。',
-    code: '\\flowchart{\n  node: 開始 [start];\n  node: 入力: a, b [io];\n  node: a > b ? [cond];\n  node: max = a [proc];\n  node: max = b [proc];\n  node: 出力: max [io];\n  node: 終了 [end];\n\n  開始 -> 入力: a, b;\n  入力: a, b -> a > b ?;\n  a > b ? -> max = a: "Yes";\n  a > b ? -> max = b: "No";\n  max = a -> 出力: max;\n  max = b -> 出力: max;\n  出力: max -> 終了;\n}',
-    tags: ['最大値', '条件分岐', 'if文', '基本']
-  },
-  {
-    id: 'flow-sum-loop',
-    name: '1からNまでの整数の総和（ループ計算）',
-    category: 'ループ・反復処理',
-    description: 'カウンタ変数 i を 1 から N までインクリメントしながら、合計値 sum に累積加算する反復構造。',
-    code: '\\flowchart{\n  node: 開始 (0, 0) [start];\n  node: 入力: N (0, 70) [io];\n  node: sum = 0, i = 1 (0, 140) [proc];\n  node: i <= N ? (0, 220) [cond];\n  node: sum += i, i++ (150, 300) [proc];\n  node: 出力: sum (0, 310) [io];\n  node: 終了 (0, 380) [end];\n\n  開始 -> 入力: N;\n  入力: N -> sum = 0, i = 1;\n  sum = 0, i = 1 -> i <= N ?;\n  i <= N ? -> sum += i, i++: "Yes";\n  sum += i, i++ -> i <= N ?;\n  i <= N ? -> 出力: sum: "No";\n  出力: sum -> 終了;\n}',
-    tags: ['ループ', 'for文', 'while文', '累積加算', '反復']
-  },
-  {
-    id: 'flow-binary-search',
-    name: '二分探索アルゴリズム（Binary Search）',
-    category: '基本アルゴリズム',
-    description: 'ソート済み配列の中央値と比較しながら探索範囲を半分に絞り込む高速検索アルゴリズム。',
-    code: '\\flowchart{\n  node: 開始 (0, 0) [start];\n  node: low=0, high=N-1 (0, 70) [proc];\n  node: low <= high ? (0, 150) [cond];\n  node: mid = (low+high)/2 (0, 230) [proc];\n  node: arr[mid] == key ? (0, 310) [cond];\n  node: midを返す (160, 310) [proc];\n  node: arr[mid] < key ? (0, 400) [cond];\n  node: low = mid + 1 (140, 470) [proc];\n  node: high = mid - 1 (-140, 470) [proc];\n  node: -1 (見つからず) (-180, 200) [proc];\n  node: 終了 (0, 560) [end];\n\n  開始 -> low=0, high=N-1;\n  low=0, high=N-1 -> low <= high ?;\n  low <= high ? -> mid = (low+high)/2: "Yes";\n  low <= high ? -> -1 (見つからず): "No";\n  mid = (low+high)/2 -> arr[mid] == key ?;\n  arr[mid] == key ? -> midを返す: "Yes";\n  arr[mid] == key ? -> arr[mid] < key ?: "No";\n  arr[mid] < key ? -> low = mid + 1: "Yes";\n  arr[mid] < key ? -> high = mid - 1: "No";\n  low = mid + 1 -> low <= high ?;\n  high = mid - 1 -> low <= high ?;\n  midを返す -> 終了;\n  -1 (見つからず) -> 終了;\n}',
-    tags: ['二分探索', 'バイナリサーチ', '検索', 'O(log N)']
-  },
-  {
-    id: 'flow-login-auth',
-    name: 'ユーザー認証・ログイン判定フロー',
-    category: 'システム・制御ロジック',
-    description: 'パスワード照合、エラー回数カウント、およびアカウントロック（凍結）を含むセキュアログイン処理。',
-    code: '\\flowchart{\n  node: 開始 (0, 0) [start];\n  node: ID・PW入力 (0, 70) [io];\n  node: パスワード検証 (0, 150) [sub];\n  node: 認証成功 ? (0, 230) [cond];\n  node: セッション発行 (140, 310) [proc];\n  node: マイページ表示 (140, 380) [proc];\n  node: 失敗回数++ (-140, 310) [proc];\n  node: 失敗 >= 5回 ? (-140, 380) [cond];\n  node: アカウント凍結 (-140, 460) [proc];\n  node: 終了 (0, 530) [end];\n\n  開始 -> ID・PW入力;\n  ID・PW入力 -> パスワード検証;\n  パスワード検証 -> 認証成功 ?;\n  認証成功 ? -> セッション発行: "Yes";\n  認証成功 ? -> 失敗回数++: "No";\n  セッション発行 -> マイページ表示;\n  失敗回数++ -> 失敗 >= 5回 ?;\n  失敗 >= 5回 ? -> アカウント凍結: "Yes";\n  失敗 >= 5回 ? -> ID・PW入力: "No";\n  マイページ表示 -> 終了;\n  アカウント凍結 -> 終了;\n}',
-    tags: ['ログイン', '認証', 'セキュリティ', 'Webシステム']
-  },
-  {
-    id: 'flow-vending-machine',
-    name: '自動販売機 購入・返金フロー',
-    category: 'システム・制御ロジック',
-    description: '硬貨投入から投入金額判定、商品選択、商品排出、おつり計算・返却までの一連の組み込み制御ロジック。',
-    code: '\\flowchart{\n  node: 開始 (0, 0) [start];\n  node: 硬貨投入 (0, 70) [io];\n  node: 金額 >= 価格 ? (0, 150) [cond];\n  node: ランプ点灯 (0, 230) [proc];\n  node: ボタン押下 (0, 300) [io];\n  node: 商品排出 & おつり計算 (0, 380) [proc];\n  node: おつり > 0 ? (0, 460) [cond];\n  node: おつり返却 (140, 530) [io];\n  node: 終了 (0, 600) [end];\n\n  開始 -> 硬貨投入;\n  硬貨投入 -> 金額 >= 価格 ?;\n  金額 >= 価格 ? -> ランプ点灯: "Yes";\n  金額 >= 価格 ? -> 硬貨投入: "No";\n  ランプ点灯 -> ボタン押下;\n  ボタン押下 -> 商品排出 & おつり計算;\n  商品排出 & おつり計算 -> おつり > 0 ?;\n  おつり > 0 ? -> おつり返却: "Yes";\n  おつり > 0 ? -> 終了: "No";\n  おつり返却 -> 終了;\n}',
-    tags: ['自動販売機', '組込み', '制御フロー', 'ステート']
-  },
-  {
-    id: 'flow-euclid-gcd',
-    name: 'ユークリッドの互除法（最大公約数 GCD）',
-    category: 'ループ・反復処理',
-    description: '剰余計算を繰り返すことで2つの整数 a, b の最大公約数を高速に求める古典的アルゴリズム。',
-    code: '\\flowchart{\n  node: 開始 (0, 0) [start];\n  node: 入力: a, b (0, 70) [io];\n  node: b == 0 ? (0, 150) [cond];\n  node: GCD = a (140, 230) [proc];\n  node: r = a % b (0, 230) [proc];\n  node: a = b, b = r (0, 300) [proc];\n  node: 出力: GCD (140, 370) [io];\n  node: 終了 (140, 440) [end];\n\n  開始 -> 入力: a, b;\n  入力: a, b -> b == 0 ?;\n  b == 0 ? -> GCD = a: "Yes";\n  b == 0 ? -> r = a % b: "No";\n  r = a % b -> a = b, b = r;\n  a = b, b = r -> b == 0 ?;\n  GCD = a -> 出力: GCD;\n  出力: GCD -> 終了;\n}',
-    tags: ['ユークリッド', '互除法', 'GCD', '最大公約数', '数学']
-  },
-  {
-    id: 'flow-note-support-branch',
-    name: '記事サポート・リアクション判定フロー',
-    category: '基本アルゴリズム',
-    description: '「この文章にチップを出しますか？」の条件分岐に応じ、感謝メッセージまたはスキのお願いへ分岐して合流・終了するインタラクションフロー。',
-    code: '\\flowchart{\n  node: 開始 (0, 0) [start];\n  node: この文章にチップを\\n出しますか？ (0, 80) [cond];\n  node: ありがとうございます (-120, 170) [proc];\n  node: スキは押してね (120, 170) [proc];\n  node: 終了 (0, 250) [end];\n\n  開始 -> この文章にチップを\\n出しますか？;\n  この文章にチップを\\n出しますか？ -> ありがとうございます: "Yes";\n  この文章にチップを\\n出しますか？ -> スキは押してね: "No";\n  ありがとうございます -> 終了;\n  スキは押してね -> 終了;\n}',
-    tags: ['チップ', 'サポート', 'note', '条件分岐', 'インタラクション', '合流']
-  }
-];
-
-// フローチャート ライブラリモーダルの制御
-const flowchartLibraryModal = document.getElementById('flowchart-library-modal');
-const closeFlowchartLibraryXBtn = document.getElementById('flowchart-modal-close-x');
-const closeFlowchartLibraryFooterBtn = document.getElementById('flowchart-modal-close-footer');
-const flowchartSearchInput = document.getElementById('flowchart-library-search-input');
-const flowchartCategoryTabs = document.querySelectorAll('.flowchart-category-tab');
-const flowchartCardGrid = document.getElementById('flowchart-library-card-grid');
-const flowchartEmptyMessage = document.getElementById('flowchart-library-empty-message');
-
-let currentFlowchartCategory = 'すべて';
-
-function openFlowchartModal() {
-  if (!flowchartLibraryModal) return;
-  flowchartLibraryModal.classList.add('active');
-  flowchartLibraryModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-  if (flowchartSearchInput) flowchartSearchInput.value = '';
-  currentFlowchartCategory = 'すべて';
-  flowchartCategoryTabs.forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.category === 'すべて');
-  });
-  renderFlowchartCards();
-  if (flowchartSearchInput) flowchartSearchInput.focus();
-}
-
-function closeFlowchartModal() {
-  if (!flowchartLibraryModal) return;
-  flowchartLibraryModal.classList.remove('active');
-  flowchartLibraryModal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-
-function renderFlowchartCards() {
-  if (!flowchartCardGrid || !flowchartSearchInput) return;
-  const query = flowchartSearchInput.value.trim().toLowerCase();
-  flowchartCardGrid.innerHTML = '';
-
-  const filtered = flowchartLibrary.filter((item) => {
-    const matchCategory = currentFlowchartCategory === 'すべて' || item.category === currentFlowchartCategory;
-    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
-    const matchQuery =
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
-      matchTags;
-    return matchCategory && matchQuery;
-  });
-
-  if (filtered.length === 0) {
-    if (flowchartEmptyMessage) flowchartEmptyMessage.style.display = 'block';
-  } else {
-    if (flowchartEmptyMessage) flowchartEmptyMessage.style.display = 'none';
-    filtered.forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'formula-card flowchart-card';
-
-      const top = document.createElement('div');
-      top.className = 'card-top';
-
-      const name = document.createElement('span');
-      name.className = 'card-name';
-      name.textContent = item.name;
-
-      const tag = document.createElement('span');
-      tag.className = 'card-tag flowchart-card-tag';
-      tag.textContent = item.category;
-
-      top.appendChild(name);
-      top.appendChild(tag);
-
-      const preview = document.createElement('div');
-      preview.className = 'card-preview flowchart-card-preview';
-      drawFlowchartSvg(item.code, preview, null);
-
-      const desc = document.createElement('p');
-      desc.className = 'card-desc';
-      desc.textContent = item.description;
-
-      card.appendChild(top);
-      card.appendChild(preview);
-      card.appendChild(desc);
-
-      card.addEventListener('click', () => {
-        inputArea.value = item.code;
-        closeFlowchartModal();
-        updatePreview();
-      });
-
-      flowchartCardGrid.appendChild(card);
-    });
-  }
-}
-
-if (closeFlowchartLibraryXBtn) closeFlowchartLibraryXBtn.addEventListener('click', closeFlowchartModal);
-if (closeFlowchartLibraryFooterBtn) closeFlowchartLibraryFooterBtn.addEventListener('click', closeFlowchartModal);
-
-if (flowchartLibraryModal) {
-  flowchartLibraryModal.addEventListener('click', (e) => {
-    if (e.target === flowchartLibraryModal) {
-      closeFlowchartModal();
-    }
-  });
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && flowchartLibraryModal && flowchartLibraryModal.classList.contains('active')) {
-    closeFlowchartModal();
-  }
-});
-
-if (flowchartSearchInput) {
-  flowchartSearchInput.addEventListener('input', renderFlowchartCards);
-}
-
-flowchartCategoryTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    flowchartCategoryTabs.forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentFlowchartCategory = tab.dataset.category;
-    renderFlowchartCards();
-  });
-});
-
-// ==========================================
-// 表（テーブル）ライブラリ データ & モーダル制御
-// ==========================================
-const tableLibrary = [
-  {
-    id: 'table-si-base-csv',
-    name: 'SI基本単位一覧表（CSV形式）',
-    category: 'SI単位・標準規格',
-    description: 'カンマ区切り（CSV）で記述された国際単位系（SI）の7つの基本物理量と単位記号。',
-    code: '物理量,記号,SI基本単位,単位記号\n長さ,L,メートル,m\n質量,M,キログラム,kg\n時間,T,秒,s\n電流,I,アンペア,A\n熱力学温度,Θ,ケルビン,K\n物質量,N,モル,mol\n光度,J,カンデラ,cd',
-    tags: ['SI基本単位', 'CSV', '国際単位系', '物理量']
-  },
-  {
-    id: 'table-si-base-md',
-    name: 'SI基本単位一覧表（Markdown数式形式）',
-    category: 'SI単位・標準規格',
-    description: 'Markdownテーブル構文とLaTeXインライン数式（$L$, $\\text{kg}$等）を組み合わせた美麗な一覧表。',
-    code: '| 物理量 | 記号 | SI基本単位 | 単位記号 |\n| :--- | :---: | :--- | :---: |\n| 長さ | $L$ | メートル | $\\text{m}$ |\n| 質量 | $M$ | キログラム | $\\text{kg}$ |\n| 時間 | $T$ | 秒 | $\\text{s}$ |\n| 電流 | $I$ | アンペア | $\\text{A}$ |\n| 熱力学温度 | $\\Theta$ | ケルビン | $\\text{K}$ |\n| 物質量 | $N$ | モル | $\\text{mol}$ |\n| 光度 | $J$ | カンデラ | $\\text{cd}$ |',
-    tags: ['SI基本単位', 'Markdown', '数式', 'KaTeX']
-  },
-  {
-    id: 'table-constants-tabular',
-    name: '主要な基礎物理定数表（LaTeX tabular形式）',
-    category: '物理定数・定数表',
-    description: 'LaTeXのtabular環境で記述された真空中の光速度、プランク定数、電気素量などの基礎物理定数。',
-    code: '\\begin{tabular}{|l|c|l|l|}\n\\hline\n物理定数名 & 記号 & 数値 & 単位 \\\\\n\\hline\n真空中の光速度 & $c$ & $2.9979 \\times 10^8$ & $\\text{m/s}$ \\\\\nプランク定数 & $h$ & $6.6261 \\times 10^{-34}$ & $\\text{J}\\cdot\\text{s}$ \\\\\n電気素量 & $e$ & $1.6022 \\times 10^{-19}$ & $\\text{C}$ \\\\\n万有引力定数 & $G$ & $6.6743 \\times 10^{-11}$ & $\\text{N}\\cdot\\text{m}^2/\\text{kg}^2$ \\\\\nボルツマン定数 & $k_B$ & $1.3806 \\times 10^{-23}$ & $\\text{J/K}$ \\\\\nアボガドロ定数 & $N_A$ & $6.0221 \\times 10^{23}$ & $\\text{mol}^{-1}$ \\\\\n\\hline\n\\end{tabular}',
-    tags: ['物理定数', 'LaTeX', 'tabular', '光速', 'プランク定数']
-  },
-  {
-    id: 'table-si-derived',
-    name: '主要なSI組立単位（固有の名称を持つ単位）',
-    category: 'SI単位・標準規格',
-    description: 'ニュートン、ジュール、ワット、パスカル、ボルトなど他のSI単位・基本単位との対応関係。',
-    code: '| 組立量 | 単位名称 | 記号 | 他のSI単位 | SI基本単位による表式 |\n| :--- | :--- | :---: | :--- | :--- |\n| 周波数 | ヘルツ | $\\text{Hz}$ | $-$ | $\\text{s}^{-1}$ |\n| 力 | ニュートン | $\\text{N}$ | $-$ | $\\text{m}\\cdot\\text{kg}\\cdot\\text{s}^{-2}$ |\n| 圧力・応力 | パスカル | $\\text{Pa}$ | $\\text{N/m}^2$ | $\\text{m}^{-1}\\cdot\\text{kg}\\cdot\\text{s}^{-2}$ |\n| エネルギー・仕事 | ジュール | $\\text{J}$ | $\\text{N}\\cdot\\text{m}$ | $\\text{m}^2\\cdot\\text{kg}\\cdot\\text{s}^{-2}$ |\n| 仕事率・電力 | ワット | $\\text{W}$ | $\\text{J/s}$ | $\\text{m}^2\\cdot\\text{kg}\\cdot\\text{s}^{-3}$ |\n| 電位・起電力 | ボルト | $\\text{V}$ | $\\text{W/A}$ | $\\text{m}^2\\cdot\\text{kg}\\cdot\\text{s}^{-3}\\cdot\\text{A}^{-1}$ |',
-    tags: ['SI組立単位', 'ニュートン', 'ジュール', 'ワット', 'パスカル']
-  },
-  {
-    id: 'table-elementary-particles',
-    name: '素粒子物理学・標準模型粒子分類表',
-    category: '素粒子・物質一覧',
-    description: '物質を構成する基本粒子（第1〜第3世代のクォーク、レプトン）の電荷と質量の一覧。',
-    code: '| 世代 | クォーク (Q) | 電荷 | 質量目安 | レプトン (L) | 電荷 |\n| :---: | :--- | :---: | :--- | :--- | :---: |\n| 第1世代 | アップ ($u$) | $+2/3$ | $\\approx 2.2\\text{ MeV}$ | 電子 ($e^-$) | $-1$ |\n| 第1世代 | ダウン ($d$) | $-1/3$ | $\\approx 4.7\\text{ MeV}$ | 電子ニュートリノ ($\\nu_e$) | $0$ |\n| 第2世代 | チャーム ($c$) | $+2/3$ | $\\approx 1.27\\text{ GeV}$ | ミューオン ($\\mu^-$) | $-1$ |\n| 第2世代 | ストレンジ ($s$) | $-1/3$ | $\\approx 96\\text{ MeV}$ | ミューニュートリノ ($\\nu_\\mu$) | $0$ |\n| 第3世代 | トップ ($t$) | $+2/3$ | $\\approx 173\\text{ GeV}$ | タウ ($ \\tau^-$) | $-1$ |\n| 第3世代 | ボトム ($b$) | $-1/3$ | $\\approx 4.18\\text{ GeV}$ | タウニュートリノ ($\\nu_\\tau$) | $0$ |',
-    tags: ['素粒子', 'クォーク', 'レプトン', '標準模型', '高エネルギー物理学']
-  }
-];
-
-// 表（テーブル）ライブラリモーダルの制御
-const tableLibraryModal = document.getElementById('table-library-modal');
-const closeTableLibraryXBtn = document.getElementById('table-modal-close-x');
-const closeTableLibraryFooterBtn = document.getElementById('table-modal-close-footer');
-const tableSearchInput = document.getElementById('table-library-search-input');
-const tableCategoryTabs = document.querySelectorAll('.table-category-tab');
-const tableCardGrid = document.getElementById('table-library-card-grid');
-const tableEmptyMessage = document.getElementById('table-library-empty-message');
-
-let currentTableCategory = 'すべて';
-
-function openTableModal() {
-  if (!tableLibraryModal) return;
-  tableLibraryModal.classList.add('active');
-  tableLibraryModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-  if (tableSearchInput) tableSearchInput.value = '';
-  currentTableCategory = 'すべて';
-  tableCategoryTabs.forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.category === 'すべて');
-  });
-  renderTableCards();
-  if (tableSearchInput) tableSearchInput.focus();
-}
-
-function closeTableModal() {
-  if (!tableLibraryModal) return;
-  tableLibraryModal.classList.remove('active');
-  tableLibraryModal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-
-function renderTableCards() {
-  if (!tableCardGrid || !tableSearchInput) return;
-  const query = tableSearchInput.value.trim().toLowerCase();
-  tableCardGrid.innerHTML = '';
-
-  const filtered = tableLibrary.filter((item) => {
-    const matchCategory = currentTableCategory === 'すべて' || item.category === currentTableCategory;
-    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
-    const matchQuery =
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
-      matchTags;
-    return matchCategory && matchQuery;
-  });
-
-  if (filtered.length === 0) {
-    if (tableEmptyMessage) tableEmptyMessage.style.display = 'block';
-  } else {
-    if (tableEmptyMessage) tableEmptyMessage.style.display = 'none';
-    filtered.forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'formula-card table-card';
-
-      const top = document.createElement('div');
-      top.className = 'card-top';
-
-      const name = document.createElement('span');
-      name.className = 'card-name';
-      name.textContent = item.name;
-
-      const tag = document.createElement('span');
-      tag.className = 'card-tag table-card-tag';
-      tag.textContent = item.category;
-
-      top.appendChild(name);
-      top.appendChild(tag);
-
-      const preview = document.createElement('div');
-      preview.className = 'card-preview table-card-preview';
-      const parsedData = parseAnyTable(item.code);
-      if (parsedData) {
-        renderTableElement(parsedData, preview, null);
+  sankey: {
+    modalTitle: 'サンキーダイアグラム ライブラリ',
+    getData: () => (typeof sankeyLibrary !== 'undefined' ? sankeyLibrary : []),
+    cardClass: 'sankey-card',
+    tagClass: 'sankey-card-tag',
+    previewClass: 'sankey-card-preview',
+    renderPreview: (item, el) => {
+      if (/\\(bs|balancesheet|sankeybs)\{/i.test(item.code)) {
+        drawBalanceSheetSvg(item.code, el, null);
+      } else if (/\\(pl|incomestatement)\{/i.test(item.code)) {
+        drawProfitAndLossSvg(item.code, el, null);
       } else {
-        preview.textContent = item.code.substring(0, 50);
+        drawSankeySvg(item.code, el, null);
       }
+    }
+  },
+  flowchart: {
+    modalTitle: 'フローチャート ライブラリ',
+    getData: () => (typeof flowchartLibrary !== 'undefined' ? flowchartLibrary : []),
+    cardClass: 'flowchart-card',
+    tagClass: 'flowchart-card-tag',
+    previewClass: 'flowchart-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => drawFlowchartSvg(item.code, el, null)
+  },
+  table: {
+    modalTitle: '表（テーブル）ライブラリ',
+    getData: () => (typeof tableLibrary !== 'undefined' ? tableLibrary : []),
+    cardClass: 'table-card',
+    tagClass: 'table-card-tag',
+    previewClass: 'table-card-preview',
+    renderPreview: (item, el) => {
+      const parsed = parseAnyTable(item.code);
+      if (parsed) {
+        renderTableElement(parsed, el, null);
+      } else {
+        el.textContent = item.code.substring(0, 50);
+      }
+    }
+  },
+  matrix: {
+    modalTitle: '2軸マップ ライブラリ',
+    getData: () => (typeof matrixLibrary !== 'undefined' ? matrixLibrary : []),
+    cardClass: 'matrix-card',
+    tagClass: 'matrix-card-tag',
+    previewClass: 'matrix-card-preview',
+    renderPreview: (item, el) => drawMatrixMapSvg(item.code, el, null)
+  },
+  pyramid: {
+    modalTitle: 'ピラミッドチャート ライブラリ',
+    getData: () => (typeof pyramidLibrary !== 'undefined' ? pyramidLibrary : []),
+    cardClass: 'pyramid-card',
+    tagClass: 'pyramid-card-tag',
+    previewClass: 'pyramid-card-preview',
+    renderPreview: (item, el) => drawPyramidSvg(item.code, el, null)
+  },
+  radar: {
+    modalTitle: 'レーダーチャート ライブラリ',
+    getData: () => (typeof radarLibrary !== 'undefined' ? radarLibrary : []),
+    cardClass: 'radar-card',
+    tagClass: 'radar-card-tag',
+    previewClass: 'radar-card-preview',
+    renderPreview: (item, el) => drawRadarSvg(item.code, el, null)
+  },
+  waterfall: {
+    modalTitle: 'ウォーターフォールチャート ライブラリ',
+    getData: () => (typeof waterfallLibrary !== 'undefined' ? waterfallLibrary : []),
+    cardClass: 'waterfall-card',
+    tagClass: 'waterfall-card-tag',
+    previewClass: 'waterfall-card-preview',
+    renderPreview: (item, el) => drawWaterfallSvg(item.code, el, null)
+  },
+  treemap: {
+    modalTitle: 'ツリーマップ ライブラリ',
+    getData: () => (typeof treemapLibrary !== 'undefined' ? treemapLibrary : []),
+    cardClass: 'treemap-card',
+    tagClass: 'treemap-card-tag',
+    previewClass: 'treemap-card-preview',
+    renderPreview: (item, el) => drawTreemapSvg(item.code, el, null)
+  },
+  gantt: {
+    modalTitle: 'ガントチャート ライブラリ',
+    getData: () => (typeof ganttLibrary !== 'undefined' ? ganttLibrary : []),
+    cardClass: 'gantt-card',
+    tagClass: 'gantt-card-tag',
+    previewClass: 'gantt-card-preview',
+    renderPreview: (item, el) => {
+      if (/\\roadmap\{/i.test(item.code)) {
+        drawRoadmapSvg(item.code, el, null);
+      } else {
+        drawGanttSvg(item.code, el, null);
+      }
+    }
+  },
+  capitaltree: {
+    modalTitle: '資本系統樹・組織図 ライブラリ',
+    getData: () => (typeof capitalTreeLibrary !== 'undefined' ? capitalTreeLibrary : []),
+    cardClass: 'capitaltree-card',
+    tagClass: 'capitaltree-card-tag',
+    previewClass: 'capitaltree-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (/\\radialtree\{/i.test(item.code)) {
+        drawRadialTreeSvg(item.code, el, null);
+      } else if (/\\orgchart\{/i.test(item.code)) {
+        drawOrgChartSvg(item.code, el, null);
+      } else {
+        drawCapitalTreeSvg(item.code, el, null);
+      }
+    }
+  },
+  blockdiagram: {
+    modalTitle: 'ブロック線図 ライブラリ',
+    getData: () => (typeof blockDiagramLibrary !== 'undefined' ? blockDiagramLibrary : []),
+    cardClass: 'blockdiagram-card',
+    tagClass: 'blockdiagram-card-tag',
+    previewClass: 'blockdiagram-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => drawBlockDiagramSvg(item.code, el, null)
+  },
+  roadmap: {
+    modalTitle: 'ロードマップ ライブラリ',
+    getData: () => (typeof roadmapLibrary !== 'undefined' ? roadmapLibrary : []),
+    cardClass: 'roadmap-card',
+    tagClass: 'roadmap-card-tag',
+    previewClass: 'roadmap-card-preview',
+    columnTop: true,
+    previewStyle: { minHeight: '140px', background: '#fff', padding: '8px' },
+    renderPreview: (item, el) => drawRoadmapSvg(item.code, el, null)
+  },
+  sequence: {
+    modalTitle: 'シーケンス図 ライブラリ',
+    getData: () => (typeof sequenceLibrary !== 'undefined' ? sequenceLibrary : []),
+    cardClass: 'sequence-card',
+    tagClass: 'sequence-card-tag',
+    previewClass: 'sequence-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => drawSequenceDiagramSvg(item.code, el, null)
+  },
+  optics: {
+    modalTitle: '光学系ダイアグラム ライブラリ',
+    getData: () => (typeof opticsLibrary !== 'undefined' ? opticsLibrary : []),
+    cardClass: 'optics-card',
+    tagClass: 'optics-card-tag',
+    previewClass: 'optics-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => drawOpticsDiagramSvg(item.code, el, null)
+  },
+  swot: {
+    modalTitle: 'SWOT分析 ライブラリ',
+    getData: () => (typeof swotLibrary !== 'undefined' ? swotLibrary : []),
+    cardClass: 'swot-card',
+    tagClass: 'swot-card-tag',
+    previewClass: 'swot-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => drawSwotSvg(item.code, el, null)
+  },
+  chordpro: {
+    modalTitle: 'ChordPro（コード譜）ライブラリ',
+    getData: () => (typeof chordproLibrary !== 'undefined' ? chordproLibrary : (typeof chordProLibrary !== 'undefined' ? chordProLibrary : [])),
+    cardClass: 'chordpro-card',
+    tagClass: 'chordpro-card-tag',
+    previewClass: 'chordpro-card-preview',
+    renderPreview: (item, el) => {
+      if (typeof drawChordPro === 'function') {
+        const container = document.createElement('div');
+        drawChordPro(item.code, container);
+        container.style.zoom = '0.7';
+        container.style.transformOrigin = 'top left';
+        el.appendChild(container);
+      } else {
+        el.textContent = item.code;
+      }
+    }
+  },
+  guitarchords: {
+    modalTitle: 'ギターコード進行 ライブラリ',
+    getData: () => (typeof guitarchordsLibrary !== 'undefined' ? guitarchordsLibrary : (typeof guitarChordsLibrary !== 'undefined' ? guitarChordsLibrary : [])),
+    cardClass: 'guitarchords-card',
+    tagClass: 'guitarchords-card-tag',
+    previewClass: 'guitarchords-card-preview',
+    renderPreview: (item, el) => {
+      if (typeof drawGuitarChords === 'function') {
+        const container = document.createElement('div');
+        drawGuitarChords(item.code, container);
+        container.style.zoom = '0.65';
+        container.style.transformOrigin = 'top left';
+        el.appendChild(container);
+      } else {
+        el.textContent = item.code;
+      }
+    }
+  },
+  chordflow: {
+    modalTitle: 'コード進行フロー ライブラリ',
+    getData: () => (typeof chordflowLibrary !== 'undefined' ? chordflowLibrary : (typeof chordFlowLibrary !== 'undefined' ? chordFlowLibrary : [])),
+    cardClass: 'chordflow-card',
+    tagClass: 'chordflow-card-tag',
+    previewClass: 'chordflow-card-preview',
+    renderPreview: (item, el) => {
+      if (typeof drawChordFlow === 'function') {
+        const container = document.createElement('div');
+        drawChordFlow(item.code, container);
+        container.style.zoom = '0.65';
+        container.style.transformOrigin = 'top left';
+        el.appendChild(container);
+      } else {
+        el.textContent = item.code;
+      }
+    }
+  },
+  venn: {
+    modalTitle: 'ベン図・集合図 ライブラリ',
+    getData: () => (typeof vennLibrary !== 'undefined' ? vennLibrary : []),
+    cardClass: 'venn-card',
+    tagClass: 'venn-card-tag',
+    previewClass: 'venn-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => drawVennSvg(item.code, el, null)
+  },
+  fishbone: {
+    modalTitle: 'フィッシュボーン（特性要因図）ライブラリ',
+    getData: () => (typeof fishboneLibrary !== 'undefined' ? fishboneLibrary : []),
+    cardClass: 'fishbone-card',
+    tagClass: 'fishbone-card-tag',
+    previewClass: 'fishbone-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => drawFishboneSvg(item.code, el, null)
+  },
+  energylevel: {
+    modalTitle: 'エネルギー準位図・バンド図 ライブラリ',
+    getData: () => (typeof energyLevelLibrary !== 'undefined' ? energyLevelLibrary : []),
+    cardClass: 'energylevel-card',
+    tagClass: 'energylevel-card-tag',
+    previewClass: 'energylevel-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawEnergyLevelDiagramSvg === 'function') {
+        drawEnergyLevelDiagramSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
+  },
+  potential: {
+    modalTitle: 'ポテンシャルエネルギー曲線 ライブラリ',
+    getData: () => (typeof potentialLibrary !== 'undefined' ? potentialLibrary : []),
+    cardClass: 'potential-card',
+    tagClass: 'potential-card-tag',
+    previewClass: 'potential-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawPotentialDiagramSvg === 'function') {
+        drawPotentialDiagramSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
+  },
+  nn: {
+    modalTitle: 'ニューラルネットワーク構造図 ライブラリ',
+    getData: () => (typeof neuralNetworkLibrary !== 'undefined' ? neuralNetworkLibrary : []),
+    cardClass: 'neuralnet-card',
+    tagClass: 'neuralnet-card-tag',
+    previewClass: 'neuralnet-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawNeuralNetworkSvg === 'function') {
+        drawNeuralNetworkSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
+  },
+  graph: {
+    modalTitle: '有向グラフ・ネットワーク図 ライブラリ',
+    getData: () => (typeof graphLibrary !== 'undefined' ? graphLibrary : []),
+    cardClass: 'graph-card',
+    tagClass: 'graph-card-tag',
+    previewClass: 'graph-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawGraphSvg === 'function') {
+        drawGraphSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
+  },
+  crystal: {
+    modalTitle: '結晶構造・格子モデル ライブラリ (固体物理・材料科学)',
+    getData: () => (typeof crystalLibrary !== 'undefined' ? crystalLibrary : []),
+    cardClass: 'crystal-card',
+    tagClass: 'crystal-card-tag',
+    previewClass: 'crystal-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawCrystalSvg === 'function') {
+        drawCrystalSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
+  },
+  scenario: {
+    modalTitle: '汎用シナリオ・概念図 ライブラリ (フリーフロー)',
+    getData: () => (typeof scenarioLibrary !== 'undefined' ? scenarioLibrary : []),
+    cardClass: 'scenario-card',
+    tagClass: 'scenario-card-tag',
+    previewClass: 'scenario-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawScenarioSvg === 'function') {
+        drawScenarioSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
+  },
+  tensor: {
+    modalTitle: 'テンソルネットワーク図 / ペンローズ記法 (量子情報・物性物理)',
+    getData: () => (typeof tensorLibrary !== 'undefined' ? tensorLibrary : []),
+    cardClass: 'tensor-card',
+    tagClass: 'tensor-card-tag',
+    previewClass: 'tensor-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawTensorSvg === 'function') {
+        drawTensorSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
+  },
+  chart: {
+    modalTitle: 'グラフ・統計チャート ライブラリ (棒・折れ線・円・複合)',
+    getData: () => (typeof chartLibrary !== 'undefined' ? chartLibrary : []),
+    cardClass: 'chart-card',
+    tagClass: 'chart-card-tag',
+    previewClass: 'chart-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawChartSvg === 'function') {
+        drawChartSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
+  }
+};
 
-      const desc = document.createElement('p');
-      desc.className = 'card-desc';
-      desc.textContent = item.description;
+function openDiagramLibraryModal(type) {
+  const config = diagramLibraryConfigs[type];
+  if (!config || !diagramLibraryModal) return;
 
-      card.appendChild(top);
-      card.appendChild(preview);
-      card.appendChild(desc);
+  currentDiagramType = type;
+  currentDiagramCategory = 'すべて';
 
-      card.addEventListener('click', () => {
-        inputArea.value = item.code;
-        closeTableModal();
-        updatePreview();
+  if (diagramModalTitle) diagramModalTitle.textContent = config.modalTitle;
+  if (diagramSearchInput) diagramSearchInput.value = '';
+
+  if (diagramCategoryTabs) {
+    diagramCategoryTabs.innerHTML = '';
+    const rawList = typeof config.getData === 'function' ? config.getData() : [];
+    const catSet = new Set();
+    rawList.forEach((item) => {
+      if (item.category) catSet.add(item.category);
+    });
+    const categories = ['すべて', ...Array.from(catSet)];
+
+    categories.forEach((cat) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'category-tab' + (cat === 'すべて' ? ' active' : '');
+      btn.dataset.category = cat;
+      btn.textContent = cat;
+      btn.addEventListener('click', () => {
+        diagramCategoryTabs.querySelectorAll('.category-tab').forEach((t) => t.classList.remove('active'));
+        btn.classList.add('active');
+        currentDiagramCategory = cat;
+        renderDiagramCards();
       });
-
-      tableCardGrid.appendChild(card);
+      diagramCategoryTabs.appendChild(btn);
     });
   }
-}
 
-if (closeTableLibraryXBtn) closeTableLibraryXBtn.addEventListener('click', closeTableModal);
-if (closeTableLibraryFooterBtn) closeTableLibraryFooterBtn.addEventListener('click', closeTableModal);
-
-if (tableLibraryModal) {
-  tableLibraryModal.addEventListener('click', (e) => {
-    if (e.target === tableLibraryModal) {
-      closeTableModal();
-    }
-  });
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && tableLibraryModal && tableLibraryModal.classList.contains('active')) {
-    closeTableModal();
-  }
-});
-
-if (tableSearchInput) {
-  tableSearchInput.addEventListener('input', renderTableCards);
-}
-
-tableCategoryTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    tableCategoryTabs.forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentTableCategory = tab.dataset.category;
-    renderTableCards();
-  });
-});
-
-// ==========================================
-// 2軸マップ・マトリクス図 ライブラリ データ & モーダル制御
-// ==========================================
-const matrixLibrary = [
-  {
-    id: 'matrix-eisenhower',
-    name: 'アイゼンハワーマトリクス（時間管理・優先度）',
-    category: 'タスク・優先度',
-    description: '緊急度と重要度の2軸でタスクを4領域に分類し、直ちに行うべきことや削減すべきことを明確化する時間管理手法。',
-    code: '\\matrixmap{\n  title: アイゼンハワーマトリクス（時間管理・タスク優先度）;\n  axis-x: 緊急度 (低い -> 高い);\n  axis-y: 重要度 (低い -> 高い);\n  quadrant: [右上] すぐ実行（危機・重要課題）, [左上] 計画・自己投資（第2領域）, [右下] 他者へ委任, [左下] 削減・やめる;\n  item: 緊急トラブル対応 (0.75, 0.85) [danger];\n  item: 健康・スキル学習 (-0.6, 0.8) [accent];\n  item: 重要プロジェクト進行 (-0.2, 0.7) [primary];\n  item: 急な頼まれ仕事 (0.65, -0.4) [warning];\n  item: 目的のないスマホ閲覧 (-0.7, -0.7) [muted];\n}',
-    tags: ['時間管理', '優先順位', 'アイゼンハワー', 'タスク', '重要度', '緊急度']
-  },
-  {
-    id: 'matrix-market-positioning',
-    name: '市場ポジショニングマップ（価格 vs 品質）',
-    category: 'ビジネス・戦略',
-    description: '競合製品と自社製品の立ち位置を価格帯と品質・独自性の2軸で可視化し、差別化要因やブルーオーシャンを特定するマップ。',
-    code: '\\matrixmap{\n  title: 市場ポジショニングマップ（価格帯 vs 品質・独自性）;\n  axis-x: 価格帯 (低価格 -> 高価格);\n  axis-y: 品質・独自性 (大衆的・コモディティ -> 高品質・独自);\n  quadrant: [右上] プレミアム・高付加価値, [左上] コスパ最強・破壊的価値, [右下] ハイエンド専門, [左下] エントリー・大衆向け;\n  item: 自社新製品 (-0.4, 0.75) [accent];\n  item: 競合A社 (0.8, 0.85) [primary];\n  item: 競合B社 (-0.7, -0.5) [muted];\n  item: 競合C社 (0.6, -0.2) [warning];\n}',
-    tags: ['ポジショニング', 'マーケティング', '価格', '品質', '競合分析', '戦略']
-  },
-  {
-    id: 'matrix-project-priority',
-    name: '施策・機能優先度マトリクス（工数 vs インパクト）',
-    category: 'タスク・優先度',
-    description: '開発施策やアイデアを実装難易度（工数）と期待効果（インパクト）で評価し、最優先で取り組む「Quick Win」を特定。',
-    code: '\\matrixmap{\n  title: 施策優先度マトリクス（工数難易度 vs 効果インパクト）;\n  axis-x: 実装難易度・工数 (容易・低工数 -> 困難・高工数);\n  axis-y: 期待効果・インパクト (小さい -> 大きい);\n  quadrant: [左上] Quick Win（最優先・即実行）, [右上] 戦略的重点施策（要計画）, [左下] 隙間時間対応, [右下] 再検討・見送り;\n  item: UI改善・導線改修 (-0.7, 0.8) [accent];\n  item: 基幹システム刷新 (0.75, 0.85) [primary];\n  item: 文言の微調整 (-0.5, -0.4) [muted];\n  item: 不要機能の複雑改修 (0.8, -0.6) [danger];\n}',
-    tags: ['施策', 'プロダクト開発', 'インパクト', '工数', '優先度', 'Quick Win']
-  },
-  {
-    id: 'matrix-ragone-plot',
-    name: 'ラゴーンプロット（蓄電・電池デバイス比較）',
-    category: '物理・工学比較',
-    description: '電気化学デバイスの性能指標である比出力（急速充放電性能）と比エネルギー（蓄電容量・航続距離）を比較する物理プロット。',
-    code: '\\matrixmap{\n  title: ラゴーンプロット（蓄電デバイス特性比較）;\n  axis-x: 比出力 [W/kg] (低出力 -> 高出力);\n  axis-y: 比エネルギー [Wh/kg] (低容量 -> 高容量);\n  quadrant: [右上] 理想的次世代蓄電, [左上] 高エネルギー型（航続距離重視）, [右下] 高出力型（急速充放電・回生）, [左下] 従来型蓄電;\n  item: リチウムイオン電池 (-0.2, 0.6) [accent];\n  item: 燃料電池 (Fuel Cell) (-0.7, 0.85) [primary];\n  item: 電気二重層キャパシタ (0.8, -0.5) [warning];\n  item: 全固体電池 (次世代目標) (0.5, 0.75) [accent];\n  item: 鉛蓄電池 (-0.6, -0.6) [muted];\n}',
-    tags: ['ラゴーンプロット', 'リチウムイオン電池', 'キャパシタ', '燃料電池', '物理', '電気化学']
-  },
-  {
-    id: 'matrix-skill-will',
-    name: 'ウィル・スキル マトリクス（人材育成・マネジメント）',
-    category: 'ビジネス・戦略',
-    description: 'メンバーの業務習熟度（スキル）と意欲（ウィル）の2軸で状態を把握し、最適なリーダーシップや指示アプローチを選択する枠組み。',
-    code: '\\matrixmap{\n  title: ウィル・スキル マトリクス（人材育成・マネジメント）;\n  axis-x: 業務スキル・習熟度 (未習熟 -> 熟練・自立);\n  axis-y: 意欲・モチベーション (低下 -> 高い);\n  quadrant: [右上] 権限委譲（リーダー育成）, [左上] ガイド・教育（熱意を活かす）, [右下] 動機づけ・対話（環境整備）, [左下] 指示・基本徹底;\n  item: 若手エース (0.7, 0.8) [accent];\n  item: 意欲的な新人 (-0.6, 0.85) [primary];\n  item: 伸び悩むベテラン (0.6, -0.4) [warning];\n  item: 研修受講生 (-0.7, -0.5) [muted];\n}',
-    tags: ['マネジメント', 'ウィルスキル', '人材育成', 'リーダーシップ', '組織']
-  }
-];
-
-// 2軸マップ ライブラリモーダルの制御
-const matrixLibraryModal = document.getElementById('matrix-library-modal');
-const closeMatrixLibraryXBtn = document.getElementById('matrix-modal-close-x');
-const closeMatrixLibraryFooterBtn = document.getElementById('matrix-modal-close-footer');
-const matrixSearchInput = document.getElementById('matrix-library-search-input');
-const matrixCategoryTabs = document.querySelectorAll('.matrix-category-tab');
-const matrixCardGrid = document.getElementById('matrix-library-card-grid');
-const matrixEmptyMessage = document.getElementById('matrix-library-empty-message');
-
-let currentMatrixCategory = 'すべて';
-
-function openMatrixModal() {
-  if (!matrixLibraryModal) return;
-  matrixLibraryModal.classList.add('active');
-  matrixLibraryModal.setAttribute('aria-hidden', 'false');
+  diagramLibraryModal.classList.add('active');
+  diagramLibraryModal.setAttribute('aria-hidden', 'false');
   document.body.classList.add('modal-open');
-  if (matrixSearchInput) matrixSearchInput.value = '';
-  currentMatrixCategory = 'すべて';
-  matrixCategoryTabs.forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.category === 'すべて');
-  });
-  renderMatrixCards();
-  if (matrixSearchInput) matrixSearchInput.focus();
+
+  renderDiagramCards();
+  if (diagramSearchInput) diagramSearchInput.focus();
 }
 
-function closeMatrixModal() {
-  if (!matrixLibraryModal) return;
-  matrixLibraryModal.classList.remove('active');
-  matrixLibraryModal.setAttribute('aria-hidden', 'true');
+function closeDiagramLibraryModal() {
+  if (!diagramLibraryModal) return;
+  diagramLibraryModal.classList.remove('active');
+  diagramLibraryModal.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('modal-open');
 }
 
-function renderMatrixCards() {
-  if (!matrixCardGrid || !matrixSearchInput) return;
-  const query = matrixSearchInput.value.trim().toLowerCase();
-  matrixCardGrid.innerHTML = '';
+function renderDiagramCards() {
+  if (!diagramCardGrid || !diagramLibraryConfigs[currentDiagramType]) return;
+  const config = diagramLibraryConfigs[currentDiagramType];
+  const query = (diagramSearchInput ? diagramSearchInput.value : '').trim().toLowerCase();
+  diagramCardGrid.innerHTML = '';
 
-  const filtered = matrixLibrary.filter((item) => {
-    const matchCategory = currentMatrixCategory === 'すべて' || item.category === currentMatrixCategory;
+  const rawList = typeof config.getData === 'function' ? config.getData() : [];
+  const filtered = rawList.filter((item) => {
+    const itemCat = item.category || '';
+    const matchCategory = currentDiagramCategory === 'すべて' || itemCat === currentDiagramCategory;
     const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
+    const titleText = (item.name || item.title || '').toLowerCase();
+    const descText = (item.description || item.desc || '').toLowerCase();
+    const codeText = (item.code || '').toLowerCase();
     const matchQuery =
       !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
+      titleText.includes(query) ||
+      descText.includes(query) ||
+      itemCat.toLowerCase().includes(query) ||
+      codeText.includes(query) ||
       matchTags;
     return matchCategory && matchQuery;
   });
 
-  if (filtered.length === 0) {
-    if (matrixEmptyMessage) matrixEmptyMessage.style.display = 'block';
-  } else {
-    if (matrixEmptyMessage) matrixEmptyMessage.style.display = 'none';
-    filtered.forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'formula-card matrix-card';
+  if (diagramEmptyMessage) {
+    diagramEmptyMessage.style.display = filtered.length === 0 ? 'block' : 'none';
+  }
 
-      const top = document.createElement('div');
-      top.className = 'card-top';
+  filtered.forEach((item) => {
+    const card = document.createElement('div');
+    card.className = 'formula-card ' + (config.cardClass || '');
 
-      const name = document.createElement('span');
-      name.className = 'card-name';
-      name.textContent = item.name;
+    const top = document.createElement('div');
+    top.className = 'card-top';
+    if (config.columnTop) {
+      top.style.flexDirection = 'column';
+      top.style.alignItems = 'flex-start';
+      top.style.gap = '6px';
+    }
 
-      const tag = document.createElement('span');
-      tag.className = 'card-tag matrix-card-tag';
-      tag.textContent = item.category;
+    const name = document.createElement('span');
+    name.className = 'card-name';
+    name.textContent = item.name || item.title || '';
 
+    const tag = document.createElement('span');
+    tag.className = 'card-tag ' + (config.tagClass || '');
+    tag.textContent = item.category || '';
+
+    if (config.columnTop) {
+      top.appendChild(tag);
+      top.appendChild(name);
+    } else {
       top.appendChild(name);
       top.appendChild(tag);
+    }
 
-      const preview = document.createElement('div');
-      preview.className = 'card-preview matrix-card-preview';
-      drawMatrixMapSvg(item.code, preview, null);
+    const preview = document.createElement('div');
+    preview.className = 'card-preview ' + (config.previewClass || '');
+    if (config.previewStyle) {
+      Object.assign(preview.style, config.previewStyle);
+    }
 
-      const desc = document.createElement('p');
-      desc.className = 'card-desc';
-      desc.textContent = item.description;
+    try {
+      if (typeof config.renderPreview === 'function') {
+        config.renderPreview(item, preview);
+      } else {
+        preview.textContent = item.code || '';
+      }
+    } catch (err) {
+      console.error('Preview error for', item.name || item.title, err);
+      preview.textContent = item.code || '';
+    }
 
-      card.appendChild(top);
-      card.appendChild(preview);
-      card.appendChild(desc);
+    const desc = document.createElement('p');
+    desc.className = 'card-desc';
+    desc.textContent = item.description || item.desc || '';
 
-      card.addEventListener('click', () => {
-        inputArea.value = item.code;
-        closeMatrixModal();
-        updatePreview();
-      });
+    card.appendChild(top);
+    card.appendChild(preview);
+    card.appendChild(desc);
 
-      matrixCardGrid.appendChild(card);
+    card.addEventListener('click', () => {
+      inputArea.value = item.code || '';
+      closeDiagramLibraryModal();
+      updatePreview();
     });
-  }
+
+    diagramCardGrid.appendChild(card);
+  });
 }
 
-if (closeMatrixLibraryXBtn) closeMatrixLibraryXBtn.addEventListener('click', closeMatrixModal);
-if (closeMatrixLibraryFooterBtn) closeMatrixLibraryFooterBtn.addEventListener('click', closeMatrixModal);
+if (diagramModalCloseX) diagramModalCloseX.addEventListener('click', closeDiagramLibraryModal);
+if (diagramModalCloseFooter) diagramModalCloseFooter.addEventListener('click', closeDiagramLibraryModal);
 
-if (matrixLibraryModal) {
-  matrixLibraryModal.addEventListener('click', (e) => {
-    if (e.target === matrixLibraryModal) {
-      closeMatrixModal();
+if (diagramLibraryModal) {
+  diagramLibraryModal.addEventListener('click', (e) => {
+    if (e.target === diagramLibraryModal) {
+      closeDiagramLibraryModal();
     }
   });
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && matrixLibraryModal && matrixLibraryModal.classList.contains('active')) {
-    closeMatrixModal();
+  if (e.key === 'Escape' && diagramLibraryModal && diagramLibraryModal.classList.contains('active')) {
+    closeDiagramLibraryModal();
   }
 });
 
-if (matrixSearchInput) {
-  matrixSearchInput.addEventListener('input', renderMatrixCards);
+if (diagramSearchInput) {
+  diagramSearchInput.addEventListener('input', renderDiagramCards);
 }
 
-matrixCategoryTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    matrixCategoryTabs.forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentMatrixCategory = tab.dataset.category;
-    renderMatrixCards();
-  });
-});
+// 既存互換ラッパー関数群
+function openChemFormulaModal() { openDiagramLibraryModal('chem-formula'); }
+function openChemModal() { openDiagramLibraryModal('chem'); }
+function openCircuitModal() { openDiagramLibraryModal('circuit'); }
+function openTimingModal() { openDiagramLibraryModal('timing'); }
+function openFsmModal() { openDiagramLibraryModal('fsm'); }
+function openFeynmanModal() { openDiagramLibraryModal('feynman'); }
+function openSankeyModal() { openDiagramLibraryModal('sankey'); }
+function openFlowchartModal() { openDiagramLibraryModal('flowchart'); }
+function openTableModal() { openDiagramLibraryModal('table'); }
+function openMatrixModal() { openDiagramLibraryModal('matrix'); }
+function openPyramidModal() { openDiagramLibraryModal('pyramid'); }
+function openRadarModal() { openDiagramLibraryModal('radar'); }
+function openWaterfallModal() { openDiagramLibraryModal('waterfall'); }
+function openTreemapModal() { openDiagramLibraryModal('treemap'); }
+function openGanttModal() { openDiagramLibraryModal('gantt'); }
+function openCapitalTreeModal() { openDiagramLibraryModal('capitaltree'); }
+function openBlockDiagramModal() { openDiagramLibraryModal('blockdiagram'); }
+function openRoadmapModal() { openDiagramLibraryModal('roadmap'); }
+function openSequenceModal() { openDiagramLibraryModal('sequence'); }
+function openOpticsModal() { openDiagramLibraryModal('optics'); }
+function openSwotModal() { openDiagramLibraryModal('swot'); }
+function openChordProModal() { openDiagramLibraryModal('chordpro'); }
+function openGuitarChordsModal() { openDiagramLibraryModal('guitarchords'); }
+function openChordFlowModal() { openDiagramLibraryModal('chordflow'); }
+function openVennModal() { openDiagramLibraryModal('venn'); }
+function openFishboneModal() { openDiagramLibraryModal('fishbone'); }
+function openEnergyLevelModal() { openDiagramLibraryModal('energylevel'); }
+function openPotentialModal() { openDiagramLibraryModal('potential'); }
+function openNeuralNetworkModal() { openDiagramLibraryModal('nn'); }
+const openNnModal = openNeuralNetworkModal;
+function openGraphModal() { openDiagramLibraryModal('graph'); }
+function openCrystalModal() { openDiagramLibraryModal('crystal'); }
+function openScenarioModal() { openDiagramLibraryModal('scenario'); }
+function openTensorModal() { openDiagramLibraryModal('tensor'); }
+function openChartModal() { openDiagramLibraryModal('chart'); }
 
-// ==========================================
-// ピラミッド図・階層図 ライブラリ データ & モーダル制御
-// ==========================================
-const pyramidLibrary = [
-  {
-    id: 'pyramid-school-caste',
-    name: 'アメリカのスクールカースト（学園階層構造）',
-    category: '社会・組織',
-    description: '米国のハイスクール文化における典型的な非公式階層構造。ジョック/チアリーダーの頂点からオタク/ナードまでのステレオタイプ分類。',
-    code: '\\pyramid{\n  title: アメリカのスクールカースト (American High School Hierarchy);\n  layer: ジョックス & クイーンビーズ [gold] (運動部花形スター・チアリーダー頂点);\n  layer: サイドキックス & プリンシパル [warning] (人気者の取り巻き・準人気グループ);\n  layer: フローターズ & ノーマル [primary] (一般生徒・複数のグループを往来);\n  layer: ギークス & バンドギークス [cyan] (文化部・吹奏楽・パソコンオタク);\n  layer: ナード & ターゲット [muted] (いじめの標的・ガリ勉・孤立層);\n}',
-    tags: ['スクールカースト', 'アメリカ', 'ジョック', 'ナード', 'ギーク', '階層', '社会・組織', '学校']
-  },
-  {
-    id: 'pyramid-maslow',
-    name: 'マズローの欲求5段階説（自己実現理論）',
-    category: '心理・思考',
-    description: '人間の動機づけ・心理的欲求を低次（生理的欲求）から高次（自己実現欲求）へと積み上げた心理学の代表的ピラミッドモデル。',
-    code: '\\pyramid{\n  title: マズローの欲求5段階説 (Maslow\'s Hierarchy of Needs);\n  layer: 自己実現の欲求 [gold] (自己の可能性の最大発揮・創造性);\n  layer: 承認・尊重の欲求 [warning] (他者からの評価・名誉・自己肯定感);\n  layer: 社会的欲求・愛 [primary] (集団への帰属・友情・愛情関係);\n  layer: 安全の欲求 [cyan] (身の安全・雇用や生活の安定・健康);\n  layer: 生理的欲求 [emerald] (食欲・睡眠・呼吸・生命維持の根本);\n}',
-    tags: ['マズロー', '欲求5段階', '自己実現', '心理学', '動機づけ', '承認欲求', '心理・思考']
-  },
-  {
-    id: 'pyramid-dikw',
-    name: 'DIKWピラミッド（知の階層モデル）',
-    category: '科学・工学',
-    description: '生のデータ（Data）から文脈を与えた情報（Information）、体系化した知識（Knowledge）、行動指針となる知恵（Wisdom）への進化モデル。',
-    code: '\\pyramid{\n  title: DIKWピラミッド (Data-Information-Knowledge-Wisdom);\n  layer: 知恵 (Wisdom) [gold] (本質的洞察・適切な判断と行動規範);\n  layer: 知識 (Knowledge) [warning] (情報の体系化・応用可能なノウハウ);\n  layer: 情報 (Information) [primary] (文脈・意味付けが与えられたデータ);\n  layer: データ (Data) [slate] (事実・数値・生ログ等の未加工の記号);\n}',
-    tags: ['DIKW', 'データ', '情報', '知識', '知恵', '情報科学', 'ナレッジマネジメント', '科学・工学']
-  },
-  {
-    id: 'pyramid-ecological',
-    name: '生態ピラミッド（生物量・栄養段階）',
-    category: '科学・工学',
-    description: '生態系におけるエネルギー移動と生物量の階層構造。生産者（植物）から高次消費者（肉食動物）へのエネルギー減衰を可視化。',
-    code: '\\pyramid{\n  title: 生態ピラミッド (Ecological Pyramid);\n  layer: 高次消費者 (頂点捕食者) [accent] (大型肉食動物・猛禽類);\n  layer: 二次消費者 [warning] (小型肉食動物・両生類・魚類);\n  layer: 一次消費者 [cyan] (草食動物・昆虫・動物プランクトン);\n  layer: 生産者 [success] (植物・藻類・光合成生物);\n}',
-    tags: ['生態ピラミッド', '栄養段階', '生物', '食物連鎖', '生態系', '生産者', '消費者', '科学・工学']
-  },
-  {
-    id: 'pyramid-test',
-    name: 'テスト自動化ピラミッド（Testing Pyramid）',
-    category: '科学・工学',
-    description: 'ソフトウェア開発における費用対効果の高いテスト配分指針。基底の単体テストを最も多く、高コストなE2Eテストを最小限に抑える設計。',
-    code: '\\pyramid{\n  title: テスト自動化ピラミッド (Testing Pyramid);\n  layer: E2E・UIテスト [danger] (高コスト・低速・保守負荷大);\n  layer: 統合・APIテスト [warning] (サービス間連携・中コスト);\n  layer: 単体・ユニットテスト [primary] (高速・低コスト・高カバレッジの基盤);\n}',
-    tags: ['テスト自動化', 'アジャイル', '単体テスト', 'E2E', 'ソフトウェア工学', 'QA', '科学・工学']
-  },
-  {
-    id: 'pyramid-bloom',
-    name: 'ブルームのタキソノミー（思考力の6段階）',
-    category: '心理・思考',
-    description: '学習者の認知的思考プロセスを低次（記憶）から高次（評価・創造）へと分類した教育・研修の国際的標準フレームワーク。',
-    code: '\\pyramid{\n  title: ブルームのタキソノミー (Bloom\'s Taxonomy);\n  layer: 創造 (Create) [gold] (新たな構造・アイデアの生成);\n  layer: 評価 (Evaluate) [purple] (基準に基づく判断・批評);\n  layer: 分析 (Analyze) [primary] (要素の分解・関係性の特定);\n  layer: 応用 (Apply) [cyan] (具体的事態への知識の適用);\n  layer: 理解 (Understand) [emerald] (意味の把握・説明・要約);\n  layer: 記憶 (Remember) [muted] (事実・用語・定義の想起);\n}',
-    tags: ['ブルーム', 'タキソノミー', '思考力', '教育', '学習', '認知領域', '心理・思考']
-  }
-];
+const closeChemFormulaModal = closeDiagramLibraryModal;
+const closeChemModal = closeDiagramLibraryModal;
+const closeCircuitModal = closeDiagramLibraryModal;
+const closeTimingModal = closeDiagramLibraryModal;
+const closeFsmModal = closeDiagramLibraryModal;
+const closeFeynmanModal = closeDiagramLibraryModal;
+const closeSankeyModal = closeDiagramLibraryModal;
+const closeFlowchartModal = closeDiagramLibraryModal;
+const closeTableModal = closeDiagramLibraryModal;
+const closeMatrixModal = closeDiagramLibraryModal;
+const closePyramidModal = closeDiagramLibraryModal;
+const closeRadarModal = closeDiagramLibraryModal;
+const closeWaterfallModal = closeDiagramLibraryModal;
+const closeTreemapModal = closeDiagramLibraryModal;
+const closeGanttModal = closeDiagramLibraryModal;
+const closeCapitalTreeModal = closeDiagramLibraryModal;
+const closeBlockDiagramModal = closeDiagramLibraryModal;
+const closeRoadmapModal = closeDiagramLibraryModal;
+const closeSequenceModal = closeDiagramLibraryModal;
+const closeOpticsModal = closeDiagramLibraryModal;
+const closeSwotModal = closeDiagramLibraryModal;
+const closeChordProModal = closeDiagramLibraryModal;
+const closeGuitarChordsModal = closeDiagramLibraryModal;
+const closeChordFlowModal = closeDiagramLibraryModal;
+const closeVennModal = closeDiagramLibraryModal;
+const closeFishboneModal = closeDiagramLibraryModal;
+const closeEnergyLevelModal = closeDiagramLibraryModal;
+const closePotentialModal = closeDiagramLibraryModal;
+const closeNeuralNetworkModal = closeDiagramLibraryModal;
+const closeNnModal = closeDiagramLibraryModal;
+const closeGraphModal = closeDiagramLibraryModal;
 
-// ピラミッド図 ライブラリモーダルの制御
-const pyramidLibraryModal = document.getElementById('pyramid-library-modal');
-const closePyramidLibraryXBtn = document.getElementById('pyramid-modal-close-x');
-const closePyramidLibraryFooterBtn = document.getElementById('pyramid-modal-close-footer');
-const pyramidSearchInput = document.getElementById('pyramid-library-search-input');
-const pyramidCategoryTabs = document.querySelectorAll('.pyramid-category-tab');
-const pyramidCardGrid = document.getElementById('pyramid-library-card-grid');
-const pyramidEmptyMessage = document.getElementById('pyramid-library-empty-message');
-
-let currentPyramidCategory = 'すべて';
-
-function openPyramidModal() {
-  if (!pyramidLibraryModal) return;
-  pyramidLibraryModal.classList.add('active');
-  pyramidLibraryModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-  if (pyramidSearchInput) pyramidSearchInput.value = '';
-  currentPyramidCategory = 'すべて';
-  pyramidCategoryTabs.forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.category === 'すべて');
-  });
-  renderPyramidCards();
-  if (pyramidSearchInput) pyramidSearchInput.focus();
-}
-
-function closePyramidModal() {
-  if (!pyramidLibraryModal) return;
-  pyramidLibraryModal.classList.remove('active');
-  pyramidLibraryModal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-
-function renderPyramidCards() {
-  if (!pyramidCardGrid || !pyramidSearchInput) return;
-  const query = pyramidSearchInput.value.trim().toLowerCase();
-  pyramidCardGrid.innerHTML = '';
-
-  const filtered = pyramidLibrary.filter((item) => {
-    const matchCategory = currentPyramidCategory === 'すべて' || item.category === currentPyramidCategory;
-    const matchTags = Array.isArray(item.tags) && item.tags.some((t) => t.toLowerCase().includes(query));
-    const matchQuery =
-      !query ||
-      item.name.toLowerCase().includes(query) ||
-      item.description.toLowerCase().includes(query) ||
-      matchTags;
-    return matchCategory && matchQuery;
-  });
-
-  if (filtered.length === 0) {
-    if (pyramidEmptyMessage) pyramidEmptyMessage.style.display = 'block';
-  } else {
-    if (pyramidEmptyMessage) pyramidEmptyMessage.style.display = 'none';
-    filtered.forEach((item) => {
-      const card = document.createElement('div');
-      card.className = 'formula-card pyramid-card';
-
-      const top = document.createElement('div');
-      top.className = 'card-top';
-
-      const name = document.createElement('span');
-      name.className = 'card-name';
-      name.textContent = item.name;
-
-      const tag = document.createElement('span');
-      tag.className = 'card-tag pyramid-card-tag';
-      tag.textContent = item.category;
-
-      top.appendChild(name);
-      top.appendChild(tag);
-
-      const preview = document.createElement('div');
-      preview.className = 'card-preview pyramid-card-preview';
-      drawPyramidSvg(item.code, preview, null);
-
-      const desc = document.createElement('p');
-      desc.className = 'card-desc';
-      desc.textContent = item.description;
-
-      card.appendChild(top);
-      card.appendChild(preview);
-      card.appendChild(desc);
-
-      card.addEventListener('click', () => {
-        inputArea.value = item.code;
-        closePyramidModal();
-        updatePreview();
-      });
-
-      pyramidCardGrid.appendChild(card);
-    });
-  }
-}
-
-if (closePyramidLibraryXBtn) closePyramidLibraryXBtn.addEventListener('click', closePyramidModal);
-if (closePyramidLibraryFooterBtn) closePyramidLibraryFooterBtn.addEventListener('click', closePyramidModal);
-
-if (pyramidLibraryModal) {
-  pyramidLibraryModal.addEventListener('click', (e) => {
-    if (e.target === pyramidLibraryModal) {
-      closePyramidModal();
-    }
-  });
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && pyramidLibraryModal && pyramidLibraryModal.classList.contains('active')) {
-    closePyramidModal();
-  }
-});
-
-if (pyramidSearchInput) {
-  pyramidSearchInput.addEventListener('input', renderPyramidCards);
-}
-
-pyramidCategoryTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    pyramidCategoryTabs.forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentPyramidCategory = tab.dataset.category;
-    renderPyramidCards();
-  });
-});
 
 // ペースト時に円記号（半角・全角）を強制的に半角バックスラッシュへ置換する処理
 inputArea.addEventListener('paste', (event) => {
@@ -8119,72 +2569,161 @@ window.addEventListener('DOMContentLoaded', updatePreview);
 window.addEventListener('resize', updatePreview);
 
 // ==========================================
-// 統合ライブラリトリガー（表・図作成 / 式作成）の制御
+// 統合ヘッダーメニュー（表・図作成 / 式作成）の制御
 // ==========================================
-const openDiagramBtn = document.getElementById('open-diagram-btn');
-const diagramLibrarySelect = document.getElementById('diagram-library-select');
+const diagramMenuBtn = document.getElementById('diagram-menu-btn');
+const diagramMenuPanel = document.getElementById('diagram-menu-panel');
+const formulaMenuBtn = document.getElementById('formula-menu-btn');
+const formulaMenuPanel = document.getElementById('formula-menu-panel');
 
-if (openDiagramBtn) {
-  openDiagramBtn.addEventListener('click', () => {
-    const val = diagramLibrarySelect ? diagramLibrarySelect.value : 'table';
-    switch (val) {
-      case 'table':
-        if (typeof openTableModal === 'function') openTableModal();
-        break;
-      case 'matrix':
-        if (typeof openMatrixModal === 'function') openMatrixModal();
-        break;
-      case 'pyramid':
-        if (typeof openPyramidModal === 'function') openPyramidModal();
-        break;
-      case 'flowchart':
-        if (typeof openFlowchartModal === 'function') openFlowchartModal();
-        break;
-      case 'sankey':
-        if (typeof openSankeyModal === 'function') openSankeyModal();
-        break;
-      case 'fsm':
-        if (typeof openFsmModal === 'function') openFsmModal();
-        break;
-      case 'timing':
-        if (typeof openTimingModal === 'function') openTimingModal();
-        break;
-      case 'circuit':
-        if (typeof openCircuitModal === 'function') openCircuitModal();
-        break;
-      default:
-        if (typeof openTableModal === 'function') openTableModal();
-        break;
+function closeAllHeaderMenus() {
+  if (diagramMenuPanel) diagramMenuPanel.classList.remove('active');
+  if (diagramMenuBtn) {
+    diagramMenuBtn.classList.remove('active');
+    diagramMenuBtn.setAttribute('aria-expanded', 'false');
+  }
+  if (formulaMenuPanel) formulaMenuPanel.classList.remove('active');
+  if (formulaMenuBtn) {
+    formulaMenuBtn.classList.remove('active');
+    formulaMenuBtn.setAttribute('aria-expanded', 'false');
+  }
+}
+
+if (diagramMenuBtn && diagramMenuPanel) {
+  diagramMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = !diagramMenuPanel.classList.contains('active');
+    closeAllHeaderMenus();
+    if (willOpen) {
+      diagramMenuPanel.classList.add('active');
+      diagramMenuBtn.classList.add('active');
+      diagramMenuBtn.setAttribute('aria-expanded', 'true');
     }
   });
 }
 
-const openFormulaBtn = document.getElementById('open-formula-btn');
-const formulaLibrarySelect = document.getElementById('formula-library-select');
-
-if (openFormulaBtn) {
-  openFormulaBtn.addEventListener('click', () => {
-    const val = formulaLibrarySelect ? formulaLibrarySelect.value : 'math';
-    switch (val) {
-      case 'math':
-        if (typeof openModal === 'function') openModal();
-        break;
-      case 'chem-formula':
-        if (typeof openChemFormulaModal === 'function') openChemFormulaModal();
-        break;
-      case 'chem-struct':
-      case 'chem':
-        if (typeof openChemModal === 'function') openChemModal();
-        break;
-      case 'feynman':
-        if (typeof openFeynmanModal === 'function') openFeynmanModal();
-        break;
-      default:
-        if (typeof openModal === 'function') openModal();
-        break;
+if (formulaMenuBtn && formulaMenuPanel) {
+  formulaMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = !formulaMenuPanel.classList.contains('active');
+    closeAllHeaderMenus();
+    if (willOpen) {
+      formulaMenuPanel.classList.add('active');
+      formulaMenuBtn.classList.add('active');
+      formulaMenuBtn.setAttribute('aria-expanded', 'true');
     }
   });
 }
+
+// ドロップダウンメニュー外クリックまたはEscキーで非表示
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#diagram-dropdown-wrapper') && !e.target.closest('#formula-dropdown-wrapper')) {
+    closeAllHeaderMenus();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeAllHeaderMenus();
+  }
+});
+
+// 表・図作成の種別マッピング
+const DIAGRAM_MODAL_TYPE_MAP = {
+  table: 'table',
+  matrix: 'matrix',
+  pyramid: 'pyramid',
+  radar: 'radar',
+  waterfall: 'waterfall',
+  treemap: 'treemap',
+  gantt: 'gantt',
+  capitaltree: 'capitaltree',
+  radialtree: 'capitaltree',
+  orgchart: 'capitaltree',
+  blockdiagram: 'blockdiagram',
+  sequence: 'sequence',
+  optics: 'optics',
+  energylevel: 'energylevel',
+  potential: 'potential',
+  nn: 'nn',
+  graph: 'graph',
+  venn: 'venn',
+  fishbone: 'fishbone',
+  swot: 'swot',
+  timeline: 'roadmap',
+  roadmap: 'roadmap',
+  flowchart: 'flowchart',
+  sankey: 'sankey',
+  bs: 'sankey',
+  pl: 'sankey',
+  fsm: 'fsm',
+  timing: 'timing',
+  circuit: 'circuit',
+  crystal: 'crystal',
+  scenario: 'scenario',
+  tensor: 'tensor',
+  chart: 'chart',
+  barchart: 'chart',
+  linechart: 'chart',
+  piechart: 'chart'
+};
+
+// 表・図作成の項目ディスパッチ
+function triggerDiagram(val) {
+  const type = DIAGRAM_MODAL_TYPE_MAP[val] || 'table';
+  if (typeof openDiagramLibraryModal === 'function') {
+    openDiagramLibraryModal(type);
+  } else if (typeof openTableModal === 'function') {
+    openTableModal();
+  }
+}
+
+// 式作成の種別マッピング
+const FORMULA_MODAL_TYPE_MAP = {
+  'chem-formula': 'chem-formula',
+  'chem-struct': 'chem',
+  chem: 'chem',
+  feynman: 'feynman',
+  chordpro: 'chordpro',
+  guitarchords: 'guitarchords',
+  chordflow: 'chordflow',
+  crystal: 'crystal',
+  scenario: 'scenario',
+  tensor: 'tensor'
+};
+
+// 式作成の項目ディスパッチ
+function triggerFormula(val) {
+  const diagramType = FORMULA_MODAL_TYPE_MAP[val];
+  if (diagramType && typeof openDiagramLibraryModal === 'function') {
+    openDiagramLibraryModal(diagramType);
+  } else if (typeof openModal === 'function') {
+    openModal();
+  }
+}
+
+// メニュー項目のクリックイベント登録
+document.querySelectorAll('#diagram-menu-panel .menu-item-btn').forEach((btn) => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const diagramType = btn.dataset.diagram;
+    closeAllHeaderMenus();
+    if (diagramType) {
+      triggerDiagram(diagramType);
+    }
+  });
+});
+
+document.querySelectorAll('#formula-menu-panel .menu-item-btn').forEach((btn) => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const formulaType = btn.dataset.formula;
+    closeAllHeaderMenus();
+    if (formulaType) {
+      triggerFormula(formulaType);
+    }
+  });
+});
 
 // ==========================================
 // 画像ファイル出力モーダルの制御
@@ -8195,6 +2734,8 @@ const closeExportXBtn = document.getElementById('export-modal-close-x');
 const closeExportFooterBtn = document.getElementById('export-modal-close-footer');
 const exportSizeSlider = document.getElementById('export-size-slider');
 const exportSizeValue = document.getElementById('export-size-value');
+const exportWidthSlider = document.getElementById('export-width-slider');
+const exportWidthValue = document.getElementById('export-width-value');
 const exportPaddingSlider = document.getElementById('export-padding-slider');
 const exportPaddingValue = document.getElementById('export-padding-value');
 const exportTarget = document.getElementById('export-target');
@@ -8217,56 +2758,29 @@ function openExportModal() {
   // メインプレビューから数式または構造式要素を複製（変倍transformをリセットして鮮明化）
   exportTarget.innerHTML = '';
   const katexSource = previewArea.querySelector('.katex');
-  const chemSources = previewArea.querySelectorAll('.chem-structure-container');
-  const circuitSources = previewArea.querySelectorAll('.circuit-preview-container');
-  const timingSources = previewArea.querySelectorAll('.timing-preview-container');
-  const fsmSources = previewArea.querySelectorAll('.fsm-preview-container');
-  const feynmanSources = previewArea.querySelectorAll('.feynman-preview-container');
-  const sankeySources = previewArea.querySelectorAll('.sankey-preview-container');
-  const flowchartSources = previewArea.querySelectorAll('.flowchart-preview-container');
-  const tableSources = previewArea.querySelectorAll('.table-preview-container');
-  const matrixSources = previewArea.querySelectorAll('.matrix-preview-container');
-  const pyramidSources = previewArea.querySelectorAll('.pyramid-preview-container');
+  const diagramContainers = previewArea.querySelectorAll('[class*="-preview-container"], .chem-structure-container');
 
-  if (tableSources.length > 0) {
-    tableSources.forEach((tblEl) => {
-      exportTarget.appendChild(tblEl.cloneNode(true));
-    });
-  } else if (matrixSources.length > 0) {
-    matrixSources.forEach((matEl) => {
-      exportTarget.appendChild(matEl.cloneNode(true));
-    });
-  } else if (pyramidSources.length > 0) {
-    pyramidSources.forEach((pyrEl) => {
-      exportTarget.appendChild(pyrEl.cloneNode(true));
-    });
-  } else if (flowchartSources.length > 0) {
-    flowchartSources.forEach((flowEl) => {
-      exportTarget.appendChild(flowEl.cloneNode(true));
-    });
-  } else if (sankeySources.length > 0) {
-    sankeySources.forEach((sanEl) => {
-      exportTarget.appendChild(sanEl.cloneNode(true));
-    });
-  } else if (feynmanSources.length > 0) {
-    feynmanSources.forEach((feyEl) => {
-      exportTarget.appendChild(feyEl.cloneNode(true));
-    });
-  } else if (fsmSources.length > 0) {
-    fsmSources.forEach((fsmEl) => {
-      exportTarget.appendChild(fsmEl.cloneNode(true));
-    });
-  } else if (timingSources.length > 0) {
-    timingSources.forEach((timEl) => {
-      exportTarget.appendChild(timEl.cloneNode(true));
-    });
-  } else if (circuitSources.length > 0) {
-    circuitSources.forEach((circEl) => {
-      exportTarget.appendChild(circEl.cloneNode(true));
-    });
-  } else if (chemSources.length > 0) {
-    chemSources.forEach((chemEl) => {
-      exportTarget.appendChild(chemEl.cloneNode(true));
+  if (diagramContainers.length > 0) {
+    diagramContainers.forEach((containerEl) => {
+      const clone = containerEl.cloneNode(true);
+
+      // chordpro / chordflow の横幅情報を確実に引き継ぐ
+      const origCp = containerEl.querySelector('.chordpro-container');
+      const cloneCp = clone.querySelector('.chordpro-container');
+      if (origCp && cloneCp) {
+        const measuredWidth = Math.ceil(origCp.getBoundingClientRect().width);
+        if (measuredWidth > 0) cloneCp.dataset.baseWidth = measuredWidth;
+      }
+
+      const origCf = containerEl.querySelector('.chordflow-container');
+      const cloneCf = clone.querySelector('.chordflow-container');
+      if (origCf && cloneCf) {
+        const storedBase = parseFloat(origCf.dataset.baseWidth);
+        const measuredWidth = Math.ceil(origCf.getBoundingClientRect().width);
+        cloneCf.dataset.baseWidth = (storedBase && storedBase > 0) ? storedBase : (measuredWidth > 0 ? measuredWidth : 760);
+      }
+
+      exportTarget.appendChild(clone);
     });
   } else if (katexSource) {
     const clone = katexSource.cloneNode(true);
@@ -8285,30 +2799,82 @@ function openExportModal() {
     exportTarget.appendChild(fallback);
   }
 
-  // 表専用オプションの表示/非表示（エクスポート対象に表が含まれる場合のみ表示）
-  const hasTable = exportTarget.querySelector('.physi-table') !== null;
+  // 横幅スライダーのリセット（初期値100%）
+  if (exportWidthSlider) {
+    exportWidthSlider.value = '100';
+  }
+
+  // 表の色合いラジオボタンを「デフォルト（元の指定色）」にリセット
+  const defaultThemeRadio = document.querySelector('input[name="export-table-theme"][value="default"]');
+  if (defaultThemeRadio) {
+    defaultThemeRadio.checked = true;
+  }
+
+  // 表専用オプションの表示/非表示（エクスポート対象に表または日程表が含まれる場合のみ表示）
+  const hasTable = exportTarget.querySelector('.physi-table, .matrix-schedule-table') !== null;
   if (exportTableOptions) {
     exportTableOptions.style.display = hasTable ? 'block' : 'none';
   }
 
-  // クローン内のSVGの初期基準寸法を退避
-  exportTarget.querySelectorAll('svg').forEach((svg) => {
-    const rawW = svg.getAttribute('width') || '';
-    const rawH = svg.getAttribute('height') || '';
-    let baseW = (!rawW.includes('%') && rawW) ? parseFloat(rawW) : null;
-    let baseH = (!rawH.includes('%') && rawH) ? parseFloat(rawH) : null;
-    if (!baseW || !baseH) {
-      const vb = svg.getAttribute('viewBox');
-      if (vb) {
-        const parts = vb.trim().split(/\s+/).map(Number);
-        if (parts.length === 4) {
-          baseW = baseW || parts[2];
-          baseH = baseH || parts[3];
-        }
+  // 表の初期基準幅を退避（エディタ画面の表示幅をそのまま初期値とする）
+  const targetTable = exportTarget.querySelector('.physi-table, .matrix-schedule-table');
+  if (targetTable) {
+    const origTable = previewArea.querySelector('.physi-table, .matrix-schedule-table');
+    const origContainer = previewArea.querySelector('.table-preview-container, .matrix-preview-container');
+    let naturalWidth = 0;
+    if (origTable) {
+      naturalWidth = Math.round(origTable.getBoundingClientRect().width);
+    }
+    if (origContainer) {
+      const containerStyle = window.getComputedStyle(origContainer);
+      const padLeft = parseFloat(containerStyle.paddingLeft) || 0;
+      const padRight = parseFloat(containerStyle.paddingRight) || 0;
+      const containerInnerWidth = Math.round(origContainer.clientWidth - padLeft - padRight);
+      if (containerInnerWidth > naturalWidth) {
+        naturalWidth = containerInnerWidth;
       }
     }
-    svg.dataset.baseWidth = baseW || 300;
-    svg.dataset.baseHeight = baseH || 200;
+    if (!naturalWidth || naturalWidth < 300) {
+      naturalWidth = targetTable.scrollWidth || 700;
+    }
+    targetTable.dataset.baseTableWidth = naturalWidth.toFixed(0);
+  }
+
+  // クローン内のSVGの初期基準寸法を退避（viewBox の設計寸法を最優先とし、原寸大・高解像度を確保）
+  const origSvgs = previewArea.querySelectorAll('svg');
+  exportTarget.querySelectorAll('svg').forEach((svg, idx) => {
+    let baseW = null;
+    let baseH = null;
+
+    // 1. viewBox から設計寸法（ネイティブサイズ）を取得
+    const vb = svg.getAttribute('viewBox');
+    if (vb) {
+      const parts = vb.trim().split(/\s+/).map(Number);
+      if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+        baseW = parts[2];
+        baseH = parts[3];
+      }
+    }
+
+    // 2. SVG属性（width / height）にピクセル数値が指定されている場合
+    if (!baseW || !baseH) {
+      const rawW = svg.getAttribute('width') || '';
+      const rawH = svg.getAttribute('height') || '';
+      if (rawW && !rawW.includes('%')) baseW = parseFloat(rawW);
+      if (rawH && !rawH.includes('%')) baseH = parseFloat(rawH);
+    }
+
+    // 3. 上記がない場合、エディタ画面での実測表示幅をフォールバックとして採用
+    if (!baseW || !baseH) {
+      const origSvg = origSvgs[idx];
+      if (origSvg) {
+        baseW = Math.round(origSvg.getBoundingClientRect().width);
+        baseH = Math.round(origSvg.getBoundingClientRect().height);
+      }
+    }
+
+    svg.dataset.baseWidth = baseW || 400;
+    svg.dataset.baseHeight = baseH || 300;
   });
 
   updateExportStyle();
@@ -8324,19 +2890,34 @@ function closeExportModal() {
 function updateExportStyle() {
   if (!exportTarget || !exportPaddingSlider) return;
 
-  // 1. 記号・画像サイズ（倍率）の反映
+  // 横幅（倍率）の反映
+  const widthPercent = (exportWidthSlider && parseInt(exportWidthSlider.value, 10)) || 100;
+  if (exportWidthValue) {
+    exportWidthValue.textContent = `${widthPercent}%`;
+  }
+  const widthRatio = widthPercent / 100;
+
+  // 1. 記号・画像サイズ（倍率）と横幅（倍率）の反映
   if (exportSizeSlider && exportSizeValue) {
     const sizePercent = parseInt(exportSizeSlider.value, 10) || 100;
     exportSizeValue.textContent = `${sizePercent}%`;
     const scale = sizePercent / 100;
 
-    // SVG（波形・回路図・化学構造式）の寸法変倍
+    // SVG（波形・回路図・化学構造式・ダイアグラム全般）の寸法変倍
     exportTarget.querySelectorAll('svg').forEach((svg) => {
       const baseW = parseFloat(svg.dataset.baseWidth);
       const baseH = parseFloat(svg.dataset.baseHeight);
       if (baseW && baseH) {
-        svg.setAttribute('width', (baseW * scale).toFixed(1));
+        svg.setAttribute('width', (baseW * scale * widthRatio).toFixed(1));
         svg.setAttribute('height', (baseH * scale).toFixed(1));
+        if (widthRatio !== 1) {
+          if (!svg.dataset.origPreserveAspectRatio) {
+            svg.dataset.origPreserveAspectRatio = svg.getAttribute('preserveAspectRatio') || 'xMidYMid meet';
+          }
+          svg.setAttribute('preserveAspectRatio', 'none');
+        } else if (svg.dataset.origPreserveAspectRatio) {
+          svg.setAttribute('preserveAspectRatio', svg.dataset.origPreserveAspectRatio);
+        }
       }
     });
 
@@ -8361,8 +2942,13 @@ function updateExportStyle() {
     });
 
     // 表（テーブル）の文字サイズ変倍
-    exportTarget.querySelectorAll('.physi-table').forEach((tbl) => {
+    exportTarget.querySelectorAll('.physi-table, .matrix-schedule-table').forEach((tbl) => {
       tbl.style.fontSize = `${(14 * scale).toFixed(1)}px`;
+    });
+
+    // コード進行の文字サイズ変倍
+    exportTarget.querySelectorAll('.chordpro-container').forEach((cp) => {
+      cp.style.fontSize = `${(15 * scale).toFixed(1)}px`;
     });
   }
 
@@ -8379,6 +2965,17 @@ function updateExportStyle() {
     exportTarget.classList.remove('transparent-bg');
   }
 
+  // 5. 表（テーブル）専用オプションの反映（表の横幅 & セル余白割合 & テーマカラー）
+  const tableEl = exportTarget.querySelector('.physi-table, .matrix-schedule-table');
+  const hasCustomTableStyle = tableEl && (
+    tableEl.classList.contains('table-style-dark') ||
+    tableEl.classList.contains('table-style-academic') ||
+    tableEl.classList.contains('table-style-accent') ||
+    tableEl.classList.contains('table-style-blue') ||
+    tableEl.classList.contains('table-style-rose') ||
+    tableEl.classList.contains('matrix-schedule-table')
+  );
+
   // 4. 配色
   const selectedColorMode = document.querySelector('input[name="export-color-mode"]:checked')?.value || 'color';
   if (selectedColorMode === 'monochrome') {
@@ -8386,12 +2983,18 @@ function updateExportStyle() {
     if (exportTableThemeGroup) exportTableThemeGroup.style.display = 'none';
   } else {
     exportTarget.classList.remove('monochrome-mode');
-    if (exportTableThemeGroup) exportTableThemeGroup.style.display = 'block';
+    if (exportTableThemeGroup) {
+      exportTableThemeGroup.style.display = tableEl ? 'block' : 'none';
+    }
   }
 
-  // 5. 表（テーブル）専用オプションの反映（セル余白割合 & テーマカラー）
-  const tableEl = exportTarget.querySelector('.physi-table');
   if (tableEl) {
+    // 表の横幅の反映
+    const baseWidth = parseFloat(tableEl.dataset.baseTableWidth) || 700;
+    const calcWidth = Math.round(baseWidth * widthRatio);
+    tableEl.style.width = `${calcWidth}px`;
+    tableEl.style.minWidth = `${calcWidth}px`;
+
     // セル余白割合の反映
     if (exportCellPaddingSlider && exportCellPaddingValue) {
       const padPercent = parseInt(exportCellPaddingSlider.value, 10) || 100;
@@ -8420,8 +3023,7 @@ function updateExportStyle() {
       });
     }
 
-    // テーマカラーの反映
-    const selectedTheme = document.querySelector('input[name="export-table-theme"]:checked')?.value || 'blue';
+    // テーマカラーの反映（既存のテーマカラーをリセット）
     tableEl.classList.remove(
       'table-theme-blue',
       'table-theme-slate',
@@ -8432,13 +3034,53 @@ function updateExportStyle() {
       'table-theme-cyan',
       'table-theme-navy'
     );
-    tableEl.classList.add(`table-theme-${selectedTheme}`);
+
+    // 選択されたテーマカラー（デフォルト以外）を適用し、各スタイルの構造を維持したまま色付け
+    const selectedTheme = document.querySelector('input[name="export-table-theme"]:checked')?.value || 'default';
+    if (selectedTheme !== 'default') {
+      tableEl.classList.add(`table-theme-${selectedTheme}`);
+    }
+  }
+
+  // 6. コード進行 (ChordPro) の横幅反映
+  const chordproEl = exportTarget.querySelector('.chordpro-container');
+  if (chordproEl) {
+    const baseWidth = parseFloat(chordproEl.dataset.baseWidth);
+    if (widthRatio === 1 || !baseWidth) {
+      chordproEl.style.width = 'fit-content';
+      chordproEl.style.maxWidth = 'fit-content';
+    } else {
+      const calcWidth = Math.round(baseWidth * widthRatio);
+      chordproEl.style.width = `${calcWidth}px`;
+      chordproEl.style.maxWidth = `${calcWidth}px`;
+    }
+  }
+
+  // 7. ギターコード図 (guitarchords) の横幅反映
+  const guitarEl = exportTarget.querySelector('.guitarchords-container');
+  if (guitarEl) {
+    const baseWidth = parseFloat(guitarEl.dataset.baseWidth) || 720;
+    const calcWidth = Math.round(baseWidth * widthRatio);
+    guitarEl.style.width = `${calcWidth}px`;
+    guitarEl.style.maxWidth = `${calcWidth}px`;
+  }
+
+  // 8. コード進行フロー (ChordFlow) の横幅反映
+  const chordFlowEl = exportTarget.querySelector('.chordflow-container');
+  if (chordFlowEl) {
+    const baseWidth = parseFloat(chordFlowEl.dataset.baseWidth) || 760;
+    const calcWidth = Math.round(baseWidth * widthRatio);
+    chordFlowEl.style.width = `${calcWidth}px`;
+    chordFlowEl.style.maxWidth = `${calcWidth}px`;
   }
 }
 
 // コントロール変更イベント
 if (exportSizeSlider) {
   exportSizeSlider.addEventListener('input', updateExportStyle);
+}
+if (exportWidthSlider) {
+  exportWidthSlider.addEventListener('input', updateExportStyle);
 }
 if (exportPaddingSlider) {
   exportPaddingSlider.addEventListener('input', updateExportStyle);
@@ -8555,6 +3197,9 @@ if (exportDownloadBtn) {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      // PNG保存完了後に設定ウィンドウを自動で閉じる
+      closeExportModal();
     } catch (err) {
       console.error('画像生成エラー:', err);
       alert('画像の生成に失敗しました: ' + err.message);

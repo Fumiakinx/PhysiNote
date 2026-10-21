@@ -1,0 +1,155 @@
+# 今後追加を検討する図一覧
+
+---
+
+## 1. 式作成・理工学カテゴリの追加候補
+（現在候補となっている未対応項目はありません）
+
+---
+
+## 未対応図の使い分け一覧
+
+| カテゴリ | 図の種類 | 主な役割・用途 |
+| :--- | :--- | :--- |
+| - | - | 全候補対応完了 |
+
+---
+
+## 対応完了済み（対応図および対応構文一覧）
+
+### 1. ビジネス・分析・財務
+- **表 (データテーブル)**
+  - 構文名:
+    - **Markdown テーブル**
+    - **CSV / TSV**
+    - **LaTeX tabular** (`\begin{tabular}`, `\begin{table}`, `\hline`, `\cline`, `\rowspan`, `\multicolumn`, `\centering`, `center 環境`, `\caption` [自動採番], `\label`, `\ref` [相互参照解決], 前後解説文, `\toprule`/`\midrule`/`\bottomrule`/`\cmidrule` [booktabs], `\multirow`, `\rowcolor`/`\cellcolor`, `p{幅}`/`m{幅}`/`b{幅}`/`*{n}{...}`/`@{...}` [列拡張], `\makecell`/`\thead`, `\\[幅]`, `\arraystretch`)
+- **グラフ・統計チャート (棒・折れ線・円・複合)**
+  - 構文名:
+    - 独自構文 (`\chart`)
+    - **LaTeX pgfplots** (`\begin{axis}`, `\addplot`)
+    - **LaTeX pgf-pie** (`\pie`)
+- **タイムライン・ロードマップ (年表・マイルストーン)**
+  - 構文名:
+    - 独自構文 (`\roadmap`)
+    - **LaTeX chronosys** (`\startchronology`, `\chronoevent`, `\chronoperiod`)
+    - **LaTeX smartdiagram** (`\smartdiagram[sequence diagram]`)
+- **SWOT分析マトリクス**
+  - 構文名:
+    - 独自構文 (`\swot`)
+- **ガントチャート (工程・進捗)**
+  - 構文名:
+    - 独自構文 (`\gantt`)
+    - **LaTeX pgfgantt** (`\begin{ganttchart}`, `\ganttbar`, `\ganttmilestone`)
+- **2軸マップ・マトリクス図**
+  - 構文名:
+    - 独自構文 (`\matrixmap`, `\matrix`)
+    - **LaTeX TikZ** (`\begin{tikzpicture}`)
+- **ピラミッド図・階層図**
+  - 構文名:
+    - 独自構文 (`\pyramid`)
+    - **LaTeX smartdiagram** (`\smartdiagram[priority descriptive diagram]`)
+- **レーダーチャート**
+  - 構文名:
+    - 独自構文 (`\radar`)
+    - **LaTeX tkz-kiviat** (`\tkzKiviatDiagram`, `\tkzKiviatLine`, `\tkzKiviatGrad`)
+- **ウォーターフォール図 (増減要因)**
+  - 構文名:
+    - 独自構文 (`\waterfall`)
+    - **LaTeX pgfplots** (`\begin{axis}[ybar stacked]`)
+    - **LaTeX TikZ** (`\draw rectangle`)
+- **ツリーマップ**
+  - 構文名:
+    - 独自構文 (`\treemap`)
+    - **LaTeX TikZ** (`\draw rectangle`)
+- **サンキーダイアグラム (流量・決算B/S・P/L)**
+  - 構文名:
+    - 独自構文 (`\sankey`, `\bs`, `\pl`)
+    - **LaTeX TikZ** (`\begin{tikzpicture}`)
+- **ベン図 (集合・重複)**
+  - 構文名:
+    - 独自構文 (`\venn`, `\venndiagram`)
+    - **LaTeX venndiagram** (`\begin{venndiagram2sets}`, `\begin{venndiagram3sets}`, `\fillACapB`)
+- **特性要因図 (フィッシュボーン図)**
+  - 構文名:
+    - 独自構文 (`\fishbone`)
+    - **LaTeX TikZ** (`\begin{tikzpicture}`)
+- **汎用シナリオ・概念図 (フリーフロー・脅威図)**
+  - 構文名:
+    - 独自構文 (`\scenario`)
+
+### 2. 組織・グループ構造
+- **資本構成ツリー図 (持株比率・グループ会社)**
+  - 構文名:
+    - 独自構文 (`\capitaltree`)
+- **放射状ポートフォリオツリー図**
+  - 構文名:
+    - 独自構文 (`\radialtree`)
+- **組織階層図 (指揮命令系統)**
+  - 構文名:
+    - 独自構文 (`\orgchart`)
+
+### 3. 理工・情報・制御システム
+- **ブロック図 / システム構成図**
+  - 構文名:
+    - 独自構文 (`\blockdiagram`)
+- **フローチャート**
+  - 構文名:
+    - 独自構文 (`\flowchart`)
+- **状態遷移図 (オートマトン)**
+  - 構文名:
+    - 独自構文 (`\fsm`, `\automaton`)
+- **波形・タイミング図**
+  - 構文名:
+    - 独自構文 (`\timing` / **TikZ-timing準拠信号記法**)
+- **電気回路図**
+  - 構文名:
+    - 独自構文 (`\circuit`)
+    - **LaTeX CircuiTikZ** (`\draw to[...]`)
+- **シーケンス図 (UMLメッセージ)**
+  - 構文名:
+    - 独自構文 (`\sequence`)
+- **光学系・実験配置図**
+  - 構文名:
+    - 独自構文 (`\optics`)
+- **エネルギー準位図・バンド図**
+  - 構文名:
+    - 独自構文 (`\energylevel`, `\banddiagram`)
+- **ポテンシャルエネルギー曲線**
+  - 構文名:
+    - 独自構文 (`\potential`)
+- **ニューラルネットワーク構造図**
+  - 構文名:
+    - 独自構文 (`\nn`)
+- **有向グラフ / ネットワーク図 (最短経路・DAG・MST)**
+  - 構文名:
+    - 独自構文 (`\graph`)
+- **結晶構造・格子モデル (2D/3D・ブラベ格子・断面充填)**
+  - 構文名:
+    - 独自構文 (`\crystal`)
+
+### 4. 数式・科学・音楽
+- **物理・数学の数式**
+  - 構文名:
+    - **LaTeX / KaTeX 数式構文** (`$...$`, `$$...$$`)
+- **化学式 (分子式・反応式)**
+  - 構文名:
+    - **LaTeX mhchem** (`\ce{...}`)
+- **化学構造式 (平面構造式)**
+  - 構文名:
+    - **LaTeX chemfig** (`\chemfig{...}`)
+    - **SMILES** (`\smiles{...}`)
+- **ファインマン・ダイアグラム (素粒子相互作用)**
+  - 構文名:
+    - 独自構文 (`\feynman` / **TikZ-Feynman準拠記法**)
+- **テンソルネットワーク図 (ペンローズ表記・量子回路)**
+  - 構文名:
+    - 独自構文 (`\tensornetwork`)
+- **コード進行**
+  - 構文名:
+    - **ChordPro** (`\chordpro{...}`)
+- **ギターコード図 (指板ダイアグラム)**
+  - 構文名:
+    - **LaTeX guitarchords** (`\guitarchords{ \chord{...} }`)
+- **コード進行フロー (度数・アナライズ)**
+  - 構文名:
+    - 独自構文 (`\chordflow`)

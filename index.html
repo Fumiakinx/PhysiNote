@@ -24,52 +24,95 @@
   </div>
 
   <div class="editor-card">
-    <h1>PhysiNote</h1>
+    <header class="app-header-bar">
+      <div class="header-left">
+        <h1 class="app-logo">PhysiNote</h1>
+        <div class="header-nav-group">
+          <!-- 表・図作成メニュー -->
+          <div class="dropdown-wrapper" id="diagram-dropdown-wrapper">
+            <button type="button" id="diagram-menu-btn" class="nav-btn nav-btn-primary" aria-expanded="false" aria-haspopup="true">
+              <span class="btn-icon">📊</span> 表・図作成 <span class="btn-caret">▾</span>
+            </button>
+            <div id="diagram-menu-panel" class="dropdown-menu-panel" aria-hidden="true">
+              <div class="menu-column">
+                <div class="menu-col-header">── ビジネス・分析・財務 ──</div>
+                <button type="button" class="menu-item-btn" data-diagram="table">📋 表 (Markdown / CSV / LaTeX)</button>
+                <button type="button" class="menu-item-btn" data-diagram="chart">📊 グラフ (棒・折れ線・円 / 複合・累積)</button>
+                <button type="button" class="menu-item-btn" data-diagram="timeline">⏱️ タイムライン (年表・マイルストーン)</button>
+                <button type="button" class="menu-item-btn" data-diagram="swot">🧭 SWOT分析マトリクス (2×2 戦略)</button>
+                <button type="button" class="menu-item-btn" data-diagram="gantt">📅 ガントチャート (工程・進捗)</button>
+                <button type="button" class="menu-item-btn" data-diagram="matrix">🎯 2軸マップ・マトリクス図</button>
+                <button type="button" class="menu-item-btn" data-diagram="pyramid">🔺 ピラミッド図・階層図</button>
+                <button type="button" class="menu-item-btn" data-diagram="radar">🕸️ レーダーチャート (クモの巣)</button>
+                <button type="button" class="menu-item-btn" data-diagram="waterfall">📊 ウォーターフォール図 (増減要因)</button>
+                <button type="button" class="menu-item-btn" data-diagram="treemap">🧱 ツリーマップ (構成比・ヒートマップ)</button>
+                <button type="button" class="menu-item-btn" data-diagram="sankey">🔀 サンキー図 (流量・決算B/S・P/L)</button>
+                <button type="button" class="menu-item-btn" data-diagram="venn">⭕ ベン図 (集合・重複)</button>
+                <button type="button" class="menu-item-btn" data-diagram="fishbone">🐟 フィッシュボーン図 (特性要因図)</button>
+                <button type="button" class="menu-item-btn" data-diagram="scenario">🔀 汎用シナリオ・概念図 (フリーフロー・脅威図)</button>
+              </div>
+              <div class="menu-column">
+                <div class="menu-col-header">── 組織・グループ構造 ──</div>
+                <button type="button" class="menu-item-btn" data-diagram="capitaltree">🌳 資本構成・組織ツリー図 (持株・組織図・放射状)</button>
 
-    <div class="library-trigger-container">
-      <!-- 1. 表・図作成プルダウン群（初期値：表） -->
-      <div class="library-control-unit">
-        <label for="diagram-library-select" class="library-unit-label">表・図作成</label>
-        <div class="select-btn-group">
-          <select id="diagram-library-select" class="library-select">
-            <option value="table" selected>📋 表 (Markdown / CSV / LaTeX)</option>
-            <option value="matrix">🎯 2軸マップ・マトリクス図</option>
-            <option value="pyramid">🔺 ピラミッド図・階層図</option>
-            <option value="flowchart">📊 フローチャート</option>
-            <option value="sankey">🔀 サンキー図</option>
-            <option value="fsm">🔄 状態遷移図</option>
-            <option value="timing">⏱️ 波形・タイミング図</option>
-            <option value="circuit">⚡ 回路図</option>
-          </select>
-          <button type="button" id="open-diagram-btn" class="library-action-btn diagram-action-btn">
-            開く
-          </button>
+                <div class="menu-col-header" style="margin-top: 12px;">── 理工・情報・制御システム ──</div>
+                <button type="button" class="menu-item-btn" data-diagram="blockdiagram">🔲 ブロック図 / システム構成図</button>
+                <button type="button" class="menu-item-btn" data-diagram="flowchart">📊 フローチャート</button>
+                <button type="button" class="menu-item-btn" data-diagram="fsm">🔄 状態遷移図 (オートマトン)</button>
+                <button type="button" class="menu-item-btn" data-diagram="timing">⏱️ 波形・タイミング図</button>
+                <button type="button" class="menu-item-btn" data-diagram="circuit">⚡ 電気回路図</button>
+                <button type="button" class="menu-item-btn" data-diagram="sequence">🔀 シーケンス図 (UMLメッセージ)</button>
+                <button type="button" class="menu-item-btn" data-diagram="optics">🔬 光学系・実験配置図</button>
+                <button type="button" class="menu-item-btn" data-diagram="energylevel">⚡ エネルギー準位図・バンド図</button>
+                <button type="button" class="menu-item-btn" data-diagram="potential">〰️ ポテンシャルエネルギー曲線</button>
+                <button type="button" class="menu-item-btn" data-diagram="nn">🧠 ニューラルネットワーク構造図</button>
+                <button type="button" class="menu-item-btn" data-diagram="graph">🔀 有向グラフ / ネットワーク図</button>
+                <button type="button" class="menu-item-btn" data-diagram="crystal">💎 結晶構造・格子モデル (2D/3D簡易格子)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 式作成メニュー -->
+          <div class="dropdown-wrapper" id="formula-dropdown-wrapper">
+            <button type="button" id="formula-menu-btn" class="nav-btn nav-btn-primary" aria-expanded="false" aria-haspopup="true">
+              <span class="btn-icon">📐</span> 式作成 <span class="btn-caret">▾</span>
+            </button>
+            <div id="formula-menu-panel" class="dropdown-menu-panel formula-dropdown-panel" aria-hidden="true">
+              <div class="menu-column">
+                <div class="menu-col-header">── 物理・数学・科学 ──</div>
+                <button type="button" class="menu-item-btn" data-formula="math">📖 物理・数学の数式 (公式42選)</button>
+                <button type="button" class="menu-item-btn" data-formula="chem-formula">⚗️ 化学式 (分子式・反応式)</button>
+                <button type="button" class="menu-item-btn" data-formula="chem-struct">🧪 化学構造式 (平面構造式)</button>
+                <button type="button" class="menu-item-btn" data-formula="crystal">💎 結晶構造・格子モデル (固体物理・ブラベ格子)</button>
+                <button type="button" class="menu-item-btn" data-formula="feynman">⚛️ ファインマン図 (素粒子相互作用)</button>
+                <button type="button" class="menu-item-btn" data-formula="tensor">🪢 テンソルネットワーク図 (ペンローズ表記・量子情報)</button>
+
+                <div class="menu-col-header" style="margin-top: 12px;">── 音楽・コード進行 ──</div>
+                <button type="button" class="menu-item-btn" data-formula="chordpro">🎵 コード進行 (ChordPro)</button>
+                <button type="button" class="menu-item-btn" data-formula="guitarchords">🎸 ギターコード図</button>
+                <button type="button" class="menu-item-btn" data-formula="chordflow">🎼 コード進行フロー</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- 2. 式作成プルダウン群（初期値：物理） -->
-      <div class="library-control-unit">
-        <label for="formula-library-select" class="library-unit-label">式作成</label>
-        <div class="select-btn-group">
-          <select id="formula-library-select" class="library-select">
-            <option value="math" selected>📖 物理・数学の数式</option>
-            <option value="chem-formula">⚗️ 化学式（分子式・反応式）</option>
-            <option value="chem-struct">🧪 化学構造式（平面構造式）</option>
-            <option value="feynman">⚛️ ファインマン図</option>
-          </select>
-          <button type="button" id="open-formula-btn" class="library-action-btn formula-action-btn">
-            開く
+      <div class="header-right">
+        <div class="header-action-group">
+          <button type="button" id="save-pnt-btn" class="header-tool-btn pnt-save-btn" title="構文を .pnt ファイルとしてローカル保存">
+            <span>💾</span> 保存 (.pnt)
           </button>
+          <button type="button" id="load-pnt-btn" class="header-tool-btn pnt-load-btn" title=".pnt または .txt ファイルを読み込み">
+            <span>📂</span> 開く
+          </button>
+          <input type="file" id="pnt-file-input" accept=".pnt,.txt" style="display: none;">
         </div>
-      </div>
 
-      <!-- 3. 画像ファイル出力ボタン -->
-      <div class="library-control-unit library-export-unit">
-        <button type="button" id="open-export-btn" class="export-trigger-btn">
+        <button type="button" id="open-export-btn" class="header-export-btn" title="PNG / SVG / 高解像度画像出力">
           <span class="icon">🖼️</span> 画像ファイル出力
         </button>
       </div>
-    </div>
+    </header>
 
     <!-- 構文書式インジケーター（書式説明） -->
     <div class="syntax-guide-bar" id="syntax-guide-bar">
@@ -87,6 +130,11 @@
       <div id="syntax-warning" class="syntax-warning">
         ⚠️ 入力途中
       </div>
+
+      <!-- ⛶ 全画面表示切り替えボタン -->
+      <button type="button" id="preview-fullscreen-btn" class="preview-fullscreen-btn" title="全画面表示（拡大）" aria-label="全画面表示">
+        <span class="fullscreen-btn-icon">⛶</span> <span class="fullscreen-btn-text">全画面</span>
+      </button>
 
       <!-- 数式プレビュー外枠（数式全体のTips属性を保持） -->
       <div class="preview-box">
@@ -174,357 +222,29 @@
     </div>
   </div>
 
-  <!-- 化学式（分子式・反応式）ライブラリ モーダル -->
-  <div id="chem-formula-library-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-dialog" role="dialog" aria-labelledby="chem-formula-modal-title">
+  <!-- 共通 図表・ライブラリ モーダル -->
+  <div id="diagram-library-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-labelledby="diagram-modal-title">
       <div class="modal-header">
-        <h2 id="chem-formula-modal-title">化学式（分子式・反応式）ライブラリ</h2>
-        <button type="button" id="chem-formula-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
+        <h2 id="diagram-modal-title">ライブラリ</h2>
+        <button type="button" id="diagram-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
       </div>
 
       <div class="modal-search-area">
-        <input type="text" id="chem-formula-library-search-input" placeholder="物質名、化学式、キーワードで検索..." autocomplete="off">
+        <input type="text" id="diagram-library-search-input" placeholder="キーワードで検索..." autocomplete="off">
       </div>
 
-      <div class="modal-category-tabs" id="chem-formula-library-category-tabs">
-        <button type="button" class="chem-formula-category-tab active" data-category="すべて">すべて</button>
-        <button type="button" class="chem-formula-category-tab" data-category="無機物質・単体">無機物質・単体</button>
-        <button type="button" class="chem-formula-category-tab" data-category="有機化合物">有機化合物</button>
-        <button type="button" class="chem-formula-category-tab" data-category="イオン・酸・塩">イオン・酸・塩</button>
-        <button type="button" class="chem-formula-category-tab" data-category="化学反応式">化学反応式</button>
-      </div>
+      <div class="modal-category-tabs" id="diagram-library-category-tabs"></div>
 
       <div class="modal-content-area">
-        <div id="chem-formula-library-card-grid" class="card-grid"></div>
-        <div id="chem-formula-library-empty-message" class="empty-message" style="display: none;">
-          一致する化学式が見つかりませんでした
+        <div id="diagram-library-card-grid" class="card-grid"></div>
+        <div id="diagram-library-empty-message" class="empty-message" style="display: none;">
+          一致する項目が見つかりませんでした
         </div>
       </div>
 
       <div class="modal-footer">
-        <button type="button" id="chem-formula-modal-close-footer" class="modal-btn-secondary">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 化学構造式（平面構造式）ライブラリ モーダル -->
-  <div id="chem-library-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-dialog" role="dialog" aria-labelledby="chem-modal-title">
-      <div class="modal-header">
-        <h2 id="chem-modal-title">化学構造式（平面構造式）ライブラリ</h2>
-        <button type="button" id="chem-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
-      </div>
-
-      <div class="modal-search-area">
-        <input type="text" id="chem-library-search-input" placeholder="化合物名、化学式、キーワードで検索..." autocomplete="off">
-      </div>
-
-      <div class="modal-category-tabs" id="chem-library-category-tabs">
-        <button type="button" class="chem-category-tab active" data-category="すべて">すべて</button>
-        <button type="button" class="chem-category-tab" data-category="医薬品・生体分子">医薬品・生体分子</button>
-        <button type="button" class="chem-category-tab" data-category="芳香族化合物">芳香族化合物</button>
-        <button type="button" class="chem-category-tab" data-category="有機化合物">有機化合物</button>
-        <button type="button" class="chem-category-tab" data-category="無機化合物">無機化合物</button>
-        <button type="button" class="chem-category-tab" data-category="化学反応式">化学反応式</button>
-      </div>
-
-      <div class="modal-content-area">
-        <div id="chem-library-card-grid" class="card-grid"></div>
-        <div id="chem-library-empty-message" class="empty-message" style="display: none;">
-          一致する化学式が見つかりませんでした
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" id="chem-modal-close-footer" class="modal-btn-secondary">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 電子回路ライブラリ モーダル -->
-  <div id="circuit-library-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-dialog" role="dialog" aria-labelledby="circuit-modal-title">
-      <div class="modal-header">
-        <h2 id="circuit-modal-title">電子回路ライブラリ</h2>
-        <button type="button" id="circuit-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
-      </div>
-
-      <div class="modal-search-area">
-        <input type="text" id="circuit-library-search-input" placeholder="回路名、部品、キーワードで検索..." autocomplete="off">
-      </div>
-
-      <div class="modal-category-tabs" id="circuit-library-category-tabs">
-        <button type="button" class="circuit-category-tab active" data-category="すべて">すべて</button>
-        <button type="button" class="circuit-category-tab" data-category="基本回路・受動回路">基本回路・受動回路</button>
-        <button type="button" class="circuit-category-tab" data-category="交流・共振回路">交流・共振回路</button>
-        <button type="button" class="circuit-category-tab" data-category="半導体・能動素子">半導体・能動素子</button>
-      </div>
-
-      <div class="modal-content-area">
-        <div id="circuit-library-card-grid" class="card-grid"></div>
-        <div id="circuit-library-empty-message" class="empty-message" style="display: none;">
-          一致する回路が見つかりませんでした
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" id="circuit-modal-close-footer" class="modal-btn-secondary">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- タイミングチャート（波形）ライブラリ モーダル -->
-  <div id="timing-library-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-dialog" role="dialog" aria-labelledby="timing-modal-title">
-      <div class="modal-header">
-        <h2 id="timing-modal-title">タイミングチャート（波形）ライブラリ</h2>
-        <button type="button" id="timing-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
-      </div>
-
-      <div class="modal-search-area">
-        <input type="text" id="timing-library-search-input" placeholder="プロトコル名、信号名、キーワードで検索..." autocomplete="off">
-      </div>
-
-      <div class="modal-category-tabs" id="timing-library-category-tabs">
-        <button type="button" class="timing-category-tab active" data-category="すべて">すべて</button>
-        <button type="button" class="timing-category-tab" data-category="基本ロジック・同期回路">基本ロジック・同期回路</button>
-        <button type="button" class="timing-category-tab" data-category="シリアル通信">シリアル通信</button>
-        <button type="button" class="timing-category-tab" data-category="バス制御・メモリ">バス制御・メモリ</button>
-      </div>
-
-      <div class="modal-content-area">
-        <div id="timing-library-card-grid" class="card-grid"></div>
-        <div id="timing-library-empty-message" class="empty-message" style="display: none;">
-          一致するタイミングチャートが見つかりませんでした
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" id="timing-modal-close-footer" class="modal-btn-secondary">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 状態遷移図（オートマトン）ライブラリ モーダル -->
-  <div id="fsm-library-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-dialog" role="dialog" aria-labelledby="fsm-modal-title">
-      <div class="modal-header">
-        <h2 id="fsm-modal-title">状態遷移図（オートマトン）ライブラリ</h2>
-        <button type="button" id="fsm-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
-      </div>
-
-      <div class="modal-search-area">
-        <input type="text" id="fsm-library-search-input" placeholder="モデル名、状態名、キーワードで検索..." autocomplete="off">
-      </div>
-
-      <div class="modal-category-tabs" id="fsm-library-category-tabs">
-        <button type="button" class="fsm-category-tab active" data-category="すべて">すべて</button>
-        <button type="button" class="fsm-category-tab" data-category="有限オートマトン(DFA/NFA)">有限オートマトン(DFA/NFA)</button>
-        <button type="button" class="fsm-category-tab" data-category="論理回路・順序回路">論理回路・順序回路</button>
-        <button type="button" class="fsm-category-tab" data-category="システム・制御モデル">システム・制御モデル</button>
-      </div>
-
-      <div class="modal-content-area">
-        <div id="fsm-library-card-grid" class="card-grid"></div>
-        <div id="fsm-library-empty-message" class="empty-message" style="display: none;">
-          一致する状態遷移図が見つかりませんでした
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" id="fsm-modal-close-footer" class="modal-btn-secondary">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ファインマン・ダイアグラム ライブラリ モーダル -->
-  <div id="feynman-library-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-dialog" role="dialog" aria-labelledby="feynman-modal-title">
-      <div class="modal-header">
-        <h2 id="feynman-modal-title">ファインマン・ダイアグラム（素粒子）ライブラリ</h2>
-        <button type="button" id="feynman-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
-      </div>
-
-      <div class="modal-search-area">
-        <input type="text" id="feynman-library-search-input" placeholder="相互作用名、素粒子名、キーワードで検索..." autocomplete="off">
-      </div>
-
-      <div class="modal-category-tabs" id="feynman-library-category-tabs">
-        <button type="button" class="feynman-category-tab active" data-category="すべて">すべて</button>
-        <button type="button" class="feynman-category-tab" data-category="電磁相互作用(QED)">電磁相互作用(QED)</button>
-        <button type="button" class="feynman-category-tab" data-category="弱相互作用(Electroweak)">弱相互作用(Electroweak)</button>
-        <button type="button" class="feynman-category-tab" data-category="強い相互作用(QCD)・ヒッグス">強い相互作用(QCD)・ヒッグス</button>
-      </div>
-
-      <div class="modal-content-area">
-        <div id="feynman-library-card-grid" class="card-grid"></div>
-        <div id="feynman-library-empty-message" class="empty-message" style="display: none;">
-          一致するファインマン図が見つかりませんでした
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" id="feynman-modal-close-footer" class="modal-btn-secondary">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- サンキーダイアグラム ライブラリ モーダル -->
-  <div id="sankey-library-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-dialog" role="dialog" aria-labelledby="sankey-modal-title">
-      <div class="modal-header">
-        <h2 id="sankey-modal-title">サンキーダイアグラム（エネルギー・物質収支）ライブラリ</h2>
-        <button type="button" id="sankey-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
-      </div>
-
-      <div class="modal-search-area">
-        <input type="text" id="sankey-library-search-input" placeholder="プロセス名、エネルギー源、キーワードで検索..." autocomplete="off">
-      </div>
-
-      <div class="modal-category-tabs" id="sankey-library-category-tabs">
-        <button type="button" class="sankey-category-tab active" data-category="すべて">すべて</button>
-        <button type="button" class="sankey-category-tab" data-category="熱機関・エネルギー収支">熱機関・エネルギー収支</button>
-        <button type="button" class="sankey-category-tab" data-category="電力・発電システム">電力・発電システム</button>
-        <button type="button" class="sankey-category-tab" data-category="化学・プロセス工学">化学・プロセス工学</button>
-      </div>
-
-      <div class="modal-content-area">
-        <div id="sankey-library-card-grid" class="card-grid"></div>
-        <div id="sankey-library-empty-message" class="empty-message" style="display: none;">
-          一致するサンキー図が見つかりませんでした
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" id="sankey-modal-close-footer" class="modal-btn-secondary">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- フローチャート ライブラリ モーダル -->
-  <div id="flowchart-library-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-dialog" role="dialog" aria-labelledby="flowchart-modal-title">
-      <div class="modal-header">
-        <h2 id="flowchart-modal-title">フローチャート（アルゴリズム・処理手順）ライブラリ</h2>
-        <button type="button" id="flowchart-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
-      </div>
-
-      <div class="modal-search-area">
-        <input type="text" id="flowchart-library-search-input" placeholder="アルゴリズム名、処理名、キーワードで検索..." autocomplete="off">
-      </div>
-
-      <div class="modal-category-tabs" id="flowchart-library-category-tabs">
-        <button type="button" class="flowchart-category-tab active" data-category="すべて">すべて</button>
-        <button type="button" class="flowchart-category-tab" data-category="基本アルゴリズム">基本アルゴリズム</button>
-        <button type="button" class="flowchart-category-tab" data-category="ループ・反復処理">ループ・反復処理</button>
-        <button type="button" class="flowchart-category-tab" data-category="システム・制御ロジック">システム・制御ロジック</button>
-      </div>
-
-      <div class="modal-content-area">
-        <div id="flowchart-library-card-grid" class="card-grid"></div>
-        <div id="flowchart-library-empty-message" class="empty-message" style="display: none;">
-          一致するフローチャートが見つかりませんでした
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" id="flowchart-modal-close-footer" class="modal-btn-secondary">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 表（データ・単位・定数） ライブラリ モーダル -->
-  <div id="table-library-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-dialog" role="dialog" aria-labelledby="table-modal-title">
-      <div class="modal-header">
-        <h2 id="table-modal-title">表（データ・単位・物理定数）ライブラリ</h2>
-        <button type="button" id="table-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
-      </div>
-
-      <div class="modal-search-area">
-        <input type="text" id="table-library-search-input" placeholder="単位名、物理定数、キーワードで検索..." autocomplete="off">
-      </div>
-
-      <div class="modal-category-tabs" id="table-library-category-tabs">
-        <button type="button" class="table-category-tab active" data-category="すべて">すべて</button>
-        <button type="button" class="table-category-tab" data-category="SI単位・標準規格">SI単位・標準規格</button>
-        <button type="button" class="table-category-tab" data-category="物理定数・定数表">物理定数・定数表</button>
-        <button type="button" class="table-category-tab" data-category="素粒子・物質一覧">素粒子・物質一覧</button>
-      </div>
-
-      <div class="modal-content-area">
-        <div id="table-library-card-grid" class="card-grid"></div>
-        <div id="table-library-empty-message" class="empty-message" style="display: none;">
-          一致する表が見つかりませんでした
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" id="table-modal-close-footer" class="modal-btn-secondary">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 2軸マップ・マトリクス図 ライブラリ モーダル -->
-  <div id="matrix-library-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-dialog" role="dialog" aria-labelledby="matrix-modal-title">
-      <div class="modal-header">
-        <h2 id="matrix-modal-title">2軸マップ・マトリクス図（ポジショニングマップ）ライブラリ</h2>
-        <button type="button" id="matrix-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
-      </div>
-
-      <div class="modal-search-area">
-        <input type="text" id="matrix-library-search-input" placeholder="マップ名、軸名、キーワードで検索..." autocomplete="off">
-      </div>
-
-      <div class="modal-category-tabs" id="matrix-library-category-tabs">
-        <button type="button" class="matrix-category-tab active" data-category="すべて">すべて</button>
-        <button type="button" class="matrix-category-tab" data-category="ビジネス・戦略">ビジネス・戦略</button>
-        <button type="button" class="matrix-category-tab" data-category="タスク・優先度">タスク・優先度</button>
-        <button type="button" class="matrix-category-tab" data-category="物理・工学比較">物理・工学比較</button>
-      </div>
-
-      <div class="modal-content-area">
-        <div id="matrix-library-card-grid" class="card-grid"></div>
-        <div id="matrix-library-empty-message" class="empty-message" style="display: none;">
-          一致するマップが見つかりませんでした
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" id="matrix-modal-close-footer" class="modal-btn-secondary">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ピラミッド図・階層図 ライブラリ モーダル -->
-  <div id="pyramid-library-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-dialog" role="dialog" aria-labelledby="pyramid-modal-title">
-      <div class="modal-header">
-        <h2 id="pyramid-modal-title">ピラミッド図・階層図（マズロー・スクールカースト等）ライブラリ</h2>
-        <button type="button" id="pyramid-modal-close-x" class="modal-close-icon" aria-label="閉じる">&times;</button>
-      </div>
-
-      <div class="modal-search-area">
-        <input type="text" id="pyramid-library-search-input" placeholder="ピラミッド名、階層名、キーワードで検索..." autocomplete="off">
-      </div>
-
-      <div class="modal-category-tabs" id="pyramid-library-category-tabs">
-        <button type="button" class="pyramid-category-tab active" data-category="すべて">すべて</button>
-        <button type="button" class="pyramid-category-tab" data-category="社会・組織">社会・組織</button>
-        <button type="button" class="pyramid-category-tab" data-category="心理・思考">心理・思考</button>
-        <button type="button" class="pyramid-category-tab" data-category="科学・工学">科学・工学</button>
-      </div>
-
-      <div class="modal-content-area">
-        <div id="pyramid-library-card-grid" class="card-grid"></div>
-        <div id="pyramid-library-empty-message" class="empty-message" style="display: none;">
-          一致するピラミッド図が見つかりませんでした
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" id="pyramid-modal-close-footer" class="modal-btn-secondary">閉じる</button>
+        <button type="button" id="diagram-modal-close-footer" class="modal-btn-secondary">閉じる</button>
       </div>
     </div>
   </div>
@@ -545,6 +265,14 @@
             記号サイズ（倍率）: <span id="export-size-value">100%</span>
           </label>
           <input type="range" id="export-size-slider" min="50" max="200" value="100" step="5">
+        </div>
+
+        <!-- 横幅（倍率）共通設定 -->
+        <div class="export-control-group">
+          <label for="export-width-slider" class="export-control-label">
+            横幅（倍率）: <span id="export-width-value">100%</span>
+          </label>
+          <input type="range" id="export-width-slider" min="80" max="200" value="100" step="5">
         </div>
 
         <!-- 余白設定 -->
@@ -611,8 +339,11 @@
           <div class="export-control-group" id="export-table-theme-group">
             <span class="export-control-label">表の色合い:</span>
             <div class="export-radio-group export-theme-radio-group">
+              <label class="export-radio-label theme-label theme-default">
+                <input type="radio" name="export-table-theme" value="default" checked> 🎨 デフォルト
+              </label>
               <label class="export-radio-label theme-label theme-blue">
-                <input type="radio" name="export-table-theme" value="blue" checked> 🌊 ブルー
+                <input type="radio" name="export-table-theme" value="blue"> 🌊 ブルー
               </label>
               <label class="export-radio-label theme-label theme-slate">
                 <input type="radio" name="export-table-theme" value="slate"> 🪨 スレート
@@ -662,6 +393,54 @@
   <!-- 記号用フローティングツールチップ -->
   <div id="symbol-tooltip" class="floating-symbol-tooltip" aria-hidden="true"></div>
 
+  <!-- ライブラリプリセットデータ -->
+  <script src="js/data/diagram-libraries.js" defer></script>
+
+  <!-- LaTeX / 構文解析 共通ユーティリティ -->
+  <script src="js/latex-utils.js" defer></script>
+
+  <!-- 各図形・ダイアグラム描画エンジン -->
+  <script src="js/engines/engine-chem.js" defer></script>
+  <script src="js/engines/engine-circuit.js" defer></script>
+  <script src="js/engines/engine-timing.js" defer></script>
+  <script src="js/engines/engine-fsm.js" defer></script>
+  <script src="js/engines/engine-feynman.js" defer></script>
+  <script src="js/engines/engine-sankey.js" defer></script>
+  <script src="js/engines/engine-bs.js" defer></script>
+  <script src="js/engines/engine-pl.js" defer></script>
+  <script src="js/engines/engine-flowchart.js" defer></script>
+  <script src="js/engines/engine-matrix.js" defer></script>
+  <script src="js/engines/engine-pyramid.js" defer></script>
+  <script src="js/engines/engine-radar.js" defer></script>
+  <script src="js/engines/engine-waterfall.js" defer></script>
+  <script src="js/engines/engine-treemap.js" defer></script>
+  <script src="js/engines/engine-gantt.js" defer></script>
+  <script src="js/engines/engine-capitaltree.js" defer></script>
+  <script src="js/engines/engine-radialtree.js" defer></script>
+  <script src="js/engines/engine-orgchart.js" defer></script>
+  <script src="js/engines/engine-blockdiagram.js" defer></script>
+  <script src="js/engines/engine-sequence.js" defer></script>
+  <script src="js/engines/engine-optics.js" defer></script>
+  <script src="js/engines/engine-energylevel.js" defer></script>
+  <script src="js/engines/engine-potential.js" defer></script>
+  <script src="js/engines/engine-table.js" defer></script>
+  <script src="js/engines/engine-chordpro.js" defer></script>
+  <script src="js/engines/engine-guitarchords.js" defer></script>
+  <script src="js/engines/engine-chordflow.js" defer></script>
+  <script src="js/engines/engine-nn.js" defer></script>
+  <script src="js/engines/engine-graph.js" defer></script>
+  <script src="js/engines/engine-venn.js" defer></script>
+  <script src="js/engines/engine-fishbone.js" defer></script>
+  <script src="js/engines/engine-swot.js" defer></script>
+  <script src="js/engines/engine-roadmap.js" defer></script>
+  <script src="js/engines/engine-crystal.js" defer></script>
+  <script src="js/engines/engine-scenario.js" defer></script>
+  <script src="js/engines/engine-tensor.js" defer></script>
+  <script src="js/engines/engine-chart.js" defer></script>
+
+  <!-- アプリケーションコア・UI制御 -->
   <script src="main.js" defer></script>
+  <!-- 構文ファイル (.pnt) 保存・読込制御 -->
+  <script src="js/pnt-manager.js" defer></script>
 </body>
 </html>
