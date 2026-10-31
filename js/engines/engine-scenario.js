@@ -187,6 +187,45 @@ function parseScenarioNode(str, defaultCommonKey) {
   };
 }
 
+// -------------------------------------------------------------------
+// テキスト概算幅・高さ計算ヘルパー（可変カード幅・高さ用）
+// -------------------------------------------------------------------
+function calcTextWidthPx(str, fontSize) {
+  if (!str) return 0;
+  let len = 0;
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if ((code >= 0x20 && code <= 0x7e) || (code >= 0xff61 && code <= 0xff9f)) {
+      len += 0.58;
+    } else {
+      len += 1.05;
+    }
+  }
+  return len * fontSize;
+}
+
+function calcScenarioNodeWidth(node, defaultIcon, minW) {
+  if (!node) return minW || 210;
+  const icon = defaultIcon || '';
+  const fullTitle = icon && !node.title.includes(icon) ? `${icon} ${node.title}` : node.title;
+  let maxW = calcTextWidthPx(fullTitle, 13.5) + 36;
+
+  if (node.subLines && node.subLines.length > 0) {
+    node.subLines.forEach(sub => {
+      const subW = calcTextWidthPx(sub, 12) + 38;
+      if (subW > maxW) maxW = subW;
+    });
+  }
+  return Math.max(minW || 210, Math.ceil(maxW));
+}
+
+function calcScenarioNodeHeight(node) {
+  if (!node) return 46;
+  const subCount = (node.subLines && node.subLines.length > 0) ? node.subLines.length : 0;
+  if (subCount === 0) return 46;
+  return 46 + subCount * 22;
+}
+
 // ==========================================
 // SVG レンダリングメイン関数
 // ==========================================
@@ -379,9 +418,79 @@ function drawScenarioSvg(text, container, label) {
     { target: { title: '【サイトD (SNS)】', subLines: [], style: 'default' }, result: { title: 'ログイン成功 (アカウント乗っ取り・なりすまし)', subLines: [], style: 'warn' } }
   ];
 
-  const width = 880;
-  const branchCount = Math.max(branchList.length, 3);
-  const height = Math.max(520, 210 + branchCount * 88);
+  // 1. トップソースカード (漏洩元)
+  const srcX = 48;
+  const srcY = 68;
+  const srcW = Math.max(340, calcScenarioNodeWidth(srcNode, '🏢', 340));
+  const srcH = 54 + (srcNode.subLines.length * 20);
+
+  // 2. 中間注記カード / バッジ (流出情報)
+  const noteY = srcY + srcH + 30;
+  const noteLines = note ? note.split('\n') : [];
+  const noteH = Math.max(48, 28 + noteLines.length * 20);
+  let maxNoteW = 460;
+  noteLines.forEach(l => {
+    const lw = calcTextWidthPx(l, 12) + 36;
+    if (lw > maxNoteW) maxNoteW = lw;
+  });
+  const noteW = Math.ceil(maxNoteW);
+
+  // 3. 分岐ブランチ群のサイズ計算
+  const hasAnyResult = branchList.some(br => br.result != null);
+
+  let maxTargetW = 210;
+  branchList.forEach(br => {
+    if (br.target) {
+      const tw = calcScenarioNodeWidth(br.target, '🎯', 210);
+      if (tw > maxTargetW) maxTargetW = tw;
+    }
+  });
+
+  let maxResultW = 380;
+  if (hasAnyResult) {
+    branchList.forEach(br => {
+      if (br.result) {
+        const icon = br.result.style === 'danger' ? '🚨' : '⚠️';
+        const rw = calcScenarioNodeWidth(br.result, icon, 300);
+        if (rw > maxResultW) maxResultW = rw;
+      }
+    });
+  }
+
+  const forkStartY = noteY + noteH;
+  const forkColX = srcX + 50;
+  const branchStartX = srcX + 85;
+  const branchStartY = forkStartY + 38;
+  const branchGap = 20;
+
+  // 各ブランチの位置とサイズを計算
+  const branchPositions = [];
+  let curY = branchStartY;
+
+  branchList.forEach((br) => {
+    const tH = calcScenarioNodeHeight(br.target);
+    const rH = br.result ? calcScenarioNodeHeight(br.result) : 0;
+    const bH = Math.max(tH, rH, 46);
+    const centerY = curY + bH / 2;
+
+    branchPositions.push({
+      br,
+      topY: curY,
+      centerY,
+      bH
+    });
+
+    curY += bH + branchGap;
+  });
+
+  const lastBranch = branchPositions[branchPositions.length - 1];
+  const forkEndY = lastBranch ? lastBranch.centerY : branchStartY;
+
+  // 全体幅・高さの動的決定
+  const contentRight = branchStartX + maxTargetW + (hasAnyResult ? (42 + maxResultW) : 0) + 60;
+  const topCardsRight = Math.max(srcX + srcW + 60, srcX + 16 + noteW + 60);
+  const width = Math.max(880, Math.ceil(contentRight), Math.ceil(topCardsRight));
+  const height = Math.max(520, curY + 30);
 
   container.dataset.baseWidth = width;
 
@@ -410,52 +519,28 @@ function drawScenarioSvg(text, container, label) {
   svg.appendChild(contentGroup);
 
   // 1. トップソースカード (漏洩元)
-  const srcX = 48;
-  const srcY = 68;
-  const srcW = 340;
-  const srcH = 54 + (srcNode.subLines.length * 18);
-
   drawGenericCard(contentGroup, srcX, srcY, srcW, srcH, srcNode.title, srcNode.subLines, getNodeColors(srcNode.style), isDark, '🏢');
 
   // 2. 中間注記カード / バッジ (流出情報)
-  const noteY = srcY + srcH + 30;
-  const noteLines = note.split('\n');
-  const noteH = 28 + noteLines.length * 20;
-  const noteW = 460;
-
   drawStraightLine(contentGroup, srcX + 50, srcY + srcH, srcX + 50, noteY, themeColors.lineActive, true);
   drawNoteBox(contentGroup, srcX + 16, noteY, noteW, noteH, noteLines, themeColors, isDark);
 
   // 3. 分岐コネクタとブランチノード群
-  const forkStartY = noteY + noteH;
-  const forkColX = srcX + 50;
-  const branchStartX = srcX + 85;
-  const branchStartY = forkStartY + 38;
-  const rowGap = 72;
-
-  const forkEndY = branchStartY + (branchList.length - 1) * rowGap;
-
-  // 縦幹線
   drawStraightLine(contentGroup, forkColX, forkStartY, forkColX, forkEndY, themeColors.line, false);
 
-  branchList.forEach((br, idx) => {
-    const curY = branchStartY + idx * rowGap;
+  branchPositions.forEach(pos => {
+    const { br, topY, centerY, bH } = pos;
 
-    drawStraightLine(contentGroup, forkColX, curY, branchStartX - 6, curY, themeColors.line, true);
-
-    const targetW = 210;
-    const targetH = 46;
-    drawGenericCard(contentGroup, branchStartX, curY - targetH / 2, targetW, targetH, br.target.title, br.target.subLines, getNodeColors(br.target.style), isDark, '🎯');
+    drawStraightLine(contentGroup, forkColX, centerY, branchStartX - 6, centerY, themeColors.line, true);
+    drawGenericCard(contentGroup, branchStartX, topY, maxTargetW, bH, br.target.title, br.target.subLines, getNodeColors(br.target.style), isDark, '🎯');
 
     if (br.result) {
-      const arrowStartX = branchStartX + targetW;
+      const arrowStartX = branchStartX + maxTargetW;
       const resultStartX = arrowStartX + 42;
-      const resultW = 380;
-      const resultH = 46;
 
-      drawStraightLine(contentGroup, arrowStartX, curY, resultStartX - 6, curY, themeColors.lineActive, true);
+      drawStraightLine(contentGroup, arrowStartX, centerY, resultStartX - 6, centerY, themeColors.lineActive, true);
       const rColors = getNodeColors(br.result.style);
-      drawGenericCard(contentGroup, resultStartX, curY - resultH / 2, resultW, resultH, br.result.title, br.result.subLines, rColors, isDark, br.result.style === 'danger' ? '🚨' : '⚠️');
+      drawGenericCard(contentGroup, resultStartX, topY, maxResultW, bH, br.result.title, br.result.subLines, rColors, isDark, br.result.style === 'danger' ? '🚨' : '⚠️');
     }
   });
 

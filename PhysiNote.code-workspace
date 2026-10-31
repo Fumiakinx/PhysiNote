@@ -1,0 +1,17 @@
+{
+  "folders": [
+	{
+		"path": "."
+	},
+	{
+		"path": "../GunjinShogi"
+	},
+	{
+		"path": "../FumiPortal"
+	},
+	{
+		"path": "../Eitango"
+	}
+],
+  "settings": {}
+}

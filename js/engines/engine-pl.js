@@ -273,25 +273,76 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
     }
   });
 
+  // 6.5 ノードラベルの自動改行フォーマッター（括弧・中黒・長文を自然な位置で改行）
+  const formatNodeLabelLines = (name) => {
+    if (!name || typeof name !== 'string') return [String(name || '')];
+    
+    // 1. 明示的な改行コード（\n）がある場合
+    if (name.includes('\n')) {
+      return name.split('\n').map((l) => l.trim()).filter(Boolean);
+    }
+
+    // 2. 括弧を含む場合（例: 放送設備・送信機等（機械装置） -> ["放送設備・送信機等", "（機械装置）"]）
+    const mBracket = name.match(/^([^(（]+)[(（]([^)）]+)[)）]$/);
+    if (mBracket) {
+      const mainPart = mBracket[1].trim();
+      const subPart = `（${mBracket[2].trim()}）`;
+      if (mainPart.length >= 5) {
+        return [mainPart, subPart];
+      }
+    }
+
+    // 3. 中黒（・）を含む場合（例: その他・特別支出 -> ["その他・", "特別支出"]）
+    if (name.length >= 8 && name.includes('・')) {
+      const dotIdx = name.indexOf('・');
+      if (dotIdx >= 2 && dotIdx <= name.length - 3) {
+        return [name.substring(0, dotIdx + 1), name.substring(dotIdx + 1)];
+      }
+    }
+
+    // 4. 9文字以上の長文（例: 還元目的積立金取崩等 -> ["還元目的", "積立金取崩等"]）
+    if (name.length >= 9) {
+      const splitKeywords = ['目的', '積立金', '交付金', '引当金', '前受金', 'その他', '等', '費'];
+      for (const kw of splitKeywords) {
+        const idx = name.indexOf(kw);
+        if (idx >= 3 && idx + kw.length <= name.length - 2) {
+          return [name.substring(0, idx + kw.length), name.substring(idx + kw.length)];
+        }
+      }
+      const mid = Math.ceil(name.length / 2);
+      return [name.substring(0, mid), name.substring(mid)];
+    }
+
+    return [name];
+  };
+
   // 7. 幾何レイアウト・座標計算
   const padTop = 100;
   const padBottom = 60;
-  const padLeft = 110;
 
-  // 最右列のラベル最大長を計測し、右端余白を動的確保（長文ラベルの画面外切れ防止）
+  // 左右端のラベル最大行長を計測し、余白を動的確保（はみ出し切れを完全防止）
+  let maxLeftLabelLen = 0;
+  if (stageGroups[0]) {
+    stageGroups[0].forEach((n) => {
+      const lines = formatNodeLabelLines(n);
+      lines.forEach((l) => { if (l.length > maxLeftLabelLen) maxLeftLabelLen = l.length; });
+    });
+  }
+  const padLeft = Math.max(120, maxLeftLabelLen * 13 + 30);
+
   let maxRightLabelLen = 0;
   if (stageGroups[maxStage]) {
     stageGroups[maxStage].forEach((n) => {
-      const len = (n || '').length;
-      if (len > maxRightLabelLen) maxRightLabelLen = len;
+      const lines = formatNodeLabelLines(n);
+      lines.forEach((l) => { if (l.length > maxRightLabelLen) maxRightLabelLen = l.length; });
     });
   }
-  const padRight = Math.max(140, Math.min(260, maxRightLabelLen * 13 + 36));
+  const padRight = Math.max(130, Math.min(240, maxRightLabelLen * 13 + 30));
   const svgWidth = Math.max(960, (maxStage + 1) * 210 + padRight);
   const nodeWidth = 14;
   const baseHeight = 240;
   const scalePxPerPct = baseHeight / 100;
-  const minPitch = 50; // 3行ラベルの重なり防止ピッチ
+  const minPitch = 56; // ラベル重なり防止ピッチ（複数行対応）
 
   const colX = [];
   for (let s = 0; s <= maxStage; s++) {
@@ -578,11 +629,15 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
       percentTextColor = color;
     }
 
+    const nameLines = formatNodeLabelLines(n);
+    const lineSpacing = 13;
+
     if (geom.stage === 0) {
-      // 左端列: ノードの左側に右揃え表示
+      // 左端列: ノードの左側に右揃え表示（複数行垂直中央揃え）
       const anchorX = geom.x - 8;
       const centerY = geom.y + geom.h / 2;
-      const startY = centerY - 11;
+      const totalH = (1 + nameLines.length + 1) * lineSpacing;
+      const startY = centerY - totalH / 2 + 10;
 
       const pctEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       pctEl.setAttribute('x', anchorX.toFixed(1));
@@ -594,19 +649,23 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
       pctEl.textContent = percentStr;
       textG.appendChild(pctEl);
 
-      const nameEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      nameEl.setAttribute('x', anchorX.toFixed(1));
-      nameEl.setAttribute('y', (startY + 12).toFixed(1));
-      nameEl.setAttribute('text-anchor', 'end');
-      nameEl.setAttribute('font-size', '12.5');
-      nameEl.setAttribute('font-weight', '700');
-      nameEl.setAttribute('fill', labelTextColor);
-      nameEl.textContent = n;
-      textG.appendChild(nameEl);
+      let curY = startY + lineSpacing;
+      nameLines.forEach((lText) => {
+        const nameEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        nameEl.setAttribute('x', anchorX.toFixed(1));
+        nameEl.setAttribute('y', curY.toFixed(1));
+        nameEl.setAttribute('text-anchor', 'end');
+        nameEl.setAttribute('font-size', '12.5');
+        nameEl.setAttribute('font-weight', '700');
+        nameEl.setAttribute('fill', labelTextColor);
+        nameEl.textContent = lText;
+        textG.appendChild(nameEl);
+        curY += lineSpacing;
+      });
 
       const valEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       valEl.setAttribute('x', anchorX.toFixed(1));
-      valEl.setAttribute('y', (startY + 24).toFixed(1));
+      valEl.setAttribute('y', curY.toFixed(1));
       valEl.setAttribute('text-anchor', 'end');
       valEl.setAttribute('font-size', '11.5');
       valEl.setAttribute('font-weight', '600');
@@ -615,10 +674,11 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
       textG.appendChild(valEl);
 
     } else if (geom.stage === maxStage) {
-      // 右端列: ノードの右側に左揃え表示
+      // 右端列: ノードの右側に左揃え表示（複数行垂直中央揃え）
       const anchorX = geom.x + geom.w + 8;
       const centerY = geom.y + geom.h / 2;
-      const startY = centerY - 11;
+      const totalH = (1 + nameLines.length + 1) * lineSpacing;
+      const startY = centerY - totalH / 2 + 10;
 
       const pctEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       pctEl.setAttribute('x', anchorX.toFixed(1));
@@ -630,19 +690,23 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
       pctEl.textContent = percentStr;
       textG.appendChild(pctEl);
 
-      const nameEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      nameEl.setAttribute('x', anchorX.toFixed(1));
-      nameEl.setAttribute('y', (startY + 12).toFixed(1));
-      nameEl.setAttribute('text-anchor', 'start');
-      nameEl.setAttribute('font-size', '12.5');
-      nameEl.setAttribute('font-weight', '700');
-      nameEl.setAttribute('fill', labelTextColor);
-      nameEl.textContent = n;
-      textG.appendChild(nameEl);
+      let curY = startY + lineSpacing;
+      nameLines.forEach((lText) => {
+        const nameEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        nameEl.setAttribute('x', anchorX.toFixed(1));
+        nameEl.setAttribute('y', curY.toFixed(1));
+        nameEl.setAttribute('text-anchor', 'start');
+        nameEl.setAttribute('font-size', '12.5');
+        nameEl.setAttribute('font-weight', '700');
+        nameEl.setAttribute('fill', labelTextColor);
+        nameEl.textContent = lText;
+        textG.appendChild(nameEl);
+        curY += lineSpacing;
+      });
 
       const valEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       valEl.setAttribute('x', anchorX.toFixed(1));
-      valEl.setAttribute('y', (startY + 24).toFixed(1));
+      valEl.setAttribute('y', curY.toFixed(1));
       valEl.setAttribute('text-anchor', 'start');
       valEl.setAttribute('font-size', '11.5');
       valEl.setAttribute('font-weight', '600');

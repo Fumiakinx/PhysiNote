@@ -1305,14 +1305,19 @@ body.modal-open {
   margin: 8px 0;
   overflow-x: auto;
   width: 100%;
+  box-sizing: border-box;
+}
+
+.table-preview-container > .physi-table {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .physi-table {
   --cell-pad-y: 10px;
-  --cell-pad-x: 16px;
+  --cell-pad-x: 14px;
   border-collapse: collapse;
   width: auto;
-  max-width: 100%;
   font-size: 14px;
   background-color: #ffffff;
   border: 1px solid #cbd5e1;
@@ -1341,7 +1346,14 @@ body.modal-open {
   border-bottom: 2px solid #cbd5e1;
   border-right: 1px solid #e2e8f0;
   vertical-align: middle;
-  word-break: break-word;
+  line-break: strict;
+  word-break: auto-phrase;
+  overflow-wrap: break-word;
+  min-width: 120px;
+}
+
+.physi-table th:first-child {
+  min-width: 80px;
 }
 
 .physi-table th:last-child {
@@ -1355,11 +1367,25 @@ body.modal-open {
   color: #334155;
   font-size: 13px;
   vertical-align: middle;
-  word-break: break-word;
+  line-break: strict;
+  word-break: auto-phrase;
+  overflow-wrap: break-word;
+  min-width: 120px;
+}
+
+.physi-table td.table-col-first {
+  min-width: 80px;
 }
 
 .physi-table td:last-child {
   border-right: none;
+}
+
+.physi-table-bullet {
+  padding-left: 1.1em;
+  text-indent: -1.1em;
+  line-height: 1.5;
+  margin: 2px 0;
 }
 
 .physi-table tbody tr {

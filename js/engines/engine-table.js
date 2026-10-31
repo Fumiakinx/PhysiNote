@@ -53,6 +53,56 @@ function parseAnyTable(rawText) {
     }
   }
 
+  // ストライプ指定 (stripes: ... / stripe: ...) の抽出 (例: stripes: gray!10)
+  let stripesColor = null;
+  const stripesMatch = text.match(/(?:^|[\r\n])\s*(?:#|\/\/|\/\*|<!--|%|;)?\s*(?:stripes?)\s*:\s*["']?([^"'\r\n]+)["']?\s*(?:\*\/|-->)?/i);
+  if (stripesMatch) {
+    stripesColor = parseLatexColor(stripesMatch[1].trim());
+    text = text.replace(/(?:^|[\r\n])\s*(?:#|\/\/|\/\*|<!--|%|;)?\s*(?:stripes?)\s*:\s*["']?[^"'\r\n]+["']?\s*(?:\*\/|-->)?/gi, '\n').trim();
+  }
+
+  // 行ハイライト指定 (highlight: ... / highlights: ...) の抽出 (例: highlight: 2, 4 または highlight: 2(amber!20), 4)
+  const highlightMap = {};
+  const highlightMatch = text.match(/(?:^|[\r\n])\s*(?:#|\/\/|\/\*|<!--|%|;)?\s*(?:highlights?)\s*:\s*["']?([^"'\r\n]+)["']?\s*(?:\*\/|-->)?/i);
+  if (highlightMatch) {
+    const rawH = highlightMatch[1].trim();
+    rawH.split(',').forEach((item) => {
+      const m = item.trim().match(/^(\d+)(?:\s*\(\s*([^)]+)\s*\))?$/);
+      if (m) {
+        const rowNum = parseInt(m[1], 10);
+        const colVal = m[2] ? parseLatexColor(m[2].trim()) : '#fef9c3';
+        if (colVal) highlightMap[rowNum] = colVal;
+      }
+    });
+    text = text.replace(/(?:^|[\r\n])\s*(?:#|\/\/|\/\*|<!--|%|;)?\s*(?:highlights?)\s*:\s*["']?[^"'\r\n]+["']?\s*(?:\*\/|-->)?/gi, '\n').trim();
+  }
+
+  // 列背景色指定 (colcolors: ... / colcolor: ...) の抽出 (例: colcolors: blue!10, , red!10)
+  let colBgColors = null;
+  const colcolorsMatch = text.match(/(?:^|[\r\n])\s*(?:#|\/\/|\/\*|<!--|%|;)?\s*(?:colcolors?)\s*:\s*["']?([^"'\r\n]+)["']?\s*(?:\*\/|-->)?/i);
+  if (colcolorsMatch) {
+    const rawC = colcolorsMatch[1].trim();
+    colBgColors = rawC.split(',').map((c) => {
+      const trimmed = c.trim();
+      return trimmed ? parseLatexColor(trimmed) : null;
+    });
+    text = text.replace(/(?:^|[\r\n])\s*(?:#|\/\/|\/\*|<!--|%|;)?\s*(?:colcolors?)\s*:\s*["']?[^"'\r\n]+["']?\s*(?:\*\/|-->)?/gi, '\n').trim();
+  }
+
+  // 行から \rowcolor を抽出して除去するヘルパー
+  const extractRowColor = (cellList) => {
+    let rColor = null;
+    for (let c = 0; c < cellList.length; c++) {
+      const match = cellList[c].match(/\\rowcolor\s*(\[[^\]]*\])?\s*\{([^}]+)\}/i);
+      if (match) {
+        rColor = parseLatexColor((match[1] || '') + '{' + match[2] + '}');
+        cellList[c] = cellList[c].replace(/\\rowcolor\s*(\[[^\]]*\])?\s*\{[^}]+\}/i, '').trim();
+        break;
+      }
+    }
+    return rColor;
+  };
+
   // 1. LaTeX tabular / array 環境の検出と括弧ネスト対応
   let latexInfo = null;
   const beginRegex = /\\begin\{(tabular|array)\}/i;
@@ -310,6 +360,20 @@ function parseAnyTable(rawText) {
     if (parsedRows.length > 0) {
       const headers = parsedRows[0];
       const rows = parsedRows.slice(1);
+
+      // highlight や stripes が指定されていた場合、未設定行に補完
+      if (stripesColor || Object.keys(highlightMap).length > 0) {
+        for (let r = 0; r < parsedRows.length; r++) {
+          if (!rowBgColors[r]) {
+            if (highlightMap[r]) {
+              rowBgColors[r] = highlightMap[r];
+            } else if (r > 0 && stripesColor && r % 2 === 0) {
+              rowBgColors[r] = stripesColor;
+            }
+          }
+        }
+      }
+
       return {
         headers,
         rows,
@@ -317,6 +381,7 @@ function parseAnyTable(rawText) {
         vBorders,
         rowBottomBorders,
         rowBgColors,
+        colBgColors,
         rowExtraHeights,
         colWidths,
         colVAligns,
@@ -368,47 +433,122 @@ function parseAnyTable(rawText) {
       for (let i = rowsStartIndex; i < lines.length; i++) {
         rows.push(splitMdRow(lines[i]));
       }
-      return { headers, rows, aligns, style, title };
+
+      const rowBgColors = [];
+      const headerColor = extractRowColor(headers) || highlightMap[0] || null;
+      rowBgColors.push(headerColor);
+
+      rows.forEach((r, idx) => {
+        const rowNum = idx + 1;
+        let rColor = extractRowColor(r);
+        if (!rColor) {
+          if (highlightMap[rowNum]) {
+            rColor = highlightMap[rowNum];
+          } else if (stripesColor && rowNum % 2 === 0) {
+            rColor = stripesColor;
+          }
+        }
+        rowBgColors.push(rColor);
+      });
+
+      return { headers, rows, aligns, style, title, rowBgColors, colBgColors };
     }
   }
 
   // 3. CSV / TSV の判定
-  const delimiter = lines[0].includes('\t') ? '\t' : (lines[0].includes(',') ? ',' : null);
-  if (delimiter) {
-    const parseCsvLine = (line, delim) => {
-      const result = [];
-      let current = '';
-      let inQuote = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') {
-          inQuote = !inQuote;
-        } else if (ch === delim && !inQuote) {
-          result.push(current.trim().replace(/^["']|["']$/g, ''));
-          current = '';
-        } else {
-          current += ch;
-        }
-      }
-      result.push(current.trim().replace(/^["']|["']$/g, ''));
-      return result;
-    };
+  // 最初のレコード（引用符外の改行まで）から区切り文字を判定
+  let delimiter = null;
+  let inQ = false;
+  let firstLineSample = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      inQ = !inQ;
+    } else if (!inQ && (ch === '\n' || ch === '\r')) {
+      firstLineSample = text.substring(0, i);
+      break;
+    }
+  }
+  if (!firstLineSample) firstLineSample = text;
 
-    const firstRow = parseCsvLine(lines[0], delimiter);
-    if (firstRow.length >= 2) {
-      const rows = [];
-      let valid = true;
-      for (let i = 1; i < lines.length; i++) {
-        const row = parseCsvLine(lines[i], delimiter);
-        if (row.length >= 2) {
-          rows.push(row);
+  if (firstLineSample.includes('\t')) {
+    delimiter = '\t';
+  } else if (firstLineSample.includes(',')) {
+    delimiter = ',';
+  }
+
+  if (delimiter) {
+    const records = [];
+    let currentRow = [];
+    let currentCell = '';
+    let inQuote = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (ch === '"') {
+        if (inQuote && text[i + 1] === '"') {
+          currentCell += '"';
+          i++;
         } else {
-          valid = false;
-          break;
+          inQuote = !inQuote;
         }
+      } else if (ch === delimiter && !inQuote) {
+        currentRow.push(currentCell.trim().replace(/^['"]|['"]$/g, ''));
+        currentCell = '';
+      } else if ((ch === '\r' || ch === '\n') && !inQuote) {
+        if (ch === '\r' && text[i + 1] === '\n') {
+          i++;
+        }
+        currentRow.push(currentCell.trim().replace(/^['"]|['"]$/g, ''));
+        currentCell = '';
+        if (currentRow.length > 1 || (currentRow.length === 1 && currentRow[0] !== '')) {
+          records.push(currentRow);
+        }
+        currentRow = [];
+      } else {
+        currentCell += ch;
       }
-      if (valid && rows.length > 0) {
-        return { headers: firstRow, rows, aligns: [], style, title };
+    }
+
+    currentRow.push(currentCell.trim().replace(/^['"]|['"]$/g, ''));
+    if (currentRow.length > 1 || (currentRow.length === 1 && currentRow[0] !== '')) {
+      records.push(currentRow);
+    }
+
+    if (records.length >= 2) {
+      const firstRow = records[0];
+      if (firstRow.length >= 2) {
+        const rows = [];
+        let valid = true;
+        for (let i = 1; i < records.length; i++) {
+          const row = records[i];
+          if (row.length >= 2) {
+            rows.push(row);
+          } else {
+            valid = false;
+            break;
+          }
+        }
+        if (valid && rows.length > 0) {
+          const rowBgColors = [];
+          const headerColor = extractRowColor(firstRow) || highlightMap[0] || null;
+          rowBgColors.push(headerColor);
+
+          rows.forEach((r, idx) => {
+            const rowNum = idx + 1;
+            let rColor = extractRowColor(r);
+            if (!rColor) {
+              if (highlightMap[rowNum]) {
+                rColor = highlightMap[rowNum];
+              } else if (stripesColor && rowNum % 2 === 0) {
+                rColor = stripesColor;
+              }
+            }
+            rowBgColors.push(rColor);
+          });
+
+          return { headers: firstRow, rows, aligns: [], style, title, rowBgColors, colBgColors };
+        }
       }
     }
   }
@@ -463,8 +603,38 @@ function renderTableCellHtml(rawCellText) {
       .replace(/"/g, '&quot;');
   }
 
-  // 3. セル内および本文内改行
-  str = str.replace(/\r?\n/g, '<br>').replace(/\\n/g, '<br>').replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+  // 3. \textcolor{color}{text} の展開
+  str = str.replace(/\\textcolor\s*(\[[^\]]*\])?\s*\{([^}]+)\}\s*\{((?:[^{}]|\{[^{}]*\})*)\}/gi, (_, opt, col, text) => {
+    const cssCol = parseLatexColor((opt || '') + '{' + col + '}');
+    if (cssCol) {
+      return `<span style="color:${cssCol};">${text}</span>`;
+    }
+    return text;
+  });
+
+  // 4. セル内および本文内改行と箇条書きの整形
+  str = str.replace(/\\n/g, '\n').replace(/&lt;br\s*\/?&gt;/gi, '\n').replace(/<br\s*\/?>/gi, '\n');
+
+  const lines = str.split(/\r?\n/);
+  if (lines.length > 1) {
+    str = lines
+      .map((line) => {
+        const trimmed = line.trim();
+        if (/^[・\-\*•]\s*/.test(trimmed)) {
+          return `<div class="physi-table-bullet">${line}</div>`;
+        } else if (/^[（(]/.test(trimmed)) {
+          return `<div style="padding-left: 1.1em; font-size: 0.92em; color: #64748b; line-height: 1.45;">${line}</div>`;
+        }
+        return line;
+      })
+      .join('<br>');
+    // 箇条書きブロック間の不要な <br> を除去
+    str = str.replace(/(<\/div>)\s*<br\s*\/?>\s*(<div[\s>])/gi, '$1$2');
+    str = str.replace(/(<br\s*\/?>\s*)+(<div[\s>])/gi, '$2');
+    str = str.replace(/(<\/div>)\s*(<br\s*\/?>\s*)+/gi, '$1');
+  } else if (/^[・\-\*•]\s*/.test(str.trim())) {
+    str = `<div class="physi-table-bullet">${str}</div>`;
+  }
 
   return str;
 }
@@ -481,6 +651,9 @@ function parseCellSpec(rawCellText) {
     bgColor = parseLatexColor((cellColorMatch[1] || '') + '{' + cellColorMatch[2] + '}');
     trimmed = trimmed.replace(/\\cellcolor\s*(\[[^\]]*\])?\s*\{[^}]+\}/i, '').trim();
   }
+
+  // \rowcolor がセル内に残っていた場合は除去
+  trimmed = trimmed.replace(/\\rowcolor\s*(\[[^\]]*\])?\s*\{[^}]+\}/i, '').trim();
 
   // \multicolumn の抽出
   let colspan = 1;
@@ -591,6 +764,8 @@ function renderTableElement(tableData, container, labelText) {
       th.style.backgroundColor = spec.bgColor;
     } else if (tableData.rowBgColors && tableData.rowBgColors[0]) {
       th.style.backgroundColor = tableData.rowBgColors[0];
+    } else if (tableData.colBgColors && tableData.colBgColors[currentHeadColIdx]) {
+      th.style.backgroundColor = tableData.colBgColors[currentHeadColIdx];
     }
 
     const defaultAlign = (tableData.aligns && tableData.aligns[currentHeadColIdx]) || 'left';
@@ -658,8 +833,8 @@ function renderTableElement(tableData, container, labelText) {
 
     let currentColIdx = 0;
     let cellIdx = 0;
-
-    while (currentColIdx < (tableData.aligns ? tableData.aligns.length : row.length)) {
+    const maxCols = (tableData.aligns && tableData.aligns.length > 0) ? tableData.aligns.length : tableData.headers.length;
+    while (currentColIdx < maxCols) {
       // 縦結合の継続セル判定
       if (activeSpans[currentColIdx] && activeSpans[currentColIdx].remaining > 0) {
         activeSpans[currentColIdx].remaining -= 1;
@@ -707,6 +882,8 @@ function renderTableElement(tableData, container, labelText) {
           td.style.backgroundColor = spec.bgColor;
         } else if (tableData.rowBgColors && tableData.rowBgColors[actualRowIdx]) {
           td.style.backgroundColor = tableData.rowBgColors[actualRowIdx];
+        } else if (tableData.colBgColors && tableData.colBgColors[currentColIdx]) {
+          td.style.backgroundColor = tableData.colBgColors[currentColIdx];
         }
 
         const defaultAlign = (tableData.aligns && tableData.aligns[currentColIdx]) || 'left';
