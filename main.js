@@ -792,499 +792,7 @@ function autoResizeInput() {
   inputArea.style.height = `${nextH}px`;
 }
 
-// ==========================================
-// 独自ダイアグラム & チャート 統合マスターレジストリ
-// （入力欄インジケーター判定 & プレビュー描画ルーティングの一元化）
-// ==========================================
-const DIAGRAM_DEFINITIONS = [
-  // 1. グラフ・統計チャート（pgfplots / pgf-pie / 独自 \chart）※最優先
-  {
-    id: 'chart',
-    match: (t) => /\\(chart|barchart|linechart|piechart|donutchart|areachart)\{|\\pie(?:\[[^\]]*\])?\{|\\begin\{axis\}|\\addplot/i.test(t),
-    badge: {
-      text: 'グラフ・統計チャート (棒・折れ線・円)',
-      cls: 'badge-custom',
-      desc: '\\chart{ type: bar; categories: "A","B"; series: "値", 10, 20; } または \\begin{axis}'
-    },
-    cls: 'chart-preview-container',
-    label: 'グラフ・統計チャート',
-    getFn: () => typeof drawChartSvg === 'function' ? drawChartSvg : null
-  },
-  // 2. ピラミッド図・階層図 (smartdiagram priority または \pyramid)
-  {
-    id: 'pyramid',
-    match: (t) => /\\smartdiagram\[priority/i.test(t) || (/\\(pyramid|hierarchy)\{/i.test(t) && t.replace(/\\(pyramid|hierarchy)\{((?:[^{}]|\{[^{}]*\})*)\}/g, '').trim() === ''),
-    badge: {
-      text: '独自書式 / LaTeX (ピラミッド図)',
-      cls: 'badge-custom',
-      desc: '\\pyramid{ title: ...; layer: 項目名 [色] (説明); } または smartdiagram'
-    },
-    cls: 'pyramid-preview-container',
-    label: 'ピラミッド図',
-    getFn: () => typeof drawPyramidSvg === 'function' ? drawPyramidSvg : null
-  },
-  // 3. レーダーチャート (tkz-kiviat または \radar)
-  {
-    id: 'radar',
-    match: (t) => /\\(radar|spider)\{/i.test(t) || t.includes('\\tkzKiviatDiagram'),
-    badge: {
-      text: '独自書式 / LaTeX (レーダーチャート)',
-      cls: 'badge-custom',
-      desc: '\\radar{ title: ...; axis: 軸1, 軸2; series: 系列(値1, 値2); } または tkz-kiviat'
-    },
-    cls: 'radar-preview-container',
-    label: 'レーダーチャート',
-    getFn: () => typeof drawRadarSvg === 'function' ? drawRadarSvg : null
-  },
-  // 4. ウォーターフォール図 (pgfplots / TikZ または \waterfall)
-  {
-    id: 'waterfall',
-    match: (t) => /\\(waterfall|cascade)\{/i.test(t) || (t.includes('\\begin{tikzpicture}') && (t.includes('ybar stacked') || /waterfall|滝/i.test(t))),
-    badge: {
-      text: '独自書式 / LaTeX (ウォーターフォール図)',
-      cls: 'badge-custom',
-      desc: '\\waterfall{ title: ...; unit: 単位; bar: 項目名 (値) [type]; } または pgfplots / TikZ'
-    },
-    cls: 'waterfall-preview-container',
-    label: 'ウォーターフォール図',
-    getFn: () => typeof drawWaterfallSvg === 'function' ? drawWaterfallSvg : null
-  },
-  // 5. ツリーマップ
-  {
-    id: 'treemap',
-    match: (t) => /\\(treemap)\{/i.test(t) || (t.includes('\\begin{tikzpicture}') && (t.includes('treemap') || /ツリーマップ/i.test(t))),
-    badge: {
-      text: '独自書式 / LaTeX (ツリーマップ)',
-      cls: 'badge-custom',
-      desc: '\\treemap{ title: ...; unit: 単位; "項目名", 値, "騰落率"; } または TikZ'
-    },
-    cls: 'treemap-preview-container',
-    label: 'ツリーマップ',
-    getFn: () => typeof drawTreemapSvg === 'function' ? drawTreemapSvg : null
-  },
-  // 6. ガントチャート (pgfgantt または \gantt)
-  {
-    id: 'gantt',
-    match: (t) => /\\gantt\{|\\begin\{ganttchart\}/i.test(t),
-    badge: {
-      text: '独自書式 / LaTeX (ガントチャート)',
-      cls: 'badge-custom',
-      desc: '\\gantt{ title: ...; task: タスク, 開始, 終了; } または pgfgantt'
-    },
-    cls: 'gantt-preview-container',
-    label: 'ガントチャート',
-    getFn: () => typeof drawGanttSvg === 'function' ? drawGanttSvg : null
-  },
-  // 7. 資本構成ツリー図
-  {
-    id: 'capitaltree',
-    match: (t) => /\\(capitaltree|holdingtree)\{/i.test(t),
-    badge: {
-      text: '独自書式 (資本構成ツリー図)',
-      cls: 'badge-custom',
-      desc: '\\capitaltree{ title: ...; "親会社" -> "子会社" [比率, 区分]; }'
-    },
-    cls: 'capitaltree-preview-container',
-    label: '資本構成ツリー図',
-    getFn: () => typeof drawCapitalTreeSvg === 'function' ? drawCapitalTreeSvg : null
-  },
-  // 8. 放射状ツリー図
-  {
-    id: 'radialtree',
-    match: (t) => /\\(radialtree|radial)\{/i.test(t),
-    badge: {
-      text: '独自書式 (放射状ツリー図)',
-      cls: 'badge-custom',
-      desc: '\\radialtree{ title: ...; center: ...; "親会社" -> "子会社" [比率, 区分]; }'
-    },
-    cls: 'radialtree-preview-container',
-    label: '放射状ツリー図',
-    getFn: () => typeof drawRadialTreeSvg === 'function' ? drawRadialTreeSvg : null
-  },
-  // 9. 組織階層図
-  {
-    id: 'orgchart',
-    match: (t) => /\\(orgchart|organization|org)\{/i.test(t),
-    badge: {
-      text: '独自書式 (組織階層図)',
-      cls: 'badge-custom',
-      desc: '\\orgchart{ title: ...; "親" -> "子"; "親" -- "スタッフ" [タグ]; }'
-    },
-    cls: 'orgchart-preview-container',
-    label: '組織階層図',
-    getFn: () => typeof drawOrgChartSvg === 'function' ? drawOrgChartSvg : null
-  },
-  // 10. ブロック図
-  {
-    id: 'blockdiagram',
-    match: (t) => /\\(blockdiagram|sysblock|block)\{/i.test(t),
-    badge: {
-      text: '独自書式 (ブロック図)',
-      cls: 'badge-custom',
-      desc: '\\blockdiagram{ title: ...; "入力" -> sum1 [+] -> "ブロック" -> "出力"; }'
-    },
-    cls: 'blockdiagram-preview-container',
-    label: 'ブロック図',
-    getFn: () => typeof drawBlockDiagramSvg === 'function' ? drawBlockDiagramSvg : null
-  },
-  // 11. シーケンス図
-  {
-    id: 'sequence',
-    match: (t) => /\\(sequence|seq)\{/i.test(t),
-    badge: {
-      text: '独自書式 (シーケンス図)',
-      cls: 'badge-custom',
-      desc: '\\sequence{ title: ...; actor: "クライアント"; "クライアント" -> "サーバ": 要求; }'
-    },
-    cls: 'sequence-preview-container',
-    label: 'シーケンス図',
-    getFn: () => typeof drawSequenceDiagramSvg === 'function' ? drawSequenceDiagramSvg : null
-  },
-  // 12. 光学系配置図
-  {
-    id: 'optics',
-    match: (t) => /\\(optics|opticalbench)\{/i.test(t),
-    badge: {
-      text: '独自書式 (光学系配置図)',
-      cls: 'badge-custom',
-      desc: '\\optics{ title: ...; "レーザー" -> "レンズ" -> "スクリーン"; }'
-    },
-    cls: 'optics-preview-container',
-    label: '光学系配置図',
-    getFn: () => typeof drawOpticsDiagramSvg === 'function' ? drawOpticsDiagramSvg : null
-  },
-  // 13. エネルギー準位図
-  {
-    id: 'energylevel',
-    match: (t) => /\\(energylevel|energy|banddiagram)\{/i.test(t),
-    badge: {
-      text: '独自書式 (エネルギー準位図)',
-      cls: 'badge-custom',
-      desc: '\\energylevel{ title: ...; n1: "基底" [-13.6]; n2 -> n1: "放出"; }'
-    },
-    cls: 'energylevel-preview-container',
-    label: 'エネルギー準位図',
-    getFn: () => typeof drawEnergyLevelDiagramSvg === 'function' ? drawEnergyLevelDiagramSvg : null
-  },
-  // 14. ポテンシャル曲線
-  {
-    id: 'potential',
-    match: (t) => /\\(potential|potentialcurve|potentialwell)\{/i.test(t),
-    badge: {
-      text: '独自書式 (ポテンシャル曲線)',
-      cls: 'badge-custom',
-      desc: '\\potential{ type: morse; De: 4.5; re: 1.2; level: "v=0" [-4.2]; }'
-    },
-    cls: 'potential-preview-container',
-    label: 'ポテンシャルエネルギー曲線',
-    getFn: () => typeof drawPotentialDiagramSvg === 'function' ? drawPotentialDiagramSvg : null
-  },
-  // 15. フローチャート
-  {
-    id: 'flowchart',
-    match: (t) => /\\(flowchart|flow)\{/i.test(t),
-    badge: {
-      text: '独自書式 (フローチャート)',
-      cls: 'badge-custom',
-      desc: '\\flowchart{ ノード名 [種類]; ノードA -> ノードB; }'
-    },
-    cls: 'flowchart-preview-container',
-    label: 'フローチャート',
-    getFn: () => typeof drawFlowchartSvg === 'function' ? (text, container, label) => {
-      const m = text.match(/\\(?:flowchart|flow)\{([\s\S]*)\}/i);
-      drawFlowchartSvg(m ? m[1] : text, container, label);
-    } : null
-  },
-  // 16. サンキーダイアグラム
-  {
-    id: 'sankey',
-    match: (t) => /\\sankey\{/i.test(t) || (t.includes('\\begin{tikzpicture}') && (t.includes('sankey') || /サンキー/i.test(t))),
-    badge: {
-      text: '独自書式 / LaTeX (サンキー図)',
-      cls: 'badge-custom',
-      desc: '\\sankey{ 流量: 起点 -> 終点; } または TikZ'
-    },
-    cls: 'sankey-preview-container',
-    label: 'サンキーダイアグラム',
-    getFn: () => typeof drawSankeySvg === 'function' ? drawSankeySvg : null
-  },
-  // 17. 決算書B/Sサンキー図
-  {
-    id: 'bs',
-    match: (t) => /\\(bs|balancesheet|sankeybs)\{/i.test(t),
-    badge: {
-      text: '独自書式 (決算書B/Sサンキー図)',
-      cls: 'badge-custom',
-      desc: '\\bs{ company: ...; period: ...; 資産 -> 負債; ... }'
-    },
-    cls: 'sankey-preview-container bs-preview-container',
-    label: '決算書サンキーダイアグラム',
-    getFn: () => typeof drawBalanceSheetSvg === 'function' ? (text, container, label) => {
-      const m = text.match(/\\(?:bs|balancesheet|sankeybs)\{([\s\S]*)\}/i);
-      drawBalanceSheetSvg(m ? m[1] : text, container, label);
-    } : null
-  },
-  // 18. 決算書P/L損益計算書
-  {
-    id: 'pl',
-    match: (t) => /\\(pl|incomestatement)\{/i.test(t),
-    badge: {
-      text: '独自書式 (決算書P/L損益計算書)',
-      cls: 'badge-custom',
-      desc: '\\pl{ company: ...; period: ...; 売上高 -> 売上総利益; ... }'
-    },
-    cls: 'sankey-preview-container pl-preview-container',
-    label: '決算書P/Lサンキー図',
-    getFn: () => typeof drawProfitAndLossSvg === 'function' ? (text, container, label) => {
-      const m = text.match(/\\(?:pl|incomestatement)\{([\s\S]*)\}/i);
-      drawProfitAndLossSvg(m ? m[1] : text, container, label);
-    } : null
-  },
-  // 19. 状態遷移図 (FSM)
-  {
-    id: 'fsm',
-    match: (t) => /\\(fsm|automaton)\{/i.test(t),
-    badge: {
-      text: '独自書式 (状態遷移図)',
-      cls: 'badge-custom',
-      desc: '\\fsm{ 状態A -> 状態B: イベント; }'
-    },
-    cls: 'fsm-preview-container',
-    label: '状態遷移図',
-    getFn: () => typeof drawFsmSvg === 'function' ? (text, container, label) => {
-      const m = text.match(/\\(?:fsm|automaton)\{([\s\S]*)\}/i);
-      drawFsmSvg(m ? m[1] : text, container, label);
-    } : null
-  },
-  // 20. タイミングチャート（波形）
-  {
-    id: 'timing',
-    match: (t) => /\\timing\{/i.test(t),
-    badge: {
-      text: '独自書式 (波形チャート)',
-      cls: 'badge-custom',
-      desc: '\\timing{ 信号名: H.L...; }'
-    },
-    cls: 'timing-preview-container',
-    label: 'タイミングチャート',
-    getFn: () => typeof drawTimingSvg === 'function' ? drawTimingSvg : null
-  },
-  // 21. 電気回路図 (CircuiTikZ / \circuit)
-  {
-    id: 'circuit',
-    match: (t) => /\\circuit\{|\\begin\{circuitikz\}/i.test(t) ||
-      (/\\begin\{tikzpicture\}/i.test(t) && /to\s*\[|node\s*\[\s*loop/i.test(t)) ||
-      (/\\draw\s*\([^;]+;/i.test(t) && !/\\begin\{tikzpicture\}/i.test(t)),
-    badge: {
-      text: '独自書式 / LaTeX (電気回路図)',
-      cls: 'badge-custom',
-      desc: '\\circuit{ R1 [resistor]; ノードA -- ノードB; } または CircuiTikZ'
-    },
-    cls: 'circuit-preview-container',
-    label: '電子回路図',
-    getFn: () => typeof drawCircuitSvg === 'function' ? drawCircuitSvg : null
-  },
-  // 22. ファインマン・ダイアグラム
-  {
-    id: 'feynman',
-    match: (t) => /\\feynman\{/i.test(t),
-    badge: {
-      text: '独自書式 (ファインマン図)',
-      cls: 'badge-custom',
-      desc: '\\feynman{ 粒子 [fermion]; 光子 [photon]; }'
-    },
-    cls: 'feynman-preview-container',
-    label: 'ファインマン・ダイアグラム',
-    getFn: () => typeof drawFeynmanSvg === 'function' ? (text, container, label) => {
-      const m = text.match(/\\feynman\{([\s\S]*)\}/i);
-      drawFeynmanSvg(m ? m[1] : text, container, label);
-    } : null
-  },
-  // 23. コード進行 (ChordPro)
-  {
-    id: 'chordpro',
-    match: (t) => /\\chordpro\{/i.test(t),
-    badge: {
-      text: 'コード進行 (ChordPro)',
-      cls: 'badge-custom',
-      desc: '\\chordpro{ [C]歌詞 [G]歌詞; } または小節進行 (| C | G |)'
-    },
-    cls: 'chordpro-preview-container',
-    label: 'コード進行',
-    getFn: () => typeof drawChordPro === 'function' ? drawChordPro : null
-  },
-  // 24. ギターコード図 (guitarchords)
-  {
-    id: 'guitarchords',
-    match: (t) => /\\(guitarchords|chord)\{/i.test(t),
-    badge: {
-      text: 'ギターコード図 (guitarchords)',
-      cls: 'badge-custom',
-      desc: '\\guitarchords{ \\chord{t}{x,3,2,0,1,0}{C} } または C -> G -> Am -> F'
-    },
-    cls: 'guitarchords-preview-container',
-    label: 'ギターコード図',
-    getFn: () => typeof drawGuitarChords === 'function' ? drawGuitarChords : null
-  },
-  // 25. コード進行フロー (ChordFlow)
-  {
-    id: 'chordflow',
-    match: (t) => /\\chordflow\{/i.test(t),
-    badge: {
-      text: 'コード進行フロー (ChordFlow)',
-      cls: 'badge-custom',
-      desc: '\\chordflow{ Im [Fm] -> IVm [Bbm] -> bIII [Ab]; }'
-    },
-    cls: 'chordflow-preview-container',
-    label: 'コード進行フロー',
-    getFn: () => typeof drawChordFlow === 'function' ? drawChordFlow : null
-  },
-  // 26. ニューラルネットワーク構造図 (NN)
-  {
-    id: 'neuralnet',
-    match: (t) => /\\(nn|neuralnet|neuralnetwork)\{/i.test(t),
-    badge: {
-      text: 'ニューラルネットワーク構造図 (NN)',
-      cls: 'badge-custom',
-      desc: '\\nn{ layers: [4, 6, 6, 2]; labels: ["入力層", "中間層1", "中間層2", "出力層"]; }'
-    },
-    cls: 'neuralnet-preview-container',
-    label: 'ニューラルネットワーク構造図',
-    getFn: () => typeof drawNeuralNetworkSvg === 'function' ? drawNeuralNetworkSvg : null
-  },
-  // 27. 有向グラフ / ネットワーク図 (Graph)
-  {
-    id: 'graph',
-    match: (t) => /\\(graph|digraph|network)\{/i.test(t),
-    badge: {
-      text: '有向グラフ / ネットワーク図 (Graph)',
-      cls: 'badge-custom',
-      desc: '\\graph{ S -> A : 4; S -> B : 2; A -> G : 3; B -> G : 5; }'
-    },
-    cls: 'graph-preview-container',
-    label: '有向グラフ・ネットワーク図',
-    getFn: () => typeof drawGraphSvg === 'function' ? drawGraphSvg : null
-  },
-  // 28. ベン図 (Venn Diagram / LaTeX)
-  {
-    id: 'venn',
-    match: (t) => /\\(venn|venndiagram)\{|\\begin\{venndiagram[23]sets\}|(?:\\begin\{tikzpicture\}[\s\S]*?(?:venn|ベン図))/i.test(t),
-    badge: {
-      text: 'ベン図 (Venn Diagram / LaTeX)',
-      cls: 'badge-custom',
-      desc: '\\venn{ set A "A"; set B "B"; AB: "共通部分"; } または \\begin{venndiagram2sets}'
-    },
-    cls: 'venn-preview-container',
-    label: 'ベン図',
-    getFn: () => typeof drawVennSvg === 'function' ? drawVennSvg : null
-  },
-  // 29. フィッシュボーン図 (特性要因図 / LaTeX)
-  {
-    id: 'fishbone',
-    match: (t) => /\\(fishbone|ishikawa|causeeffect)\{|(?:\\begin\{tikzpicture\}[\s\S]*?(?:fishbone|ishikawa|特性要因))/i.test(t),
-    badge: {
-      text: 'フィッシュボーン図 (特性要因図 / LaTeX)',
-      cls: 'badge-custom',
-      desc: '\\fishbone{ effect: "結果"; "人": "要因1", "要因2"; } または \\begin{tikzpicture}'
-    },
-    cls: 'fishbone-preview-container',
-    label: '特性要因図 (フィッシュボーン)',
-    getFn: () => typeof drawFishboneSvg === 'function' ? drawFishboneSvg : null
-  },
-  // 30. SWOT分析マトリクス
-  {
-    id: 'swot',
-    match: (t) => /\\(swot|swotmatrix)\{/i.test(t),
-    badge: {
-      text: 'SWOT分析マトリクス (2×2 戦略マップ)',
-      cls: 'badge-custom',
-      desc: '\\swot{ title: "戦略SWOT"; S: "強み"; W: "弱み"; O: "機会"; T: "脅威"; }'
-    },
-    cls: 'swot-preview-container',
-    label: 'SWOT分析マトリクス',
-    getFn: () => typeof drawSwotSvg === 'function' ? drawSwotSvg : null
-  },
-  // 31. ロードマップ図 (マイルストーン年表・タイムライン)
-  {
-    id: 'roadmap',
-    match: (t) => /\\(roadmap|timeline)\{|\\(?:startchronology|chronoevent|chronoperiod)|\\smartdiagram(?!\s*\[\s*priority)/i.test(t),
-    badge: {
-      text: 'ロードマップ図 (マイルストーン年表・タイムライン)',
-      cls: 'badge-custom',
-      desc: '\\roadmap{ title: "開発計画"; "2026 Q1": "αリリース"; } または chronosys'
-    },
-    cls: 'roadmap-preview-container',
-    label: 'ロードマップ図',
-    getFn: () => typeof drawRoadmapSvg === 'function' ? drawRoadmapSvg : null
-  },
-  // 32. 結晶構造・格子モデル
-  {
-    id: 'crystal',
-    match: (t) => /\\(crystal|lattice)\{/i.test(t),
-    badge: {
-      text: '独自書式 (結晶構造・格子モデル)',
-      cls: 'badge-custom',
-      desc: '\\crystal{ type: fcc; title: ...; plane: (1,1,1); } (固体物理・ブラベ格子)'
-    },
-    cls: 'crystal-preview-container',
-    label: '結晶構造・格子モデル',
-    getFn: () => typeof drawCrystalSvg === 'function' ? drawCrystalSvg : null
-  },
-  // 33. 汎用シナリオ・概念図 (フリーフロー)
-  {
-    id: 'scenario',
-    match: (t) => /\\(scenario|freeflow)\{/i.test(t),
-    badge: {
-      text: '汎用シナリオ・概念図 (フリーフロー)',
-      cls: 'badge-custom',
-      desc: '\\scenario{ title: ...; fork: -> ...; または merge: <- ...; } (攻撃・業務シナリオ)'
-    },
-    cls: 'scenario-preview-container',
-    label: '汎用シナリオ・概念図',
-    getFn: () => typeof drawScenarioSvg === 'function' ? drawScenarioSvg : null
-  },
-  // 34. テンソルネットワーク・ペンローズ記法
-  {
-    id: 'tensor',
-    match: (t) => /\\(tensornetwork|penrose|tensor)\{/i.test(t),
-    badge: {
-      text: '独自書式 (テンソルネットワーク・ペンローズ記法)',
-      cls: 'badge-custom',
-      desc: '\\tensornetwork{ type: mps; sites: 5; bond: χ; } (量子情報・物性物理)'
-    },
-    cls: 'tensor-preview-container',
-    label: 'テンソルネットワーク図',
-    getFn: () => typeof drawTensorSvg === 'function' ? drawTensorSvg : null
-  },
-  // 35. 2軸マップ独自書式
-  {
-    id: 'matrixmap',
-    match: (t) => /\\(matrixmap|positioning|matrix)\{/i.test(t),
-    badge: {
-      text: '独自書式 (2軸マップ)',
-      cls: 'badge-custom',
-      desc: '\\matrixmap{ title: ...; axis-x: ...; axis-y: ...; quadrant: ...; item: 名前(x, y); }'
-    },
-    cls: 'matrix-preview-container',
-    label: '2軸マップ',
-    getFn: () => typeof drawMatrixMapSvg === 'function' ? drawMatrixMapSvg : null
-  },
-  // 36. LaTeX TikZ 4象限ポジショニングマップ・マトリクス図
-  {
-    id: 'tikz-matrix',
-    match: (t) => /\\begin\{tikzpicture\}/i.test(t) &&
-      /(?:<->|<--|-->|node\s*\[\s*(?:above|below|left|right)\s*\]|positioning|4象限|マトリクス)/i.test(t) &&
-      !/\\begin\{axis\}|\\addplot|\\pie(?:\[[^\]]*\])?\{|fishbone|ishikawa|特性要因|venn|venndiagram|sankey|サンキー|waterfall|滝|treemap|ツリーマップ|gantt|pgfgantt|kiviat|circuit|circuitikz|to\s*\[/i.test(t),
-    badge: {
-      text: 'LaTeX (TikZ マトリクス図)',
-      cls: 'badge-latex',
-      desc: '\\begin{tikzpicture} ... \\draw[<->] ... \\node ... \\end{tikzpicture}'
-    },
-    cls: 'matrix-preview-container',
-    label: 'LaTeX TikZ マトリクス',
-    getFn: () => typeof drawMatrixMapSvg === 'function' ? drawMatrixMapSvg : null
-  }
-];
+// （DIAGRAM_DEFINITIONS は js/diagram-definitions.js に分離・管理）
 
 function updateSyntaxIndicator(rawText) {
   const badgeEl = document.getElementById('syntax-type-badge');
@@ -1309,8 +817,9 @@ function updateSyntaxIndicator(rawText) {
     }
   }
 
-  // 2. 表形式の検出 (parseAnyTable で判定)
-  if (typeof parseAnyTable === 'function' && parseAnyTable(trimmed) !== null) {
+  // 2. 表形式の検出 (parseAnyTable または簡易正規表現で判定)
+  const isTablePattern = /\\(table|begin\{tabular\})/i.test(trimmed) || (trimmed.includes('|') && /\|.*\|/.test(trimmed)) || (typeof parseAnyTable === 'function' && parseAnyTable(trimmed) !== null);
+  if (isTablePattern) {
     badgeEl.textContent = '表形式 (Table)';
     badgeEl.className = 'syntax-badge badge-table';
     descEl.textContent = 'Markdown表 (| a | b |)、CSV、TSV、または LaTeX tabular環境';
@@ -1366,6 +875,16 @@ function renderCustomDiagramElement(containerClass, label, drawFn, text, preview
   return true;
 }
 
+function showEngineLoadingIndicator(container, label) {
+  if (!container) return;
+  container.innerHTML = `
+    <div class="engine-loading-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;color:var(--text-muted, #64748b);gap:8px;">
+      <div style="font-size:24px;">⏳</div>
+      <div style="font-size:13px;font-weight:500;">${label ? `${label} ` : ''}描画エンジンを読み込み中...</div>
+    </div>
+  `;
+}
+
 function updatePreview() {
   autoResizeInput();
   hideSymbolTooltip();
@@ -1399,6 +918,14 @@ function updatePreview() {
       if (fn) {
         renderCustomDiagramElement(def.cls, def.label, fn, text, previewArea, warningBadge, previewBox, explanationCard);
         return;
+      } else if (typeof EngineLoader !== 'undefined') {
+        showEngineLoadingIndicator(previewArea, def.label);
+        EngineLoader.loadEngine(def.id).then(() => {
+          if (inputArea.value === rawText) updatePreview();
+        }).catch((err) => {
+          console.error(`エンジン [${def.id}] ロードエラー:`, err);
+        });
+        return;
       }
     }
   }
@@ -1406,7 +933,15 @@ function updatePreview() {
   // ==========================================
   // 表（テーブル：Markdown / CSV / TSV / LaTeX tabular）の検出と処理
   // ==========================================
-  const tableData = parseAnyTable(text);
+  const isTableCandidate = /\\(table|begin\{tabular\})/i.test(text) || (text.includes('|') && /\|.*\|/.test(text));
+  if (typeof parseAnyTable !== 'function' && isTableCandidate && typeof EngineLoader !== 'undefined') {
+    showEngineLoadingIndicator(previewArea, 'データ表');
+    EngineLoader.loadEngine('table').then(() => {
+      if (inputArea.value === rawText) updatePreview();
+    });
+    return;
+  }
+  const tableData = typeof parseAnyTable === 'function' ? parseAnyTable(text) : null;
   if (tableData) {
     renderCustomDiagramElement('table-preview-container', 'データ表', (t, c, l) => renderTableElement(tableData, c, l), text, previewArea, warningBadge, previewBox, explanationCard);
     return;
@@ -1415,6 +950,13 @@ function updatePreview() {
   // ==========================================
   // 化学構造式 (\chemfig / \smiles) の検出と処理
   // ==========================================
+  if (/\\(chemfig|smiles)\{/i.test(text) && typeof chemfigToSmiles !== 'function' && typeof EngineLoader !== 'undefined') {
+    showEngineLoadingIndicator(previewArea, '化学構造式');
+    EngineLoader.loadEngine('chem').then(() => {
+      if (inputArea.value === rawText) updatePreview();
+    });
+    return;
+  }
   const chemRegex = /\\(chemfig|smiles)\{((?:[^{}]|\{[^{}]*\})*)\}/g;
   const chemMatches = [];
   let chemMatch;
@@ -2302,7 +1844,44 @@ const diagramLibraryConfigs = {
         el.textContent = item.code;
       }
     }
+  },
+  cycle: {
+    modalTitle: 'サイクル図・バブル図 ライブラリ (PDCA・smartdiagram)',
+    getData: () => (typeof cycleLibrary !== 'undefined' ? cycleLibrary : []),
+    cardClass: 'cycle-card',
+    tagClass: 'cycle-card-tag',
+    previewClass: 'cycle-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawCycleSvg === 'function') {
+        drawCycleSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
+  },
+  bytefield: {
+    modalTitle: 'パケットヘッダ・メモリレイアウト図 ライブラリ (LaTeX bytefield)',
+    getData: () => (typeof bytefieldLibrary !== 'undefined' ? bytefieldLibrary : []),
+    cardClass: 'bytefield-card',
+    tagClass: 'bytefield-card-tag',
+    previewClass: 'bytefield-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawBytefieldSvg === 'function') {
+        drawBytefieldSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
   }
+};
+
+// ライブラリモーダルが必要とするエンジン一覧（複合図種対応）
+const DIAGRAM_LIBRARY_ENGINES = {
+  sankey: ['sankey', 'bs', 'pl'],
+  gantt: ['gantt', 'roadmap'],
+  capitaltree: ['capitaltree', 'radialtree', 'orgchart']
 };
 
 function openDiagramLibraryModal(type) {
@@ -2344,7 +1923,34 @@ function openDiagramLibraryModal(type) {
   diagramLibraryModal.setAttribute('aria-hidden', 'false');
   document.body.classList.add('modal-open');
 
-  renderDiagramCards();
+  const requiredEngines = DIAGRAM_LIBRARY_ENGINES[type] || [type];
+  const unloaded = (typeof EngineLoader !== 'undefined')
+    ? requiredEngines.filter((eng) => !EngineLoader.isLoaded(eng))
+    : [];
+
+  if (unloaded.length > 0) {
+    if (diagramCardGrid) {
+      diagramCardGrid.innerHTML = `
+        <div style="grid-column: 1 / -1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 48px; color: var(--text-muted, #64748b); gap: 12px;">
+          <div style="font-size: 32px;">⏳</div>
+          <div style="font-size: 14px;">${config.modalTitle || 'ライブラリ'} の描画エンジンを読み込み中...</div>
+        </div>
+      `;
+    }
+    Promise.all(unloaded.map((eng) => EngineLoader.loadEngine(eng)))
+      .then(() => {
+        if (currentDiagramType === type && diagramLibraryModal.classList.contains('active')) {
+          renderDiagramCards();
+        }
+      })
+      .catch((err) => {
+        console.error('エンジン一括ロードエラー:', err);
+        renderDiagramCards();
+      });
+  } else {
+    renderDiagramCards();
+  }
+
   if (diagramSearchInput) diagramSearchInput.focus();
 }
 
@@ -2503,6 +2109,8 @@ function openCrystalModal() { openDiagramLibraryModal('crystal'); }
 function openScenarioModal() { openDiagramLibraryModal('scenario'); }
 function openTensorModal() { openDiagramLibraryModal('tensor'); }
 function openChartModal() { openDiagramLibraryModal('chart'); }
+function openCycleModal() { openDiagramLibraryModal('cycle'); }
+function openBytefieldModal() { openDiagramLibraryModal('bytefield'); }
 
 const closeChemFormulaModal = closeDiagramLibraryModal;
 const closeChemModal = closeDiagramLibraryModal;
@@ -2665,7 +2273,13 @@ const DIAGRAM_MODAL_TYPE_MAP = {
   chart: 'chart',
   barchart: 'chart',
   linechart: 'chart',
-  piechart: 'chart'
+  piechart: 'chart',
+  cycle: 'cycle',
+  bubble: 'cycle',
+  circular: 'cycle',
+  bytefield: 'bytefield',
+  packet: 'bytefield',
+  memorymap: 'bytefield'
 };
 
 // 表・図作成の項目ディスパッチ
@@ -2725,560 +2339,21 @@ document.querySelectorAll('#formula-menu-panel .menu-item-btn').forEach((btn) =>
   });
 });
 
-// ==========================================
-// 画像ファイル出力モーダルの制御
-// ==========================================
-const exportModal = document.getElementById('export-modal');
-const openExportBtn = document.getElementById('open-export-btn');
-const closeExportXBtn = document.getElementById('export-modal-close-x');
-const closeExportFooterBtn = document.getElementById('export-modal-close-footer');
-const exportSizeSlider = document.getElementById('export-size-slider');
-const exportSizeValue = document.getElementById('export-size-value');
-const exportWidthSlider = document.getElementById('export-width-slider');
-const exportWidthValue = document.getElementById('export-width-value');
-const exportPaddingSlider = document.getElementById('export-padding-slider');
-const exportPaddingValue = document.getElementById('export-padding-value');
-const exportTarget = document.getElementById('export-target');
-const exportDownloadBtn = document.getElementById('export-download-btn');
-const exportScaleRadios = document.querySelectorAll('input[name="export-scale"]');
-const exportBgRadios = document.querySelectorAll('input[name="export-bg"]');
-const exportColorRadios = document.querySelectorAll('input[name="export-color-mode"]');
-const exportTableOptions = document.getElementById('export-table-options');
-const exportTableThemeGroup = document.getElementById('export-table-theme-group');
-const exportCellPaddingSlider = document.getElementById('export-cell-padding-slider');
-const exportCellPaddingValue = document.getElementById('export-cell-padding-value');
-const exportTableThemeRadios = document.querySelectorAll('input[name="export-table-theme"]');
-
-function openExportModal() {
-  if (!exportModal) return;
-  exportModal.classList.add('active');
-  exportModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-
-  // メインプレビューから数式または構造式要素を複製（変倍transformをリセットして鮮明化）
-  exportTarget.innerHTML = '';
-  const katexSource = previewArea.querySelector('.katex');
-  const diagramContainers = previewArea.querySelectorAll('[class*="-preview-container"], .chem-structure-container');
-
-  if (diagramContainers.length > 0) {
-    diagramContainers.forEach((containerEl) => {
-      const clone = containerEl.cloneNode(true);
-
-      // chordpro / chordflow の横幅情報を確実に引き継ぐ
-      const origCp = containerEl.querySelector('.chordpro-container');
-      const cloneCp = clone.querySelector('.chordpro-container');
-      if (origCp && cloneCp) {
-        const measuredWidth = Math.ceil(origCp.getBoundingClientRect().width);
-        if (measuredWidth > 0) cloneCp.dataset.baseWidth = measuredWidth;
-      }
-
-      const origCf = containerEl.querySelector('.chordflow-container');
-      const cloneCf = clone.querySelector('.chordflow-container');
-      if (origCf && cloneCf) {
-        const storedBase = parseFloat(origCf.dataset.baseWidth);
-        const measuredWidth = Math.ceil(origCf.getBoundingClientRect().width);
-        cloneCf.dataset.baseWidth = (storedBase && storedBase > 0) ? storedBase : (measuredWidth > 0 ? measuredWidth : 760);
-      }
-
-      exportTarget.appendChild(clone);
-    });
-  } else if (katexSource) {
-    const clone = katexSource.cloneNode(true);
-    clone.style.transform = 'none';
-    clone.querySelectorAll('*').forEach((el) => {
-      if (el.style.transform) el.style.transform = 'none';
-    });
-    clone.dataset.baseFontSize = '26';
-    exportTarget.appendChild(clone);
-  } else {
-    const fallback = document.createElement('div');
-    fallback.textContent = inputArea.value || '数式が入力されていません';
-    fallback.style.padding = '8px';
-    fallback.style.color = '#64748b';
-    fallback.dataset.baseFontSize = '14';
-    exportTarget.appendChild(fallback);
-  }
-
-  // 横幅スライダーのリセット（初期値100%）
-  if (exportWidthSlider) {
-    exportWidthSlider.value = '100';
-  }
-
-  // 表の色合いラジオボタンを「デフォルト（元の指定色）」にリセット
-  const defaultThemeRadio = document.querySelector('input[name="export-table-theme"][value="default"]');
-  if (defaultThemeRadio) {
-    defaultThemeRadio.checked = true;
-  }
-
-  // 表専用オプションの表示/非表示（エクスポート対象に表または日程表が含まれる場合のみ表示）
-  const hasTable = exportTarget.querySelector('.physi-table, .matrix-schedule-table') !== null;
-  if (exportTableOptions) {
-    exportTableOptions.style.display = hasTable ? 'block' : 'none';
-  }
-
-  // 表の初期基準幅を退避（エディタ画面の表示幅をそのまま初期値とする）
-  const targetTable = exportTarget.querySelector('.physi-table, .matrix-schedule-table');
-  if (targetTable) {
-    const origTable = previewArea.querySelector('.physi-table, .matrix-schedule-table');
-    const origContainer = previewArea.querySelector('.table-preview-container, .matrix-preview-container');
-    let naturalWidth = 0;
-    if (origTable) {
-      naturalWidth = Math.round(origTable.getBoundingClientRect().width);
+// メニュー項目ホバー時のエンジン先行プリフェッチ
+document.querySelectorAll('#diagram-menu-panel .menu-item-btn, #formula-menu-panel .menu-item-btn').forEach((btn) => {
+  btn.addEventListener('mouseenter', () => {
+    if (typeof EngineLoader === 'undefined') return;
+    const diagramType = btn.dataset.diagram ? (DIAGRAM_MODAL_TYPE_MAP[btn.dataset.diagram] || btn.dataset.diagram) : null;
+    const formulaType = btn.dataset.formula ? (FORMULA_MODAL_TYPE_MAP[btn.dataset.formula] || btn.dataset.formula) : null;
+    const target = diagramType || formulaType;
+    if (target && target !== 'math' && target !== 'chem-formula') {
+      const deps = DIAGRAM_LIBRARY_ENGINES[target] || [target];
+      deps.forEach((eng) => EngineLoader.loadEngine(eng).catch(() => {}));
     }
-    if (origContainer) {
-      const containerStyle = window.getComputedStyle(origContainer);
-      const padLeft = parseFloat(containerStyle.paddingLeft) || 0;
-      const padRight = parseFloat(containerStyle.paddingRight) || 0;
-      const containerInnerWidth = Math.round(origContainer.clientWidth - padLeft - padRight);
-      if (containerInnerWidth > naturalWidth) {
-        naturalWidth = containerInnerWidth;
-      }
-    }
-    if (!naturalWidth || naturalWidth < 300) {
-      naturalWidth = targetTable.scrollWidth || 700;
-    }
-    targetTable.dataset.baseTableWidth = naturalWidth.toFixed(0);
-  }
-
-  // クローン内のSVGの初期基準寸法を退避（viewBox の設計寸法を最優先とし、原寸大・高解像度を確保）
-  const origSvgs = previewArea.querySelectorAll('svg');
-  exportTarget.querySelectorAll('svg').forEach((svg, idx) => {
-    let baseW = null;
-    let baseH = null;
-
-    // 1. viewBox から設計寸法（ネイティブサイズ）を取得
-    const vb = svg.getAttribute('viewBox');
-    if (vb) {
-      const parts = vb.trim().split(/\s+/).map(Number);
-      if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
-        baseW = parts[2];
-        baseH = parts[3];
-      }
-    }
-
-    // 2. SVG属性（width / height）にピクセル数値が指定されている場合
-    if (!baseW || !baseH) {
-      const rawW = svg.getAttribute('width') || '';
-      const rawH = svg.getAttribute('height') || '';
-      if (rawW && !rawW.includes('%')) baseW = parseFloat(rawW);
-      if (rawH && !rawH.includes('%')) baseH = parseFloat(rawH);
-    }
-
-    // 3. 上記がない場合、エディタ画面での実測表示幅をフォールバックとして採用
-    if (!baseW || !baseH) {
-      const origSvg = origSvgs[idx];
-      if (origSvg) {
-        baseW = Math.round(origSvg.getBoundingClientRect().width);
-        baseH = Math.round(origSvg.getBoundingClientRect().height);
-      }
-    }
-
-    svg.dataset.baseWidth = baseW || 400;
-    svg.dataset.baseHeight = baseH || 300;
-  });
-
-  updateExportStyle();
-}
-
-function closeExportModal() {
-  if (!exportModal) return;
-  exportModal.classList.remove('active');
-  exportModal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-
-function updateExportStyle() {
-  if (!exportTarget || !exportPaddingSlider) return;
-
-  // 横幅（倍率）の反映
-  const widthPercent = (exportWidthSlider && parseInt(exportWidthSlider.value, 10)) || 100;
-  if (exportWidthValue) {
-    exportWidthValue.textContent = `${widthPercent}%`;
-  }
-  const widthRatio = widthPercent / 100;
-
-  // 1. 記号・画像サイズ（倍率）と横幅（倍率）の反映
-  if (exportSizeSlider && exportSizeValue) {
-    const sizePercent = parseInt(exportSizeSlider.value, 10) || 100;
-    exportSizeValue.textContent = `${sizePercent}%`;
-    const scale = sizePercent / 100;
-
-    // SVG（波形・回路図・化学構造式・ダイアグラム全般）の寸法変倍
-    exportTarget.querySelectorAll('svg').forEach((svg) => {
-      const baseW = parseFloat(svg.dataset.baseWidth);
-      const baseH = parseFloat(svg.dataset.baseHeight);
-      if (baseW && baseH) {
-        svg.setAttribute('width', (baseW * scale * widthRatio).toFixed(1));
-        svg.setAttribute('height', (baseH * scale).toFixed(1));
-        if (widthRatio !== 1) {
-          if (!svg.dataset.origPreserveAspectRatio) {
-            svg.dataset.origPreserveAspectRatio = svg.getAttribute('preserveAspectRatio') || 'xMidYMid meet';
-          }
-          svg.setAttribute('preserveAspectRatio', 'none');
-        } else if (svg.dataset.origPreserveAspectRatio) {
-          svg.setAttribute('preserveAspectRatio', svg.dataset.origPreserveAspectRatio);
-        }
-      }
-    });
-
-    // KaTeX数式の文字サイズ変倍（最外層のみに適用し累積縮小を防止）
-    exportTarget.querySelectorAll('.katex').forEach((kEl) => {
-      if (kEl.parentElement && kEl.parentElement.closest('.katex')) return;
-      // 表（テーブル）内のインライン数式はテーブル全体のフォントサイズを継承
-      if (kEl.closest('.physi-table')) {
-        kEl.style.fontSize = '';
-        return;
-      }
-      const baseFs = parseFloat(kEl.dataset.baseFontSize || '26');
-      kEl.style.fontSize = `${(baseFs * scale).toFixed(1)}px`;
-    });
-
-    // テキスト・フォールバックの文字サイズ変倍
-    exportTarget.querySelectorAll('[data-base-font-size]').forEach((el) => {
-      if (!el.classList.contains('katex')) {
-        const baseFs = parseFloat(el.dataset.baseFontSize);
-        el.style.fontSize = `${(baseFs * scale).toFixed(1)}px`;
-      }
-    });
-
-    // 表（テーブル）の文字サイズ変倍
-    exportTarget.querySelectorAll('.physi-table, .matrix-schedule-table').forEach((tbl) => {
-      tbl.style.fontSize = `${(14 * scale).toFixed(1)}px`;
-    });
-
-    // コード進行の文字サイズ変倍
-    exportTarget.querySelectorAll('.chordpro-container').forEach((cp) => {
-      cp.style.fontSize = `${(15 * scale).toFixed(1)}px`;
-    });
-  }
-
-  // 2. 余白（パディング）の反映
-  const padding = exportPaddingSlider.value;
-  exportPaddingValue.textContent = `${padding}px`;
-  exportTarget.style.padding = `${padding}px`;
-
-  // 3. 背景色
-  const selectedBg = document.querySelector('input[name="export-bg"]:checked')?.value || 'white';
-  if (selectedBg === 'transparent') {
-    exportTarget.classList.add('transparent-bg');
-  } else {
-    exportTarget.classList.remove('transparent-bg');
-  }
-
-  // 5. 表（テーブル）専用オプションの反映（表の横幅 & セル余白割合 & テーマカラー）
-  const tableEl = exportTarget.querySelector('.physi-table, .matrix-schedule-table');
-  const hasCustomTableStyle = tableEl && (
-    tableEl.classList.contains('table-style-dark') ||
-    tableEl.classList.contains('table-style-academic') ||
-    tableEl.classList.contains('table-style-accent') ||
-    tableEl.classList.contains('table-style-blue') ||
-    tableEl.classList.contains('table-style-rose') ||
-    tableEl.classList.contains('matrix-schedule-table')
-  );
-
-  // 4. 配色
-  const selectedColorMode = document.querySelector('input[name="export-color-mode"]:checked')?.value || 'color';
-  if (selectedColorMode === 'monochrome') {
-    exportTarget.classList.add('monochrome-mode');
-    if (exportTableThemeGroup) exportTableThemeGroup.style.display = 'none';
-  } else {
-    exportTarget.classList.remove('monochrome-mode');
-    if (exportTableThemeGroup) {
-      exportTableThemeGroup.style.display = tableEl ? 'block' : 'none';
-    }
-  }
-
-  if (tableEl) {
-    // 表の横幅の反映
-    const baseWidth = parseFloat(tableEl.dataset.baseTableWidth) || 700;
-    const calcWidth = Math.round(baseWidth * widthRatio);
-    tableEl.style.width = `${calcWidth}px`;
-    tableEl.style.minWidth = `${calcWidth}px`;
-
-    // セル余白割合の反映
-    if (exportCellPaddingSlider && exportCellPaddingValue) {
-      const padPercent = parseInt(exportCellPaddingSlider.value, 10) || 100;
-      exportCellPaddingValue.textContent = `${padPercent}%`;
-      const ratio = padPercent / 100;
-
-      // 10%〜200% に応じた上下余白（最小1px）・左右余白（最小3px）の算出
-      const padY = Math.max(1, parseFloat((9 * ratio).toFixed(1)));
-      const padYtd = Math.max(1, parseFloat((8 * ratio).toFixed(1)));
-      const padX = Math.max(3, parseFloat((15 * ratio).toFixed(1)));
-
-      // 余白に連動した行間（line-height）の圧縮（10%で1.15、100%で1.45）
-      const lineH = Math.max(1.15, Math.min(1.6, parseFloat((1.1 + 0.35 * ratio).toFixed(2))));
-
-      tableEl.style.setProperty('--cell-pad-y', `${padY}px`);
-      tableEl.style.setProperty('--cell-pad-x', `${padX}px`);
-      tableEl.style.lineHeight = `${lineH}`;
-
-      tableEl.querySelectorAll('th').forEach((th) => {
-        th.style.padding = `${padY}px ${padX}px`;
-        th.style.lineHeight = `${lineH}`;
-      });
-      tableEl.querySelectorAll('td').forEach((td) => {
-        td.style.padding = `${padYtd}px ${padX}px`;
-        td.style.lineHeight = `${lineH}`;
-      });
-    }
-
-    // テーマカラーの反映（既存のテーマカラーをリセット）
-    tableEl.classList.remove(
-      'table-theme-blue',
-      'table-theme-slate',
-      'table-theme-emerald',
-      'table-theme-purple',
-      'table-theme-amber',
-      'table-theme-rose',
-      'table-theme-cyan',
-      'table-theme-navy'
-    );
-
-    // 選択されたテーマカラー（デフォルト以外）を適用し、各スタイルの構造を維持したまま色付け
-    const selectedTheme = document.querySelector('input[name="export-table-theme"]:checked')?.value || 'default';
-    if (selectedTheme !== 'default') {
-      tableEl.classList.add(`table-theme-${selectedTheme}`);
-    }
-  }
-
-  // 6. コード進行 (ChordPro) の横幅反映
-  const chordproEl = exportTarget.querySelector('.chordpro-container');
-  if (chordproEl) {
-    const baseWidth = parseFloat(chordproEl.dataset.baseWidth);
-    if (widthRatio === 1 || !baseWidth) {
-      chordproEl.style.width = 'fit-content';
-      chordproEl.style.maxWidth = 'fit-content';
-    } else {
-      const calcWidth = Math.round(baseWidth * widthRatio);
-      chordproEl.style.width = `${calcWidth}px`;
-      chordproEl.style.maxWidth = `${calcWidth}px`;
-    }
-  }
-
-  // 7. ギターコード図 (guitarchords) の横幅反映
-  const guitarEl = exportTarget.querySelector('.guitarchords-container');
-  if (guitarEl) {
-    const baseWidth = parseFloat(guitarEl.dataset.baseWidth) || 720;
-    const calcWidth = Math.round(baseWidth * widthRatio);
-    guitarEl.style.width = `${calcWidth}px`;
-    guitarEl.style.maxWidth = `${calcWidth}px`;
-  }
-
-  // 8. コード進行フロー (ChordFlow) の横幅反映
-  const chordFlowEl = exportTarget.querySelector('.chordflow-container');
-  if (chordFlowEl) {
-    const baseWidth = parseFloat(chordFlowEl.dataset.baseWidth) || 760;
-    const calcWidth = Math.round(baseWidth * widthRatio);
-    chordFlowEl.style.width = `${calcWidth}px`;
-    chordFlowEl.style.maxWidth = `${calcWidth}px`;
-  }
-}
-
-// コントロール変更イベント
-if (exportSizeSlider) {
-  exportSizeSlider.addEventListener('input', updateExportStyle);
-}
-if (exportWidthSlider) {
-  exportWidthSlider.addEventListener('input', updateExportStyle);
-}
-if (exportPaddingSlider) {
-  exportPaddingSlider.addEventListener('input', updateExportStyle);
-}
-if (exportCellPaddingSlider) {
-  exportCellPaddingSlider.addEventListener('input', updateExportStyle);
-}
-exportBgRadios.forEach((radio) => radio.addEventListener('change', updateExportStyle));
-exportColorRadios.forEach((radio) => radio.addEventListener('change', updateExportStyle));
-exportTableThemeRadios.forEach((radio) => radio.addEventListener('change', updateExportStyle));
-
-if (openExportBtn) {
-  openExportBtn.addEventListener('click', openExportModal);
-}
-if (closeExportXBtn) {
-  closeExportXBtn.addEventListener('click', closeExportModal);
-}
-if (closeExportFooterBtn) {
-  closeExportFooterBtn.addEventListener('click', closeExportModal);
-}
-
-if (exportModal) {
-  exportModal.addEventListener('click', (e) => {
-    if (e.target === exportModal) {
-      closeExportModal();
-    }
-  });
-}
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && exportModal && exportModal.classList.contains('active')) {
-    closeExportModal();
-  }
+  }, { once: true });
 });
 
-// PNG画像の生成とダウンロード実行
-if (exportDownloadBtn) {
-  exportDownloadBtn.addEventListener('click', async () => {
-    if (typeof html2canvas === 'undefined') {
-      alert('画像化ライブラリの読み込みに失敗しました。ページを再読み込みしてください。');
-      return;
-    }
-
-    const scaleVal = parseFloat(document.querySelector('input[name="export-scale"]:checked')?.value || '2');
-    const selectedBg = document.querySelector('input[name="export-bg"]:checked')?.value || 'white';
-    const bgColor = selectedBg === 'transparent' ? null : '#ffffff';
-
-    const selectedColorMode = document.querySelector('input[name="export-color-mode"]:checked')?.value || 'color';
-
-    const originalBtnHtml = exportDownloadBtn.innerHTML;
-    exportDownloadBtn.disabled = true;
-    exportDownloadBtn.innerHTML = '<span class="icon">⏳</span> 画像生成中...';
-
-    try {
-      const hasKatex = exportTarget.querySelector('.katex') !== null;
-      let canvas;
-
-      if (!hasKatex && exportTarget.querySelector('svg')) {
-        // SVGダイアグラム（化学構造式・回路図等）：ブラウザ標準Canvas APIで直接描画
-        const targetRect = exportTarget.getBoundingClientRect();
-        const targetW = Math.max(Math.round(targetRect.width), 10);
-        const targetH = Math.max(Math.round(targetRect.height), 10);
-
-        canvas = document.createElement('canvas');
-        canvas.width = Math.round(targetW * scaleVal);
-        canvas.height = Math.round(targetH * scaleVal);
-        const ctx = canvas.getContext('2d');
-        ctx.scale(scaleVal, scaleVal);
-
-        if (bgColor) {
-          ctx.fillStyle = bgColor;
-          ctx.fillRect(0, 0, targetW, targetH);
-        }
-
-        if (selectedColorMode === 'monochrome') {
-          ctx.filter = 'grayscale(100%)';
-        }
-
-        const svgs = Array.from(exportTarget.querySelectorAll('svg'));
-        for (const svg of svgs) {
-          if (!svg.getAttribute('xmlns')) {
-            svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-          }
-          const xml = new XMLSerializer().serializeToString(svg);
-          const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
-          const url = URL.createObjectURL(blob);
-          const img = new Image();
-          await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-            img.src = url;
-          });
-          URL.revokeObjectURL(url);
-
-          const svgRect = svg.getBoundingClientRect();
-          const relX = svgRect.left - targetRect.left;
-          const relY = svgRect.top - targetRect.top;
-          ctx.drawImage(img, relX, relY, svgRect.width, svgRect.height);
-        }
-      } else {
-        // 数式（KaTeX）を含む場合：html2canvasを使用
-        canvas = await html2canvas(exportTarget, {
-          scale: scaleVal,
-          backgroundColor: bgColor,
-          useCORS: true,
-          logging: false
-        });
-      }
-
-      // タイトル・企業名・見出しからの画像ファイル名自動決定
-      const getExportImageFileName = () => {
-        const inputEl = document.getElementById('formula-input');
-        const text = (inputEl && inputEl.value) ? inputEl.value : '';
-        let title = '';
-
-        // 1. 構文内の title: ...
-        const mTitle = text.match(/(?:^|[\n\r;])\s*(?:title|タイトル)\s*:\s*(?:"([^"\n\r]+)"|'([^'\n\r]+)'|([^;\n\r]+))/i);
-        if (mTitle) {
-          title = (mTitle[1] || mTitle[2] || mTitle[3] || '').trim();
-        }
-
-        // 2. 構文内の company / 企業名 と period / 決算期
-        if (!title) {
-          const mComp = text.match(/(?:^|[\n\r;])\s*(?:company|企業名)\s*:\s*(?:"([^"\n\r]+)"|'([^'\n\r]+)'|([^;\n\r]+))/i);
-          const mPeriod = text.match(/(?:^|[\n\r;])\s*(?:period|決算期)\s*:\s*(?:"([^"\n\r]+)"|'([^'\n\r]+)'|([^;\n\r]+))/i);
-          if (mComp) {
-            const compStr = (mComp[1] || mComp[2] || mComp[3] || '').trim();
-            const periodStr = mPeriod ? (mPeriod[1] || mPeriod[2] || mPeriod[3] || '').trim() : '';
-            title = periodStr ? `${compStr}_${periodStr}` : compStr;
-          }
-        }
-
-        // 3. \title{...}, \caption{...}, \section{...}
-        if (!title) {
-          const mMacro = text.match(/\\(?:title|caption|section)\s*\{([^}]+)\}/i);
-          if (mMacro && mMacro[1].trim()) {
-            title = mMacro[1].trim();
-          }
-        }
-
-        // 4. 先頭付近のコメント行
-        if (!title) {
-          const lines = text.split(/[\r\n]+/);
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-            const mComm = trimmed.match(/^(?:#|\/\/)\s*(?:(?:タイトル[:：]\s*)?(.+))$/);
-            if (mComm && mComm[1] && !mComm[1].startsWith('==') && !mComm[1].startsWith('--') && !mComm[1].startsWith('1.') && !mComm[1].startsWith('2.')) {
-              title = mComm[1].trim();
-              break;
-            }
-          }
-        }
-
-        // 5. 描画済み要素内のタイトル要素
-        if (!title && typeof exportTarget !== 'undefined' && exportTarget) {
-          const titleEl = exportTarget.querySelector('.chart-title, .diagram-title, .table-title, .bs-header-title, .pl-header-title, [class*="-title"]');
-          if (titleEl && titleEl.textContent && titleEl.textContent.trim()) {
-            title = titleEl.textContent.trim();
-          }
-        }
-
-        // 6. サニタイズ（禁止文字置換・長さ制限）
-        if (title) {
-          let safeName = title
-            .replace(/[\/\\:*?"<>|]/g, '_')
-            .replace(/[\r\n\t]+/g, ' ')
-            .trim();
-          if (safeName.length > 60) {
-            safeName = safeName.substring(0, 60).trim();
-          }
-          if (safeName) {
-            return `${safeName}.png`;
-          }
-        }
-
-        return `physinote_formula_${Date.now()}.png`;
-      };
-
-      const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = getExportImageFileName();
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // PNG保存完了後に設定ウィンドウを自動で閉じる
-      closeExportModal();
-    } catch (err) {
-      console.error('画像生成エラー:', err);
-      alert('画像の生成に失敗しました: ' + err.message);
-    } finally {
-      exportDownloadBtn.disabled = false;
-      exportDownloadBtn.innerHTML = originalBtnHtml;
-    }
-  });
-}
+// （画像エクスポート機能は js/export-manager.js に分離・管理）
 
 // 🏠 ローカル環境でのポータル戻るリンクの切り替え
 window.addEventListener('DOMContentLoaded', () => {

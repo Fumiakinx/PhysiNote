@@ -22,10 +22,200 @@ function escapeSeqHtml(str) {
 }
 
 /**
+ * LaTeX pgf-umlsd 構文パーサー (\begin{sequencediagram})
+ */
+function parseUmlsd(rawText) {
+  let title = '';
+  const titleM = rawText.match(/(?:%|#|\/\/)\s*title\s*:\s*(.+)$/im);
+  if (titleM) {
+    title = titleM[1].trim().replace(/;$/, '').replace(/^["']|["']$/g, '');
+  }
+
+  const envM = rawText.match(/\\begin\{sequencediagram\}([\s\S]*?)\\end\{sequencediagram\}/i);
+  const content = envM ? envM[1] : rawText;
+
+  const actorMap = new Map();
+  const declaredActors = [];
+  const idToName = new Map();
+
+  function recordActor(id, label) {
+    const cleanId = (id || '').trim();
+    const cleanName = (label || cleanId).replace(/[\{\}]/g, '').trim();
+    if (!cleanId) return;
+
+    idToName.set(cleanId, cleanName);
+    if (!actorMap.has(cleanName)) {
+      actorMap.set(cleanName, {
+        id: cleanName,
+        name: cleanName,
+        x: 0,
+        w: 120,
+        h: 44,
+      });
+      declaredActors.push(cleanName);
+    }
+  }
+
+  function resolveActor(ref) {
+    const clean = (ref || '').trim();
+    return idToName.get(clean) || clean;
+  }
+
+  // 1. \newthread, \newinst のアクター定義
+  const threadRegex = /\\(?:newthread|newinst)(?:\[[^\]]*\])?\s*\{([^}]+)\}\s*\{([^}]+)\}/gi;
+  let thM;
+  while ((thM = threadRegex.exec(content)) !== null) {
+    recordActor(thM[1], thM[2]);
+  }
+
+  // 2. イベント (call, callself, mess, sdblock) の順序保持パース
+  const events = [];
+  const callStack = []; // 戻り値ペア用スタック
+
+  const lines = content.split('\n');
+  lines.forEach(rawLine => {
+    let line = rawLine.trim();
+    if (!line || line.startsWith('%') || line.startsWith('//')) return;
+
+    // \begin{call}{from}{msg}{to}{return_msg}
+    const callBeginM = line.match(/\\begin\{call\}(?:\[[^\]]*\])?\s*\{([^}]+)\}\s*\{([^}]+)\}\s*\{([^}]+)\}\s*\{([^}]*)\}/i);
+    if (callBeginM) {
+      const from = resolveActor(callBeginM[1]);
+      const msg = callBeginM[2].trim();
+      const to = resolveActor(callBeginM[3]);
+      const retMsg = callBeginM[4].trim();
+
+      recordActor(from);
+      recordActor(to);
+
+      events.push({
+        type: 'msg',
+        from,
+        to,
+        text: msg,
+        isDotted: false,
+        isSelf: from === to,
+        color: null
+      });
+
+      callStack.push({ from, to, retMsg, isSelf: from === to });
+      return;
+    }
+
+    // \end{call}
+    if (/\\end\{call\}/i.test(line)) {
+      if (callStack.length > 0) {
+        const c = callStack.pop();
+        if (c.retMsg) {
+          events.push({
+            type: 'msg',
+            from: c.to,
+            to: c.from,
+            text: c.retMsg,
+            isDotted: true,
+            isSelf: c.isSelf,
+            color: null
+          });
+        }
+      }
+      return;
+    }
+
+    // \begin{callself}{from}{msg}{return_msg}
+    const selfBeginM = line.match(/\\begin\{callself\}(?:\[[^\]]*\])?\s*\{([^}]+)\}\s*\{([^}]+)\}\s*\{([^}]*)\}/i);
+    if (selfBeginM) {
+      const from = resolveActor(selfBeginM[1]);
+      const msg = selfBeginM[2].trim();
+      const retMsg = selfBeginM[3].trim();
+
+      recordActor(from);
+
+      events.push({
+        type: 'msg',
+        from,
+        to: from,
+        text: msg,
+        isDotted: false,
+        isSelf: true,
+        color: null
+      });
+
+      callStack.push({ from, to: from, retMsg, isSelf: true });
+      return;
+    }
+
+    // \end{callself}
+    if (/\\end\{callself\}/i.test(line)) {
+      if (callStack.length > 0) {
+        const c = callStack.pop();
+        if (c.retMsg) {
+          events.push({
+            type: 'msg',
+            from: c.from,
+            to: c.from,
+            text: c.retMsg,
+            isDotted: true,
+            isSelf: true,
+            color: null
+          });
+        }
+      }
+      return;
+    }
+
+    // \mess[delay]{from}{msg}{to} または \postmess
+    const messM = line.match(/\\(?:mess|postmess)(?:\[[^\]]*\])?\s*\{([^}]+)\}\s*\{([^}]+)\}\s*\{([^}]+)\}/i);
+    if (messM) {
+      const from = resolveActor(messM[1]);
+      const msg = messM[2].trim();
+      const to = resolveActor(messM[3]);
+
+      recordActor(from);
+      recordActor(to);
+
+      events.push({
+        type: 'msg',
+        from,
+        to,
+        text: msg,
+        isDotted: false,
+        isSelf: from === to,
+        color: null
+      });
+      return;
+    }
+
+    // \begin{sdblock}{title}{label}
+    const blockM = line.match(/\\begin\{sdblock\}\s*\{([^}]+)\}\s*\{([^}]*)\}/i);
+    if (blockM) {
+      const bTitle = blockM[1].trim();
+      const bLabel = blockM[2].trim();
+      if (declaredActors.length > 0) {
+        events.push({
+          type: 'note',
+          targets: [declaredActors[0]],
+          text: `[${bTitle}] ${bLabel}`.trim(),
+          color: null
+        });
+      }
+    }
+  });
+
+  if (actorMap.size === 0 || events.length === 0) return null;
+  return buildSequenceData(title || 'シーケンス図 (pgf-umlsd)', declaredActors, actorMap, events);
+}
+
+/**
  * \sequence{ ... } 構文のパース
  */
 function parseSequenceDiagram(rawText) {
   if (!rawText || typeof rawText !== 'string') return null;
+
+  // LaTeX pgf-umlsd 判定
+  if (/\\begin\{sequencediagram\}/i.test(rawText)) {
+    return parseUmlsd(rawText);
+  }
+
   let text = rawText.trim();
 
   // \sequence{...} または \seq{...} のラッパーを解除
@@ -135,7 +325,13 @@ function parseSequenceDiagram(rawText) {
   });
 
   if (actorMap.size === 0 || events.length === 0) return null;
+  return buildSequenceData(title, declaredActors, actorMap, events);
+}
 
+/**
+ * アクターとイベントからSVGレイアウト用データを構築
+ */
+function buildSequenceData(title, declaredActors, actorMap, events) {
   // アクターの表示順序（明示定義優先、それ以外はイベント出現順）
   const allActorKeys = Array.from(actorMap.keys());
   const orderedActors = [];

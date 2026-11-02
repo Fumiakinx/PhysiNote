@@ -29,10 +29,166 @@ const ORG_THEMES = {
 };
 
 /**
+ * LaTeX ノードラベルのクリーンアップヘルパー
+ */
+function cleanLatexNodeText(str) {
+  if (!str) return '';
+  return str
+    .replace(/\\textbf\{([^}]*)\}/g, '$1')
+    .replace(/\\textsf\{([^}]*)\}/g, '$1')
+    .replace(/\\textit\{([^}]*)\}/g, '$1')
+    .replace(/\\(?:large|small|footnotesize|Huge|huge)/gi, '')
+    .replace(/\\\\/g, ' / ')
+    .replace(/[\{\}]/g, '')
+    .trim();
+}
+
+/**
+ * LaTeX forest / tikz-qtree 構文パーサー
+ */
+function parseForestTree(rawText) {
+  let title = '';
+  const titleM = rawText.match(/(?:%|#|\/\/)\s*title\s*:\s*(.+)$/im);
+  if (titleM) {
+    title = titleM[1].trim().replace(/;$/, '').replace(/^["']|["']$/g, '');
+  }
+
+  let content = rawText;
+  const envM = rawText.match(/\\begin\{forest\}([\s\S]*?)\\end\{forest\}/i);
+  if (envM) {
+    content = envM[1];
+  } else {
+    const macroM = rawText.match(/\\Forest\s*\{([\s\S]*)\}/i);
+    if (macroM) {
+      content = macroM[1];
+    } else {
+      const treeM = rawText.match(/\\Tree\s+([\s\S]*?)(?:\\end\{tikzpicture\}|$)/i);
+      if (treeM) {
+        content = treeM[1];
+      }
+    }
+  }
+
+  // tikz-qtree の [.記法 を [ に正規化
+  content = content.replace(/\[\s*\.\s*/g, '[');
+  // 行頭コメントを除去
+  content = content.replace(/^%.*$/gm, '');
+  // for tree={...} などの環境オプションを除去
+  content = content.replace(/(?:for\s+tree|delay|where\s+n|before\s+drawing)\s*=\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gi, '');
+
+  const rawEdges = [];
+  const nodeOptions = new Map();
+
+  let i = 0;
+  function skipWhitespace() {
+    while (i < content.length && /\s/.test(content[i])) i++;
+  }
+
+  function parseNode(parentName) {
+    skipWhitespace();
+    if (i >= content.length || content[i] !== '[') return;
+
+    i++; // '['
+    skipWhitespace();
+
+    let nodeText = '';
+    let depth = 0;
+    while (i < content.length) {
+      const ch = content[i];
+      if (ch === '{') depth++;
+      else if (ch === '}') depth = Math.max(0, depth - 1);
+
+      if (depth === 0 && (ch === '[' || ch === ']')) {
+        break;
+      }
+      nodeText += ch;
+      i++;
+    }
+
+    nodeText = cleanLatexNodeText(nodeText);
+    let name = nodeText;
+    let tag = '';
+    let color = '';
+    let isStaff = false;
+
+    // オプション解析 (カンマ区切りの tag=, color=, role=, dashed など)
+    if (nodeText.includes(',')) {
+      const parts = nodeText.split(',').map(s => s.trim());
+      name = parts[0];
+      for (let pIdx = 1; pIdx < parts.length; pIdx++) {
+        const p = parts[pIdx];
+        if (/^tag\s*=\s*(.+)$/i.test(p)) {
+          tag = p.match(/^tag\s*=\s*(.+)$/i)[1].replace(/^["']|["']$/g, '');
+        } else if (/^color\s*=\s*(.+)$/i.test(p)) {
+          color = p.match(/^color\s*=\s*(.+)$/i)[1].replace(/^["']|["']$/g, '');
+        } else if (/dashed|staff/i.test(p)) {
+          isStaff = true;
+        } else if (/^#(?:[0-9a-fA-F]{3,8})$/.test(p)) {
+          color = p;
+        } else if (!tag) {
+          tag = p;
+        }
+      }
+    }
+
+    // 角括弧タグ [タグ] の抽出
+    const tagMatch = name.match(/\[(.*?)\]/);
+    if (tagMatch) {
+      tag = tagMatch[1].trim();
+      name = name.replace(/\[.*?\]/, '').trim();
+    }
+
+    name = name.replace(/^["']|["']$/g, '').trim();
+
+    if (name) {
+      if (parentName) {
+        rawEdges.push({ from: parentName, to: name, type: isStaff ? 'staff' : 'direct', tag, color });
+      }
+      if (tag || color) {
+        nodeOptions.set(name, { tag, color });
+      }
+
+      while (i < content.length) {
+        skipWhitespace();
+        if (content[i] === ']') {
+          i++; // ']'
+          break;
+        } else if (content[i] === '[') {
+          parseNode(name);
+        } else {
+          i++;
+        }
+      }
+    } else {
+      while (i < content.length && content[i] !== ']') i++;
+      if (i < content.length) i++;
+    }
+  }
+
+  while (i < content.length) {
+    skipWhitespace();
+    if (content[i] === '[') {
+      parseNode(null);
+      break;
+    }
+    i++;
+  }
+
+  if (rawEdges.length === 0) return null;
+  return buildOrgChartFromEdges(title || '組織階層ツリー (forest)', rawEdges, nodeOptions);
+}
+
+/**
  * \orgchart{ ... } 構文のパース
  */
 function parseOrgChart(rawText) {
   if (!rawText || typeof rawText !== 'string') return null;
+
+  // LaTeX forest / tikz-qtree 判定
+  if (/\\begin\{forest\}|\\Forest\{|\\Tree\s+\[/i.test(rawText)) {
+    return parseForestTree(rawText);
+  }
+
   let text = rawText.trim();
 
   // \orgchart{...} または \organization{...} のラッパーを解除
@@ -42,7 +198,6 @@ function parseOrgChart(rawText) {
   }
 
   let title = '';
-  const nodeDefs = new Map(); // id -> { name, tag, color, type }
   const rawEdges = []; // { from, to, type: 'direct' | 'staff', tag, color }
 
   const lines = text.split(/[\n;]+/).map((l) => l.trim()).filter(Boolean);
@@ -88,7 +243,13 @@ function parseOrgChart(rawText) {
   });
 
   if (rawEdges.length === 0) return null;
+  return buildOrgChartFromEdges(title, rawEdges, new Map());
+}
 
+/**
+ * エッジリストから階層ツリー構造（ノードマップ）を構築
+ */
+function buildOrgChartFromEdges(title, rawEdges, nodeOptions = new Map()) {
   // ノードマップ作成
   const nodeMap = new Map();
   function getOrCreateNode(name) {
@@ -106,12 +267,14 @@ function parseOrgChart(rawText) {
         personName = parts[1];
       }
 
+      const opt = nodeOptions.get(name) || {};
+
       nodeMap.set(name, {
         id: name,
         name: personName,
         role: role,
-        tag: '',
-        color: '',
+        tag: opt.tag || '',
+        color: opt.color || '',
         parents: [],
         directChildren: [],
         staffChildren: [],

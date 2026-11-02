@@ -504,10 +504,10 @@ function renderRoadmapTimelineSvg(data, svg) {
   });
 
   // コンパクトなレイアウト計算（余白とステップ幅を詰める）
-  const padX = 70;
+  const padX = 105;
   const cardW = 160;
   const stepX = Math.max(150, Math.min(190, 750 / Math.max(count - 1, 1)));
-  const totalW = Math.max(760, padX * 2 + (count - 1) * stepX);
+  const totalW = Math.max(820, padX * 2 + (count - 1) * stepX);
 
   // 各カードの高さを事前計算
   let maxAboveH = 90;
@@ -573,7 +573,7 @@ function renderRoadmapTimelineSvg(data, svg) {
   }
 
   // タイムラインベースライン
-  const startX = padX - 25;
+  const startX = padX - 35;
   const endX = totalW - padX + 35;
 
   const baseLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');

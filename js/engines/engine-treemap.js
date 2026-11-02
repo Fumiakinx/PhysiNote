@@ -379,8 +379,14 @@ function drawTreemapSvg(code, container, labelText) {
         titleEl.textContent = `${gRect.name} - ${r.label}: ${r.value.toLocaleString()} ${unit || ''}`;
         tileGroup.appendChild(titleEl);
 
-        // ラベル描画（画像3スタイル: 左上に都道府県名）
-        if (rw >= 28 && rh >= 18) {
+        // ラベル描画（グループヘッダーとの重複回避）
+        const isTopLeft = Math.abs(rx - gRect.x) < 2 && Math.abs(ry - gRect.y) < 2;
+        const isSameName = r.label === gRect.name;
+
+        // 同一名称の単一子要素（例: 北海道）の場合はグループヘッダー側で1回のみ描画
+        if (isTopLeft && isSameName) {
+          // 子要素側の重複描画をスキップ
+        } else if (rw >= 28 && rh >= 18) {
           const textG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
           textG.setAttribute('fill', '#ffffff');
           textG.setAttribute('font-family', 'sans-serif');
@@ -388,31 +394,39 @@ function drawTreemapSvg(code, container, labelText) {
 
           const fontSize = Math.min(Math.max(Math.floor(Math.min(rw / 4.5, rh / 2.2)), 10.5), 13.5);
 
-          const labelTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          labelTxt.setAttribute('x', rx + 6);
-          labelTxt.setAttribute('y', ry + fontSize + 4);
-          labelTxt.setAttribute('font-size', String(fontSize));
-          labelTxt.setAttribute('font-weight', '700');
-          labelTxt.textContent = r.label;
-          textG.appendChild(labelTxt);
+          // 先頭タイルの場合、上部のグループヘッダー（高さ約14px）と重ならないよう下にずらす
+          const topOffset = (isTopLeft && gRect.w >= 36 && gRect.h >= 22) ? 16 : 0;
+          const textY = ry + topOffset + fontSize + 2;
 
-          tileGroup.appendChild(textG);
+          // タイル内に収まる場合のみ描画
+          if (textY <= ry + rh - 2) {
+            const labelTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            labelTxt.setAttribute('x', rx + 6);
+            labelTxt.setAttribute('y', textY);
+            labelTxt.setAttribute('font-size', String(fontSize));
+            labelTxt.setAttribute('font-weight', '700');
+            labelTxt.textContent = r.label;
+            textG.appendChild(labelTxt);
+
+            tileGroup.appendChild(textG);
+          }
         }
 
         tileG.appendChild(tileGroup);
       });
 
       // グループ領域の左上ヘッダーラベル（「東北」「中部」「九州沖縄」など）
-      if (gRect.w >= 40 && gRect.h >= 24) {
+      if (gRect.w >= 36 && gRect.h >= 22) {
+        const isSingleSame = gRect.items.length === 1 && gRect.items[0].label === gRect.name;
         const gHeader = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         gHeader.setAttribute('x', gRect.x + 6);
-        gHeader.setAttribute('y', gRect.y + 16);
+        gHeader.setAttribute('y', gRect.y + (isSingleSame ? 18 : 13));
         gHeader.setAttribute('fill', '#ffffff');
-        gHeader.setAttribute('font-size', '13.5');
+        gHeader.setAttribute('font-size', isSingleSame ? '14' : '11');
         gHeader.setAttribute('font-weight', '900');
         gHeader.setAttribute('font-family', 'sans-serif');
-        gHeader.setAttribute('stroke', 'rgba(0,0,0,0.3)');
-        gHeader.setAttribute('stroke-width', '1.5');
+        gHeader.setAttribute('stroke', 'rgba(0,0,0,0.4)');
+        gHeader.setAttribute('stroke-width', '2');
         gHeader.setAttribute('paint-order', 'stroke fill');
         gHeader.style.pointerEvents = 'none';
         gHeader.textContent = gRect.name;

@@ -39,25 +39,32 @@ function splitNodeText(name) {
 
 function wrapCapitalTreeNote(noteText, maxCharUnits = 28) {
   if (!noteText) return [];
-  const segments = noteText.includes(' / ') ? noteText.split(' / ') : [noteText];
+  const rawSegments = (noteText.includes('\\n') || noteText.includes('\n'))
+    ? noteText.split(/\\n|\n/)
+    : [noteText];
   const lines = [];
-  segments.forEach((seg, sIdx) => {
-    const segText = sIdx < segments.length - 1 ? `${seg.trim()} /` : seg.trim();
-    let curLine = '';
-    let curUnits = 0;
-    for (let i = 0; i < segText.length; i++) {
-      const ch = segText[i];
-      const unit = ch.charCodeAt(0) > 255 ? 2 : 1;
-      if (curUnits + unit > maxCharUnits && curLine.length > 0) {
-        lines.push(curLine.trim());
-        curLine = ch;
-        curUnits = unit;
-      } else {
-        curLine += ch;
-        curUnits += unit;
+  rawSegments.forEach((rawSeg) => {
+    const trimmedSeg = rawSeg.trim();
+    if (!trimmedSeg) return;
+    const segments = trimmedSeg.includes(' / ') ? trimmedSeg.split(' / ') : [trimmedSeg];
+    segments.forEach((seg, sIdx) => {
+      const segText = sIdx < segments.length - 1 ? `${seg.trim()} /` : seg.trim();
+      let curLine = '';
+      let curUnits = 0;
+      for (let i = 0; i < segText.length; i++) {
+        const ch = segText[i];
+        const unit = ch.charCodeAt(0) > 255 ? 2 : 1;
+        if (curUnits + unit > maxCharUnits && curLine.length > 0) {
+          lines.push(curLine.trim());
+          curLine = ch;
+          curUnits = unit;
+        } else {
+          curLine += ch;
+          curUnits += unit;
+        }
       }
-    }
-    if (curLine.trim()) lines.push(curLine.trim());
+      if (curLine.trim()) lines.push(curLine.trim());
+    });
   });
   return lines;
 }
@@ -85,9 +92,13 @@ function parseCapitalTree(rawText) {
   const rawEdges = [];
   const rawNodes = new Map(); // id -> { name, type, note, color }
 
-  const lines = text.split(/[\n;]+/).map((l) => l.trim()).filter(Boolean);
+  // 改行・行末セミコロン・コメントを整理して行ごとにパース
+  const rawLines = text.split(/\r?\n/).map((l) => l.replace(/\/\/.*$/, '').trim()).filter(Boolean);
 
-  lines.forEach((line) => {
+  rawLines.forEach((rawLine) => {
+    const line = rawLine.replace(/;+$/, '').trim();
+    if (!line) return;
+
     // 1. title:
     const titleMatch = line.match(/^title:\s*(.+)$/i);
     if (titleMatch) {
@@ -115,7 +126,7 @@ function parseCapitalTree(rawText) {
     }
 
     // 2. root: または node: "会社名" [属性]
-    const rootMatch = line.match(/^(?:root|node):\s*(?:"([^"]+)"|'([^']+)'|([^\s\[;]+))(?:\s*\[([^\]]*)\])?/i);
+    const rootMatch = line.match(/^(?:root|node):\s*(?:"([^"]+)"|'([^']+)'|([^\s\[;]+))(?:\s*\[([\s\S]*)\])?$/i);
     if (rootMatch && !line.includes('->')) {
       const name = (rootMatch[1] || rootMatch[2] || rootMatch[3] || '').trim();
       const meta = rootMatch[4] || '';
@@ -125,8 +136,8 @@ function parseCapitalTree(rawText) {
       return;
     }
 
-    // 3. エッジ関係: "親会社" -> "子会社" [比率, 区分, 色]
-    const edgeMatch = line.match(/^(?:"([^"]+)"|'([^']+)'|([^\s\->\[;]+))\s*->\s*(?:"([^"]+)"|'([^']+)'|([^\s\->\[;]+))(?:\s*\[([^\]]*)\])?/);
+    // 3. エッジ関係: "親会社" -> "子会社" [比率, 区分, 色, tag: ..., 詳細メモ]
+    const edgeMatch = line.match(/^(?:"([^"]+)"|'([^']+)'|([^\s\->\[]+))\s*->\s*(?:"([^"]+)"|'([^']+)'|([^\s\->\[]+))(?:\s*\[([\s\S]*)\])?$/);
     if (edgeMatch) {
       const from = (edgeMatch[1] || edgeMatch[2] || edgeMatch[3] || '').trim();
       const to = (edgeMatch[4] || edgeMatch[5] || edgeMatch[6] || '').trim();
@@ -155,11 +166,16 @@ function parseNodeMeta(name, metaStr) {
   let type = '';
   let note = '';
   let color = '';
+  let subTag = '';
 
   if (metaStr) {
-    const parts = metaStr.split(',').map((p) => p.trim()).filter(Boolean);
-    parts.forEach((p) => {
-      if (isColorString(p)) {
+    const parts = metaStr.split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((p) => p.trim()).filter(Boolean);
+    parts.forEach((rawP) => {
+      let p = rawP.replace(/^["']|["']$/g, '').trim();
+      const tagMatch = p.match(/^(?:tag|sub|badge)\s*[:=]\s*(.+)$/i);
+      if (tagMatch) {
+        subTag = tagMatch[1].trim().replace(/^["']|["']$/g, '');
+      } else if (isColorString(p)) {
         color = p;
       } else if (!type) {
         type = p;
@@ -171,7 +187,7 @@ function parseNodeMeta(name, metaStr) {
     });
   }
 
-  return { id: name, name, type, note, color };
+  return { id: name, name, type, note, color, subTag };
 }
 
 function parseEdgeMeta(attrStr) {
@@ -179,43 +195,73 @@ function parseEdgeMeta(attrStr) {
   let type = '';
   let color = '';
   let note = '';
+  let subTag = '';
   const extraLines = [];
   const labels = [];
+  let edgeTypeLabel = '';
 
   if (attrStr) {
     // クォート内のカンマで分割しないよう分割
     const parts = attrStr.split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((p) => p.trim()).filter(Boolean);
     parts.forEach((rawP) => {
       let p = rawP.replace(/^["']|["']$/g, '').trim();
-      // 明示的な改行 \n が含まれている場合
-      if (p.includes('\\n') || p.includes('\n')) {
-        const subLines = p.split(/\\n|\n/).map((s) => s.trim()).filter(Boolean);
-        extraLines.push(...subLines);
+
+      // tag: または sub: / badge: で枠内文字列（旧社名など）を明示指定
+      const tagMatch = p.match(/^(?:tag|sub|badge)\s*[:=]\s*(.+)$/i);
+      if (tagMatch) {
+        subTag = tagMatch[1].trim().replace(/^["']|["']$/g, '');
         return;
       }
 
-      if (/^\d+(?:\.\d+)?%?$/.test(p)) {
-        ratio = p.endsWith('%') ? p : `${p}%`;
-      } else if (isColorString(p)) {
+      // カラー判定
+      if (isColorString(p)) {
         color = p;
-      } else {
-        // 他社・外部出資（合弁パートナー、浮動株など）か判定
-        if (/他社|外部|パートナー|合弁|残|浮動株|ファンド|持株会|自治体|有志/i.test(p) || (p.includes('%') && labels.length >= 1)) {
-          extraLines.push(p);
-        } else {
-          labels.push(p);
+        return;
+      }
+
+      // 複合表記判定: 比率 [区分] (例: "90.0% [NASDAQ上場]", "約64.2%間接保有 [東証プライム]", "ファンド運営・GP [投資ヴィークル]")
+      const bracketMatch = p.match(/^([^\[\]]+?)\s*\[([^\[\]]+)\]$/);
+      if (bracketMatch) {
+        if (!ratio) ratio = bracketMatch[1].trim();
+        if (!type) {
+          type = bracketMatch[2].trim();
+          edgeTypeLabel = bracketMatch[2].trim();
         }
+        return;
+      }
+
+      // 単独のパーセント表記 (例: "90.0%", "100%", "40.0%※", "約50%")
+      if (/^(?:約)?\d+(?:\.\d+)?%[※\*]?$/.test(p)) {
+        ratio = p;
+        return;
+      }
+
+      // 他社・外部出資（合弁パートナー、浮動株などの比率表記）か判定
+      // ※ 説明文の「預金残高」「持株会社」「合弁事業」等の誤認を防ぐため、必ず % を含む外部出資表記に限定
+      const isExternalShare = /%/.test(p) && (/他社|外部|パートナー|合弁|浮動株|ファンド|持株会|自治体|有志/i.test(p) || labels.length >= 1);
+      if (isExternalShare) {
+        if (p.includes('\\n') || p.includes('\n')) {
+          extraLines.push(...p.split(/\\n|\n/).map((s) => s.trim()).filter(Boolean));
+        } else {
+          extraLines.push(p);
+        }
+      } else {
+        labels.push(p);
       }
     });
   }
 
-  let edgeTypeLabel = '';
   if (labels.length > 0) {
-    type = labels[0];
-    edgeTypeLabel = labels[0];
-    if (labels.length > 1) {
-      // 第3引数以降はノード側詳細メモ (note) として扱う
-      note = labels.slice(1).join(' / ');
+    if (!type) {
+      type = labels[0];
+      edgeTypeLabel = labels[0];
+      if (labels.length > 1) {
+        // 第2引数以降はノード側詳細メモ (note) として扱う
+        note = labels.slice(1).join(' / ');
+      }
+    } else {
+      // すでに type が決まっている場合、labels はすべてノード詳細メモ (note) として扱う
+      note = labels.join(' / ');
     }
   }
 
@@ -237,7 +283,7 @@ function parseEdgeMeta(attrStr) {
 
   const labelText = labelLines.join('\n');
 
-  return { ratio, type, color, note, labelText, labelLines };
+  return { ratio, type, color, note, subTag, labelText, labelLines };
 }
 
 function getCapitalTreeNodeTheme(colorKey, isRoot, type) {
@@ -336,13 +382,16 @@ function buildCapitalTreeLayout(parsed) {
 
     nodeMap.set(key, {
       ...val,
+      relationType: val.type || '',
+      subTag: val.subTag || '',
+      subLabel: '',
       lines,
       children: [],
       parents: [],
       incomingEdges: [],
       edgeFromParent: null,
       width: nodeWidth,
-      height: lines.length > 1 ? (val.type ? 52 + lines.length * 15 : 40 + lines.length * 15) : (val.type ? 52 : 46),
+      height: 46,
       x: 0,
       y: 0,
       depth: 0,
@@ -358,8 +407,11 @@ function buildCapitalTreeLayout(parsed) {
       if (!childNode.parents.includes(parentNode)) childNode.parents.push(parentNode);
       childNode.incomingEdges.push({ ...e, parentNode });
       childNode.edgeFromParent = e;
-      if (!childNode.type && e.type) {
-        childNode.type = e.type;
+      if (!childNode.relationType && e.type) {
+        childNode.relationType = e.type;
+      }
+      if (!childNode.subTag && e.subTag) {
+        childNode.subTag = e.subTag;
       }
       if (e.note) {
         childNode.note = childNode.note ? `${childNode.note} / ${e.note}` : e.note;
@@ -384,13 +436,24 @@ function buildCapitalTreeLayout(parsed) {
     n.noteLines = n.note ? wrapCapitalTreeNote(n.note, 28) : [];
     const hasNote = n.noteLines.length > 0;
     const isMultiParent = n.incomingEdges && n.incomingEdges.length > 1;
-    const hasSubLabel = isMultiParent || Boolean(n.type);
+    const isRoot = n.parents.length === 0;
+
+    // 四角枠内のバッジ文字列（subLabel）:
+    // ルートノードはデフォルト「親会社」、子ノードは明示的に subTag が指定された場合のみ表示（指定なしは非表示）
+    const subLabel = isRoot ? (n.subTag || n.type || '親会社') : (n.subTag || '');
+    n.subLabel = subLabel;
+    const hasSubLabel = Boolean(subLabel);
 
     let maxNoteLineW = 0;
     n.noteLines.forEach((l) => {
       const w = getApproxTextWidth(l);
       if (w > maxNoteLineW) maxNoteLineW = w;
     });
+
+    if (hasSubLabel) {
+      const subTagW = getApproxTextWidth(subLabel) + 24;
+      if (subTagW > n.width) n.width = subTagW;
+    }
 
     if (isMultiParent) {
       // 各バッジの幅を計算
@@ -483,13 +546,12 @@ function buildCapitalTreeLayout(parsed) {
       cols = Math.max(2, cols);
       const rows = Math.ceil(count / cols);
 
-      // 孫を持つノード（branchChildren）を最下行に寄せる（葉ノードを上段に集めて衝突回避）
+      // 孫を持つノード（branchChildren）を最下行の左側に配置（葉ノードを上段および最下行右側に集めて衝突回避）
       if (branchChildren.length > 0 && branchChildren.length < count) {
-        parentNode.children.sort((a, b) => {
-          const aHas = a.children.length > 0 ? 1 : 0;
-          const bHas = b.children.length > 0 ? 1 : 0;
-          return aHas - bHas;
-        });
+        const upperSlots = (rows - 1) * cols;
+        const upperLeaves = leafChildren.slice(0, upperSlots);
+        const remainingLeaves = leafChildren.slice(upperSlots);
+        parentNode.children = [...upperLeaves, ...branchChildren, ...remainingLeaves];
       }
 
       // 多段配置用の子ノード幅・間隔の最適化（メモ長を維持しつつスリム化）
@@ -527,17 +589,13 @@ function buildCapitalTreeLayout(parsed) {
     node.depth = Math.max(node.depth, currentDepth);
     visited.add(node);
     if (node.wrapInfo) {
-      // 多段親ノード: 段（行）ごとに depth を進め、子持ちノードの子（孫）は最下段の次へ配置
+      // 多段親ノード: 段（行）ごとに depth を進め、子持ちノードの子は再帰
       node.wrapInfo.rowChildren.forEach((rowList, r) => {
         rowList.forEach((c) => {
           c.depth = Math.max(c.depth, currentDepth + 1 + r);
           visited.add(c);
           if (c.children.length > 0) {
-            c.children.forEach((gc) => {
-              if (!visited.has(gc)) {
-                assignDepth(gc, currentDepth + 1 + node.wrapInfo.rows);
-              }
-            });
+            assignDepth(c, c.depth);
           }
         });
       });
@@ -557,7 +615,7 @@ function buildCapitalTreeLayout(parsed) {
     depthMaxHeights[n.depth] = Math.max(depthMaxHeights[n.depth] || 0, n.height);
   });
 
-  const nodeGapX = 28;
+  const nodeGapX = 20;
   const nodeGapY = 96;
 
   const depthOffsets = [0];
@@ -586,13 +644,21 @@ function buildCapitalTreeLayout(parsed) {
       node.wrapInfo.rowChildren.forEach((rowList) => {
         let rW = 0;
         rowList.forEach((c) => {
-          const cSlotW = c.children.length > 0 ? Math.max(c.width, c.subtreeWidth) : c.width;
-          rW += cSlotW;
+          rW += c.width;
         });
         rW += (rowList.length - 1) * gX;
         if (rW > maxRowW) maxRowW = rW;
       });
-      node.subtreeWidth = Math.max(node.width + nodeGapX, maxRowW + gX * 2);
+
+      // 子ノードが持つサブツリー幅の最大値も考慮
+      let maxChildSubtreeW = 0;
+      node.children.forEach((c) => {
+        if (c.children.length > 0 && c.subtreeWidth > maxChildSubtreeW) {
+          maxChildSubtreeW = c.subtreeWidth;
+        }
+      });
+
+      node.subtreeWidth = Math.max(node.width + nodeGapX, maxRowW + gX * 2, maxChildSubtreeW);
       return node.subtreeWidth;
     }
 
@@ -631,41 +697,52 @@ function buildCapitalTreeLayout(parsed) {
       node.wrapInfo.rowChildren.forEach((rowList) => {
         let rW = 0;
         rowList.forEach((c) => {
-          const cSlotW = c.children.length > 0 ? Math.max(c.width, c.subtreeWidth) : c.width;
-          rW += cSlotW;
+          rW += c.width;
         });
         rW += (rowList.length - 1) * gX;
 
         let curX = Math.round(leftBound + (w - rW) / 2);
         rowList.forEach((c) => {
           globalSeen.add(c);
-          const cSlotW = c.children.length > 0 ? Math.max(c.width, c.subtreeWidth) : c.width;
-          c.x = Math.round(curX + (cSlotW - c.width) / 2);
+          c.x = curX;
           c.y = titleH + 24 + depthOffsets[c.depth];
 
-          // 孫ノードがある場合、直下に通常レイアウトを展開
+          // 孫ノードがある場合、親カードの左端 (c.x) を起点に展開（左への飛び出し防止）
           if (c.children.length > 0) {
-            let grandCurLeft = Math.round(curX + (cSlotW - c.subtreeWidth) / 2);
-            c.children.forEach((gc) => {
-              if (!globalSeen.has(gc)) {
-                layoutNode(gc, grandCurLeft);
-                grandCurLeft += gc.subtreeWidth;
-              }
-            });
-            // 孫ノード群の中央に合わせて親 c.x を整列
-            let minGCX = Infinity;
-            let maxGCX = -Infinity;
-            c.children.forEach((gc) => {
-              const mid = gc.x + gc.width / 2;
-              if (mid < minGCX) minGCX = mid;
-              if (mid > maxGCX) maxGCX = mid;
-            });
-            if (minGCX !== Infinity && maxGCX !== -Infinity) {
-              c.x = Math.round((minGCX + maxGCX) / 2 - c.width / 2);
+            let grandCurLeft = c.x;
+            if (c.wrapInfo) {
+              const cGX = c.wrapInfo.gapX || 18;
+              c.wrapInfo.rowChildren.forEach((gcRowList) => {
+                let curRowX = grandCurLeft;
+                gcRowList.forEach((gc) => {
+                  globalSeen.add(gc);
+                  gc.x = curRowX;
+                  gc.y = titleH + 24 + depthOffsets[gc.depth];
+
+                  // さらにひ孫ノード（LINEヤフーの子: ZOZO等）がある場合
+                  if (gc.children.length > 0) {
+                    let ggcLeft = gc.x;
+                    gc.children.forEach((ggc) => {
+                      if (!globalSeen.has(ggc)) {
+                        layoutNode(ggc, ggcLeft);
+                        ggcLeft += ggc.subtreeWidth;
+                      }
+                    });
+                  }
+                  curRowX += gc.width + cGX;
+                });
+              });
+            } else {
+              c.children.forEach((gc) => {
+                if (!globalSeen.has(gc)) {
+                  layoutNode(gc, grandCurLeft);
+                  grandCurLeft += gc.subtreeWidth;
+                }
+              });
             }
           }
 
-          curX += cSlotW + gX;
+          curX += c.width + gX;
         });
       });
     } else {
@@ -707,7 +784,7 @@ function buildCapitalTreeLayout(parsed) {
   });
 
   // 同一階層ノード（特に親ノード同士）の横方向最小間隔確保・衝突回避パス
-  const minNodeGap = 28;
+  const minNodeGap = 20;
   const nodesByDepth = new Map();
   nodeMap.forEach((n) => {
     if (!nodesByDepth.has(n.depth)) nodesByDepth.set(n.depth, []);
@@ -1169,8 +1246,8 @@ function drawCapitalTreeSvg(code, container, labelText) {
 
   nodes.forEach((n) => {
     const isRoot = n.parents.length === 0;
-    const subLabel = n.type || '';
-    const theme = getCapitalTreeNodeTheme(n.color, isRoot, subLabel);
+    const subLabel = n.subLabel || '';
+    const theme = getCapitalTreeNodeTheme(n.color, isRoot, n.subLabel || n.relationType || n.type);
 
     // ノード枠
     const box = document.createElementNS('http://www.w3.org/2000/svg', 'rect');

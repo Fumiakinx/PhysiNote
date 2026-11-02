@@ -225,14 +225,8 @@ function drawGraphSvg(text, container, labelText) {
   const padBottom = 50;
 
   const naturalW = (maxX - minX) + padX * 2;
-  const targetMinW = 760;
-  let viewBoxMinX = minX - padX;
-  let width = naturalW;
-  if (naturalW < targetMinW) {
-    const extra = (targetMinW - naturalW) / 2;
-    viewBoxMinX -= extra;
-    width = targetMinW;
-  }
+  const viewBoxMinX = minX - padX;
+  const width = naturalW;
   const viewBoxMinY = minY - padTop;
   const height = Math.max(340, (maxY - viewBoxMinY) + padBottom);
 
@@ -260,7 +254,7 @@ function drawGraphSvg(text, container, labelText) {
   svg.setAttribute('viewBox', `${viewBoxMinX} ${viewBoxMinY} ${width} ${height}`);
   svg.setAttribute('width', '100%');
   svg.setAttribute('height', '100%');
-  svg.style.maxWidth = `${width}px`;
+  svg.style.maxWidth = `${Math.min(Math.max(naturalW * 1.2, 420), 800)}px`;
   svg.style.display = 'block';
   svg.style.margin = '0 auto';
   svg.setAttribute('class', 'graph-svg');

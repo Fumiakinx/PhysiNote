@@ -558,33 +558,17 @@ function drawFlowchartSvg(flowText, container, labelText) {
   const padY = 16;
   const vbX = minX - padX;
   const vbY = minY - padY;
-  const naturalW = Math.max(120, maxX - minX + padX * 2);
+  const vbW = Math.max(120, maxX - minX + padX * 2);
   const vbH = Math.max(60, maxY - minY + padY * 2);
 
-  // 統一仕様: 極端に狭い図でも文字が巨大化しないよう最小幅 680px を中央揃えで確保
-  const targetMinW = 680;
-  let finalVbX = vbX;
-  let finalVbW = naturalW;
-  if (naturalW < targetMinW) {
-    const extra = (targetMinW - naturalW) / 2;
-    finalVbX = vbX - extra;
-    finalVbW = targetMinW;
-  }
-
-  svg.setAttribute('viewBox', `${finalVbX.toFixed(1)} ${vbY.toFixed(1)} ${finalVbW.toFixed(1)} ${vbH.toFixed(1)}`);
+  svg.setAttribute('viewBox', `${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`);
   svg.setAttribute('width', '100%');
   svg.setAttribute('height', '100%');
-  svg.style.maxWidth = `${finalVbW.toFixed(1)}px`;
+  svg.style.maxWidth = `${Math.min(Math.max(vbW * 1.25, 360), 760)}px`;
   svg.style.margin = '0 auto';
   svg.style.display = 'block';
 
   container.innerHTML = '';
   container.appendChild(svg);
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

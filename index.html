@@ -50,6 +50,7 @@
                 <button type="button" class="menu-item-btn" data-diagram="venn">⭕ ベン図 (集合・重複)</button>
                 <button type="button" class="menu-item-btn" data-diagram="fishbone">🐟 フィッシュボーン図 (特性要因図)</button>
                 <button type="button" class="menu-item-btn" data-diagram="scenario">🔀 汎用シナリオ・概念図 (フリーフロー・脅威図)</button>
+                <button type="button" class="menu-item-btn" data-diagram="cycle">🔄 サイクル・バブル図 (PDCA・smartdiagram)</button>
               </div>
               <div class="menu-column">
                 <div class="menu-col-header">── 組織・グループ構造 ──</div>
@@ -68,6 +69,7 @@
                 <button type="button" class="menu-item-btn" data-diagram="nn">🧠 ニューラルネットワーク構造図</button>
                 <button type="button" class="menu-item-btn" data-diagram="graph">🔀 有向グラフ / ネットワーク図</button>
                 <button type="button" class="menu-item-btn" data-diagram="crystal">💎 結晶構造・格子モデル (2D/3D簡易格子)</button>
+                <button type="button" class="menu-item-btn" data-diagram="bytefield">📦 パケットヘッダ・メモリ図 (bytefield)</button>
               </div>
             </div>
           </div>
@@ -398,48 +400,18 @@
 
   <!-- LaTeX / 構文解析 共通ユーティリティ -->
   <script src="js/latex-utils.js" defer></script>
+  <!-- SVG描画 共通ユーティリティ -->
+  <script src="js/svg-utils.js" defer></script>
 
-  <!-- 各図形・ダイアグラム描画エンジン -->
-  <script src="js/engines/engine-chem.js" defer></script>
-  <script src="js/engines/engine-circuit.js" defer></script>
-  <script src="js/engines/engine-timing.js" defer></script>
-  <script src="js/engines/engine-fsm.js" defer></script>
-  <script src="js/engines/engine-feynman.js" defer></script>
-  <script src="js/engines/engine-sankey.js" defer></script>
-  <script src="js/engines/engine-bs.js" defer></script>
-  <script src="js/engines/engine-pl.js" defer></script>
-  <script src="js/engines/engine-flowchart.js" defer></script>
-  <script src="js/engines/engine-matrix.js" defer></script>
-  <script src="js/engines/engine-pyramid.js" defer></script>
-  <script src="js/engines/engine-radar.js" defer></script>
-  <script src="js/engines/engine-waterfall.js" defer></script>
-  <script src="js/engines/engine-treemap.js" defer></script>
-  <script src="js/engines/engine-gantt.js" defer></script>
-  <script src="js/engines/engine-capitaltree.js" defer></script>
-  <script src="js/engines/engine-radialtree.js" defer></script>
-  <script src="js/engines/engine-orgchart.js" defer></script>
-  <script src="js/engines/engine-blockdiagram.js" defer></script>
-  <script src="js/engines/engine-sequence.js" defer></script>
-  <script src="js/engines/engine-optics.js" defer></script>
-  <script src="js/engines/engine-energylevel.js" defer></script>
-  <script src="js/engines/engine-potential.js" defer></script>
-  <script src="js/engines/engine-table.js" defer></script>
-  <script src="js/engines/engine-chordpro.js" defer></script>
-  <script src="js/engines/engine-guitarchords.js" defer></script>
-  <script src="js/engines/engine-chordflow.js" defer></script>
-  <script src="js/engines/engine-nn.js" defer></script>
-  <script src="js/engines/engine-graph.js" defer></script>
-  <script src="js/engines/engine-venn.js" defer></script>
-  <script src="js/engines/engine-fishbone.js" defer></script>
-  <script src="js/engines/engine-swot.js" defer></script>
-  <script src="js/engines/engine-roadmap.js" defer></script>
-  <script src="js/engines/engine-crystal.js" defer></script>
-  <script src="js/engines/engine-scenario.js" defer></script>
-  <script src="js/engines/engine-tensor.js" defer></script>
-  <script src="js/engines/engine-chart.js" defer></script>
+  <!-- 描画エンジン遅延ローダー（オンデマンド読み込み） -->
+  <script src="js/engine-loader.js" defer></script>
 
+  <!-- ダイアグラム定義マスター -->
+  <script src="js/diagram-definitions.js" defer></script>
   <!-- アプリケーションコア・UI制御 -->
   <script src="main.js" defer></script>
+  <!-- 画像エクスポート制御 -->
+  <script src="js/export-manager.js" defer></script>
   <!-- 構文ファイル (.pnt) 保存・読込制御 -->
   <script src="js/pnt-manager.js" defer></script>
 </body>

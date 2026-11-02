@@ -2,8 +2,12 @@
 
 ---
 
-## 1. 式作成・理工学カテゴリの追加候補
-（現在候補となっている未対応項目はありません）
+## 1. 式作成・理工学・LaTeXライブラリの追加候補
+- [x] **LaTeX smartdiagram 派生図**（`circular diagram` 循環図 / `bubble diagram` バブル連想図）※対応完了
+- [x] **LaTeX forest / tikz-qtree**（組織階層図・樹形図・ツリー構造）※対応完了
+- [x] **LaTeX pgf-umlsd**（シーケンス図 / `\begin{sequencediagram}`) ※対応完了
+- [x] **LaTeX TikZ automata**（状態遷移図 / `\node[state]`, `\path edge`）※対応完了
+- [x] **LaTeX bytefield**（パケットヘッダ・メモリレイアウト図 / `\begin{bytefield}`) ※対応完了
 
 ---
 
@@ -76,6 +80,10 @@
 - **汎用シナリオ・概念図 (フリーフロー・脅威図)**
   - 構文名:
     - 独自構文 (`\scenario`)
+- **サイクル図・バブル図 (循環工程・PDCA・連想)**
+  - 構文名:
+    - 独自構文 (`\cycle`, `\bubble`, `\circular`)
+    - **LaTeX smartdiagram** (`\smartdiagram[circular diagram]`, `\smartdiagram[bubble diagram]`, `\smartdiagram[constellation diagram]`)
 
 ### 2. 組織・グループ構造
 - **資本構成ツリー図 (持株比率・グループ会社)**
@@ -87,6 +95,8 @@
 - **組織階層図 (指揮命令系統)**
   - 構文名:
     - 独自構文 (`\orgchart`)
+    - **LaTeX forest** (`\begin{forest}`, `\Forest`)
+    - **LaTeX tikz-qtree** (`\Tree`)
 
 ### 3. 理工・情報・制御システム
 - **ブロック図 / システム構成図**
@@ -98,6 +108,7 @@
 - **状態遷移図 (オートマトン)**
   - 構文名:
     - 独自構文 (`\fsm`, `\automaton`)
+    - **LaTeX TikZ automata** (`\node[state]`, `\path edge`, `initial`, `accepting`)
 - **波形・タイミング図**
   - 構文名:
     - 独自構文 (`\timing` / **TikZ-timing準拠信号記法**)
@@ -108,6 +119,7 @@
 - **シーケンス図 (UMLメッセージ)**
   - 構文名:
     - 独自構文 (`\sequence`)
+    - **LaTeX pgf-umlsd** (`\begin{sequencediagram}`, `\newthread`, `\newinst`, `\begin{call}`, `\mess`)
 - **光学系・実験配置図**
   - 構文名:
     - 独自構文 (`\optics`)
@@ -126,6 +138,10 @@
 - **結晶構造・格子モデル (2D/3D・ブラベ格子・断面充填)**
   - 構文名:
     - 独自構文 (`\crystal`)
+- **パケットヘッダ・メモリレイアウト図**
+  - 構文名:
+    - 独自構文 (`\packet`, `\bytefield`, `\memorymap`)
+    - **LaTeX bytefield** (`\begin{bytefield}`, `\bitheader`, `\bitbox`, `\wordbox`)
 
 ### 4. 数式・科学・音楽
 - **物理・数学の数式**

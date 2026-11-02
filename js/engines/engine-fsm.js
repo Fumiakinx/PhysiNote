@@ -1,7 +1,132 @@
+/**
+ * LaTeX TikZ automata パッケージ構文パーサー
+ */
+function parseTikzAutomata(text) {
+  // コメント除去
+  const cleanText = text.replace(/^%.*$/gm, '');
+
+  const statesMap = new Map();
+  const transitions = [];
+
+  // 1. \node 文のパース
+  const nodeRegex = /\\node\s*(?:\[([^\]]*)\])?\s*(?:\(([^)]+)\))?\s*(?:\[([^\]]*)\])?\s*(?:at\s*\(([^)]+)\))?\s*(?:\[([^\]]*)\])?\s*\{([^}]*)\}\s*;/gi;
+  let match;
+  while ((match = nodeRegex.exec(cleanText)) !== null) {
+    const opt1 = match[1] || '';
+    const id = (match[2] || '').trim();
+    const opt2 = match[3] || '';
+    const atCoord = match[4] || '';
+    const opt3 = match[5] || '';
+
+    if (!id) continue;
+
+    const allOpts = `${opt1},${opt2},${opt3}`.toLowerCase();
+    const isStart = allOpts.includes('initial') || allOpts.includes('start');
+    const isAccept = allOpts.includes('accepting') || allOpts.includes('accept');
+
+    let x = null;
+    let y = null;
+
+    if (atCoord) {
+      const parts = atCoord.split(',').map(s => parseFloat(s.trim()));
+      if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        x = parts[0] * 50;
+        y = -parts[1] * 50; // TikZのY軸上向きを反転
+      }
+    } else {
+      // 相対配置: right=of q_0 など
+      const relMatch = allOpts.match(/(right|left|above|below|above\s+right|above\s+left|below\s+right|below\s+left)(?:\s*=\s*(?:of\s+)?|\s+of\s+)([a-zA-Z0-9_]+)/i);
+      if (relMatch) {
+        const dir = relMatch[1].replace(/\s+/g, ' ');
+        const refId = relMatch[2].trim();
+        const refState = statesMap.get(refId);
+        if (refState && refState.x !== null && refState.y !== null) {
+          const distH = 130;
+          const distV = 90;
+          if (dir === 'right') { x = refState.x + distH; y = refState.y; }
+          else if (dir === 'left') { x = refState.x - distH; y = refState.y; }
+          else if (dir === 'below') { x = refState.x; y = refState.y + distV; }
+          else if (dir === 'above') { x = refState.x; y = refState.y - distV; }
+          else if (dir === 'above right') { x = refState.x + distH; y = refState.y - distV; }
+          else if (dir === 'below right') { x = refState.x + distH; y = refState.y + distV; }
+          else if (dir === 'above left') { x = refState.x - distH; y = refState.y - distV; }
+          else if (dir === 'below left') { x = refState.x - distH; y = refState.y + distV; }
+        }
+      }
+    }
+
+    statesMap.set(id, {
+      id,
+      x,
+      y,
+      isStart,
+      isAccept
+    });
+  }
+
+  // 2. \path 遷移文のパース
+  const pathBlockRegex = /\\path\s*(?:\[[^\]]*\])?\s*([\s\S]*?);/gi;
+  let pMatch;
+  while ((pMatch = pathBlockRegex.exec(cleanText)) !== null) {
+    const pathContent = pMatch[1];
+    let currentFrom = null;
+
+    const segmentRegex = /(?:\(([^)]+)\)\s*(?=edge|\())|(?:edge\s*(?:\[([^\]]*)\])?\s*(?:node\s*(?:\[[^\]]*\])?\s*\{([^}]*)\})?\s*(?:\(([^)]*)\))?)/gi;
+    let segMatch;
+    while ((segMatch = segmentRegex.exec(pathContent)) !== null) {
+      if (segMatch[1] !== undefined) {
+        currentFrom = segMatch[1].trim();
+      } else {
+        const edgeOpts = (segMatch[2] || '').toLowerCase();
+        let label = (segMatch[3] || '').trim().replace(/[\$\{\}]/g, '');
+        let to = (segMatch[4] || '').trim();
+
+        const isLoop = edgeOpts.includes('loop');
+        const bend = edgeOpts.includes('bend');
+
+        if (!to || isLoop) {
+          to = currentFrom;
+        }
+
+        if (currentFrom && to) {
+          transitions.push({
+            from: currentFrom,
+            to,
+            label,
+            bend
+          });
+
+          if (!statesMap.has(currentFrom)) statesMap.set(currentFrom, { id: currentFrom, x: null, y: null, isStart: false, isAccept: false });
+          if (!statesMap.has(to)) statesMap.set(to, { id: to, x: null, y: null, isStart: false, isAccept: false });
+        }
+      }
+    }
+  }
+
+  const states = Array.from(statesMap.values());
+  let unpositionedIdx = 0;
+  states.forEach((st) => {
+    if (st.x === null || st.y === null) {
+      st.x = unpositionedIdx * 130;
+      st.y = 0;
+      unpositionedIdx++;
+    }
+  });
+
+  return { states, transitions };
+}
+
 // ==========================================
 // 状態遷移図（オートマトン）構文パーサー & SVG描画エンジン
 // ==========================================
 function parseFsmChart(fsmText) {
+  if (!fsmText || typeof fsmText !== 'string') return { states: [], transitions: [] };
+
+  // LaTeX TikZ automata 判定
+  if (/\\node\s*\[[^\]]*state/i.test(fsmText) || /\\usetikzlibrary\{automata\}/i.test(fsmText) || (/\\begin\{tikzpicture\}/i.test(fsmText) && /accepting|initial/i.test(fsmText))) {
+    return parseTikzAutomata(fsmText);
+  }
+
   const lines = fsmText.split(/[\n;]+/).map((l) => l.trim()).filter(Boolean);
   const statesMap = new Map();
   const transitions = [];
@@ -322,11 +447,5 @@ function drawFsmSvg(fsmText, container, labelText) {
   svg.style.display = 'block';
 
   container.appendChild(svg);
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

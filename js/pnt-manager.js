@@ -35,6 +35,8 @@
       }
 
       if (baseName) {
+        // 末尾セミコロン・引用符・末尾余白を除去
+        baseName = baseName.replace(/;+\s*$/, '').trim().replace(/^["']|["']$/g, '').trim();
         // 使用禁止文字をアンダースコアに置換
         baseName = baseName.replace(/[\/\\:*?"<>|]/g, '_').substring(0, 50).trim();
       }

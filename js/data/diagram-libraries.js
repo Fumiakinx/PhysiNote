@@ -1017,6 +1017,14 @@ const fsmLibrary = [
     description: '同一ペア間の双方向遷移や [bend] 指定による美しいベジェ曲線遷移、自己ループを自在に制御する構文。',
     code: '\\fsm{\n  state: q0 (0, 0) start;\n  state: q1 (120, 0);\n  state: q2 (240, 0) accept;\n  q0 -> q1: "0";\n  q1 -> q2: "1";\n  q2 -> q0: "reset" [bend];\n  q0 -> q0: "loop";\n  q2 -> q2: "hold";\n}',
     tags: ['形式8', 'fsm', 'bend', '曲線', '自己ループ', 'マクロ', '構文形式', '構文']
+  },
+  {
+    id: 'fsm-latex-tikz-automata',
+    name: '形式9: LaTeX TikZ automata パッケージ標準構文 (\\node[state])',
+    category: '構文形式',
+    description: 'LaTeXのTikZ automataライブラリ標準構文（\\node[state, initial/accepting]、\\path edge[bend/loop]）。DFAやNFAの学術標準表記。',
+    code: '% title: 2進数末尾パターン検出 DFA (TikZ automata)\n\\begin{tikzpicture}[shorten >=1pt, node distance=2.5cm, auto]\n  \\node[state, initial]   (q_0)                {$q_0$};\n  \\node[state]           (q_1) [right=of q_0] {$q_1$};\n  \\node[state, accepting] (q_2) [right=of q_1] {$q_2$};\n\n  \\path[->]\n    (q_0) edge [loop above] node {0} ()\n          edge              node {1} (q_1)\n    (q_1) edge [bend left]  node {0} (q_2)\n          edge [loop below] node {1} ()\n    (q_2) edge [bend left]  node {0} (q_1)\n          edge              node {1} (q_0);\n\\end{tikzpicture}',
+    tags: ['形式9', 'LaTeX', 'TikZ', 'automata', 'state', 'DFA', 'オートマトン', '学術論文', '構文形式']
   }
 ];
 
@@ -1738,6 +1746,30 @@ const capitalTreeLibrary = [
     description: '指揮系統（->）およびスタッフ・監査ライン（--）を指定して企業組織図を描画するPhysiNote標準の\\orgchartマクロ構文。',
     code: '\\orgchart{\n  title: "企業組織図・指揮命令系統";\n  "取締役会" -> "代表取締役社長";\n  "代表取締役社長" -- "内部監査室" [監査];\n  "代表取締役社長" -> "事業統括本部" [統括];\n  "代表取締役社長" -> "管理統括本部" [統括];\n  "事業統括本部" -> "営業部";\n  "事業統括本部" -> "開発部";\n}',
     tags: ['orgchart', '組織図', '組織階層', 'マクロ', '標準', '独自構文', '指揮系統', '構文形式', '構文']
+  },
+  {
+    id: 'orgchart-latex-forest',
+    name: '形式11: LaTeX forest パッケージ標準樹形図構文 (\\begin{forest})',
+    category: '構文形式',
+    description: 'LaTeXのforestパッケージ準拠の角括弧ネスト記法。役職/氏名の分割、tag指定、dashed（スタッフ・監査線）に対応。',
+    code: '% title: 企業組織体制図 (LaTeX forest)\n\\begin{forest}\n  [代表取締役社長 / 山田 太郎\n    [内部監査室, dashed, tag=監査]\n    [経営企画本部 [事業戦略部] [広報IR部] ]\n    [技術開発本部 [システム基盤部] [AIプロダクト部] ]\n    [営業統括本部 [第一営業部] [第二営業部] ]\n  ]\n\\end{forest}',
+    tags: ['形式11', 'LaTeX', 'forest', '樹形図', '組織図', 'ツリー', '角括弧', '構文形式']
+  },
+  {
+    id: 'orgchart-latex-tikz-qtree',
+    name: '形式12: LaTeX tikz-qtree 決定木・階層構文 (\\Tree)',
+    category: '構文形式',
+    description: '言語学の統語木や情報科学の決定木・階層構造で広く利用されるtikz-qtreeパッケージ（\\Tree [.親 [.子 ] ]）構文。',
+    code: '% title: 経営体制ツリー (LaTeX tikz-qtree)\n\\begin{tikzpicture}\n  \\Tree [.CEO\n          [.CTO\n            [.開発本部 ]\n            [.品質保証部 ] ]\n          [.CFO\n            [.財務経理部 ]\n            [.総務人事部 ] ] ]\n\\end{tikzpicture}',
+    tags: ['形式12', 'LaTeX', 'tikz-qtree', 'Tree', 'ツリー', '決定木', '階層構造', '構文形式']
+  },
+  {
+    id: 'capitaltree-gmo-group',
+    name: '形式10: 多段グループ資本・事業系統樹（GMOインターネットグループ 実例）',
+    category: 'レイアウト',
+    description: '創業時の祖業から上場子会社群、現場実動孫会社、ネット銀行までを網羅した包括的な資本構成図（tag: によるルーツ・買収元表示対応）。',
+    code: '\\capitaltree{\n  title: GMOインターネットグループ 主要資本構成と事業領域;\n\n  // 1. 親会社直営のコアインフラ事業（生え抜き・自社開発）\n  "GMOインターネットグループ\\n旧㈱ボイスメディア(InterQ)" -> "お名前.com" [直営事業, インフラ本丸, orange, tag: "旧インターキュー創業期からの祖業", "国内最大級ドメイン登録 / レンタルサーバー / VPS・クラウド"];\n  "GMOインターネットグループ\\n旧㈱ボイスメディア(InterQ)" -> "ConoHa" [直営事業, 開発者向け, orange, tag: "自社開発・内製クラウド基盤", "開発者・個人向け高機能クラウドVPS / AI・GPUインスタンス"];\n\n  // 2. 親会社からの直接出資・主要グループ会社（上場・中核）\n  "GMOインターネットグループ\\n旧㈱ボイスメディア(InterQ)" -> "GMOペイメントゲートウェイ" [40.6%, 東証プライム, tag: "1995年設立・決済ベンチャー源流", "総合決済代行 / 国税・公共料金納付基盤 / 企業間決済・BNPL"];\n  "GMOインターネットグループ\\n旧㈱ボイスメディア(InterQ)" -> "GMOフィナンシャルホールディングス" [65.9%, 東証スタンダード, tag: "金融持株会社・クリック証券等統合", "FX・暗号資産・証券取引の統括"];\n  "GMOインターネットグループ\\n旧㈱ボイスメディア(InterQ)" -> "GMOグローバルサイン・HD" [51.8%, 東証プライム, tag: "1996年ベルギー創業・欧州名門CA買収", "自前のルート認証局保有 / 電子契約(GMOサイン) / サーバー保守"];\n  "GMOインターネットグループ\\n旧㈱ボイスメディア(InterQ)" -> "GMOペパボ" [59.4%, 東証スタンダード, tag: "買収元：(有)paperboy&co.", "ロリポップ!(サーバー) / BASE対抗カラーミーショップ / minne(ハンドメイド)"];\n  "GMOインターネットグループ\\n旧㈱ボイスメディア(InterQ)" -> "GMOインターネット（※旧GMOアドパートナーズ等）" [59.3%, 東証スタンダード, tag: "買収元：(株)JWord・媒体事業統合", "インターネット広告・メディア / ネットマーケティング / 媒体・集客支援"];\n  "GMOインターネットグループ\\n旧㈱ボイスメディア(InterQ)" -> "GMOリサーチ&AI" [54.4%, 東証グロース, tag: "自社設立・グループ再編", "オンラインマーケティングリサーチ / AIを活用した調査基盤・データ分析"];\n  "GMOインターネットグループ\\n旧㈱ボイスメディア(InterQ)" -> "GMOサイバーセキュリティ byイエラエ" [100.0%, 非上場中核, tag: "2022年買収：(株)イエラエセキュリティ", "ホワイトハッカー集団 / 脆弱性診断・ペネトレーションテスト"];\n  "GMOインターネットグループ\\n旧㈱ボイスメディア(InterQ)" -> "GMOメディア" [66.2%, 東証グロース, tag: "旧ベック(株)・個人出資から統合", "メディア事業 / ポイントサイト・ゲーム・教育・コミュニティ"];\n\n  // 3. 決済・フィンテックの現場実動（PG傘下）\n  "GMOペイメントゲートウェイ" -> "GMOフィナンシャルゲート" [56.7%, 東証グロース, tag: "2016年買収：FSS社（対面端末網獲得）", "実店舗向けキャッシュレス決済端末 / 対面決済マルチプラットフォーム"];\n\n  // 4. 金融・暗号資産の現場実動（FH傘下）\n  "GMOフィナンシャルホールディングス" -> "GMOクリック証券" [100.0%, 連結子会社, tag: "2010年買収：クリック証券(株)", "FX取引高国内トップクラス / ネット証券・株式先物取引基盤"];\n  "GMOフィナンシャルホールディングス" -> "GMOコイン" [100.0%, 連結子会社, tag: "自社設立・暗号資産交換業参入", "暗号資産(仮想通貨)交換業 / 暗号資産レバレッジ取引・ステーキング"];\n\n  // 5. 銀行インフラ基盤\n  "GMOインターネットグループ\\n旧㈱ボイスメディア(InterQ)" -> "GMOあおぞらネット銀行" [持株50.0%※, ネット銀行, tag: "あおぞら信託銀行との資本提携", "次世代テクノロジーバンク / 法人API決済・組込型金融(BaaS)"];\n}',
+    tags: ['GMO', 'IT', 'フィンテック', 'グループ会社', '子会社', '孫会社', '資本構成', 'tag', 'レイアウト']
   }
 ];
 
@@ -1976,6 +2008,14 @@ const sequenceLibrary = [
     description: '購入者・ECサイト・決済ゲートウェイ・カード会社の4者間で実線要求と点線戻り値を連鎖させる多者間シーケンス構文。',
     code: '\\sequence{\n  title: "ECサイト クレジットカード決済フロー";\n  actor: "購入者 (Shopper)", "ECサイト (Shop Server)", "決済代行 (Payment Gateway)", "カード会社 (Card Issuer)";\n\n  "購入者 (Shopper)" -> "ECサイト (Shop Server)": 注文確定 & カード情報送信;\n  "ECサイト (Shop Server)" -> "決済代行 (Payment Gateway)": オーソリ（与信枠確保）要求;\n  "決済代行 (Payment Gateway)" -> "カード会社 (Card Issuer)": 有効性確認 & 与信照会;\n  "カード会社 (Card Issuer)" --> "決済代行 (Payment Gateway)": 与信承認 (Auth Code OK);\n  "決済代行 (Payment Gateway)" --> "ECサイト (Shop Server)": 決済完了通知;\n  "ECサイト (Shop Server)" -> "ECサイト (Shop Server)": 在庫引当 & 受注データ確定;\n  "ECサイト (Shop Server)" --> "購入者 (Shopper)": 注文完了画面表示 & メール送信;\n}',
     tags: ['形式4', 'EC', '決済', 'クレジットカード', 'オーソリ', '決済代行', '注文処理', '多者間', '構文形式', '構文']
+  },
+  {
+    id: 'seq-latex-pgf-umlsd',
+    name: '形式5: LaTeX pgf-umlsd パッケージ標準シーケンス構文 (\\begin{sequencediagram})',
+    category: '構文形式',
+    description: 'LaTeXのpgf-umlsdパッケージ構文（\\newthread, \\newinst, \\begin{call}...\\end{call}, \\mess）。往復呼び出しと戻り値を自動対応。',
+    code: '% title: Web API 認証 & データ取得シーケンス (LaTeX pgf-umlsd)\n\\begin{sequencediagram}\n  \\newthread{client}{クライアント}\n  \\newinst[2]{auth}{認証サーバー}\n  \\newinst[2]{api}{APIサーバー}\n  \\newinst[2]{db}{データベース}\n\n  \\begin{call}{client}{POST /login (ID, PW)}{auth}{200 OK (JWTトークン)}\n  \\end{call}\n  \\begin{call}{client}{GET /users (Bearer JWT)}{api}{200 OK (JSON)}\n    \\begin{call}{api}{SELECT * FROM users}{db}{User Records}\n    \\end{call}\n  \\end{call}\n  \\mess{api}{監査ログ送信}{auth}\n\\end{sequencediagram}',
+    tags: ['形式5', 'LaTeX', 'pgf-umlsd', 'sequencediagram', 'シーケンス図', 'UML', 'コール', '構文形式']
   }
 ];
 
@@ -2562,6 +2602,14 @@ const scenarioLibrary = [
     description: 'ユーザーの注文確定イベントを起点として、決済・在庫引落・配送手配・通知サービスへ並行配信するシステム連携図。',
     code: '\\scenario{\n  title: "イベント駆動・マイクロサービス並行配信アーキテクチャ"\n  theme: light\n  icon: "⚡"\n\n  source: "【注文受付サービス】\\n(POST /api/orders)" [info]\n  note: "▼ メッセージブローカーへ発行 (Event: OrderPlaced)\\n[ Payload: orderId, userId, items, amount ]"\n\n  fork:\n    -> "【決済サービス (Stripe)】" -> "クレジットカード即時決済完了" [success]\n    -> "【在庫管理サービス】"     -> "引当処理 & 倉庫ピッキング指示" [info]\n    -> "【通知サービス (Email/Push)】" -> "購入完了メール & レシート自動送信" [success]\n}',
     tags: ['イベント駆動', 'マイクロサービス', 'PubSub', 'メッセージング', '業務フロー', 'システム設計']
+  },
+  {
+    id: 'scenario-liability-chain',
+    name: '【免責の連鎖】多重包囲網（3カラムLRフロー）',
+    category: '契約・リスク管理',
+    description: 'エンドユーザーからEC事業者を経由し、外部SIer・クラウド・保険・カード会社への免責・責任追及が連鎖する多重包囲網シナリオ図。',
+    code: '\\scenario{\n  title: "【免責の連鎖】利用者からECを経由した多重包囲網"\n  theme: dark\n  icon: "⚖️"\n  direction: LR\n\n  source: "【エンドユーザー（顧客）】\\n[ 商品購入・個人情報預託 ]\\n[ 事故時：損害賠償・説明責任を追及 ]" [info]\n\n  middle: "【EC事業者（矢面に立つ中間層）】\\n[ 顧客からのクレーム・売上蒸発が直撃 ]\\n[ 各方面へ責任追究・防御を試みる結節点 ]" [danger]\n\n  fork:\n    -> "【大手コンサル / SIer】\\n[ 準委任契約・賠償額上限 ]\\n└ 「結果の完全性は保証外」" [warning]\n    -> "【API / クラウド事業者】\\n[ BtoB規約による完全免責 ]\\n└ 「機能は貸すが停止は責任外」" [warning]\n    -> "【サイバー保険会社】\\n[ 不払い条項・厳格な加入要件 ]\\n└ 「条件を満たさねば金は出さない」" [warning]\n    -> "【国際カードブランド / PSP】\\n[ 加盟店規約（ペナルティ条項） ]\\n└ 「調査費用と違約金を払え」" [danger]\n}',
+    tags: ['免責の連鎖', '多重包囲網', 'EC事業者', 'リスク管理', '契約', 'セキュリティ', '責任分界点']
   }
 ];
 
@@ -2742,5 +2790,81 @@ const chartLibrary = [
     description: '\\addplot table { x y ... } 形式による表データプロット、およびdomainサンプリングによる関数曲線描画。',
     code: '\\begin{tikzpicture}\n  \\begin{axis}[\n    title={テーブルデータプロット (pgfplots table)},\n    xlabel={経過時間 (s)},\n    ylabel={測定値 (V)}\n  ]\n    \\addplot[color=purple!80] table {\n      0 10\n      1 25\n      2 45\n      3 70\n      4 85\n      5 92\n    };\n    \\addlegendentry{実験データ}\n  \\end{axis}\n\\end{tikzpicture}',
     tags: ['形式13', 'LaTeX', 'pgfplots', 'table', 'テーブル', 'プロット', '実験データ']
+  }
+];
+
+// ==========================================
+// サイクル図・バブル図 プリセットライブラリデータ定義
+// ==========================================
+const cycleLibrary = [
+  {
+    id: 'cycle-smartdiagram-pdca',
+    name: '形式1: LaTeX smartdiagram 円環循環図 (PDCAサイクル)',
+    category: '循環・サイクル',
+    description: 'LaTeX smartdiagramのcircular diagram記法。Plan/Do/Check/Actなどの継続的改善・反復プロセスを円環矢印で可視化。',
+    code: '% title: 継続的品質改善 PDCAサイクル\n\\smartdiagram[circular diagram]{\n  Plan (計画・仮説),\n  Do (実行・検証),\n  Check (測定・評価),\n  Act (改善・標準化)\n}',
+    tags: ['形式1', 'LaTeX', 'smartdiagram', 'circular', 'PDCA', 'サイクル', '循環図']
+  },
+  {
+    id: 'cycle-smartdiagram-bubble',
+    name: '形式2: LaTeX smartdiagram バブル連想図 (マインドマップ・ブレスト)',
+    category: 'バブル・連想',
+    description: 'LaTeX smartdiagramのbubble diagram記法。先頭の中心概念から周囲のアイデア・関連要素を衛星状に配置して表現。',
+    code: '% title: クラウドネイティブ基盤 コア技術要素\n\\smartdiagram[bubble diagram]{\n  Kubernetes,\n  Docker / OCI,\n  Service Mesh,\n  GitOps (ArgoCD),\n  Prometheus,\n  Terraform\n}',
+    tags: ['形式2', 'LaTeX', 'smartdiagram', 'bubble', 'バブル図', 'アイデア', 'ブレスト']
+  },
+  {
+    id: 'cycle-custom-agile-sprint',
+    name: '形式3: 独自構文 \\cycle アジャイル開発スプリントループ',
+    category: '循環・サイクル',
+    description: '独自構文\\cycleによる直感的な循環ループ。各ステップに補足説明や任意カラーコードを指定可能。',
+    code: '\\cycle{\n  title: "アジャイル・スクラム スプリントサイクル";\n  subtitle: "2週間タイムボックスの反復デリバリー";\n  step: "スプリント計画" (バックログ選定) [#3b82f6];\n  step: "デイリースクラム" (進捗・障害同期) [#10b981];\n  step: "実装 & テスト" (CI/CD自動化) [#f59e0b];\n  step: "スプリントレビュー" (成果物デモ) [#8b5cf6];\n  step: "レトロスペクティブ" (KPTふりかえり) [#ec4899];\n}',
+    tags: ['形式3', '独自構文', 'cycle', 'アジャイル', 'スクラム', 'スプリント', '開発']
+  },
+  {
+    id: 'cycle-custom-bubble-product',
+    name: '形式4: 独自構文 \\bubble プロダクトエコシステム',
+    category: 'バブル・連想',
+    description: '独自構文\\bubbleによる中心コアと周辺プロダクト群の構造化図。中心と周辺の関係性を明瞭に図解。',
+    code: '\\bubble{\n  title: "PhysiNote コア機能エコシステム";\n  center: "PhysiNote" (統合ノート基盤);\n  "LaTeX 数式" (KaTeXレンダリング);\n  "32種図表作成" (SVG自動生成);\n  "化学式・構造式" (mhchem/SMILES);\n  "音楽コード" (ChordPro/指板);\n  "PNTファイル管理" (独自保存規格);\n}',
+    tags: ['形式4', '独自構文', 'bubble', 'エコシステム', 'プロダクト', 'バブル図']
+  }
+];
+
+// ==========================================
+// パケットヘッダ・メモリレイアウト図 (bytefield) ライブラリデータ定義
+// ==========================================
+const bytefieldLibrary = [
+  {
+    id: 'bytefield-latex-ipv4',
+    name: '形式1: IPv4 パケットヘッダ仕様 (RFC 791 / LaTeX bytefield)',
+    category: 'ネットワークプロトコル',
+    description: '32ビット幅グリッド上にVersion, IHL, ToS, Total Length, 送信元/宛先IPアドレス等のビット境界を目盛り線とともに可視化。',
+    code: '% title: IPv4 パケットヘッダ仕様 (RFC 791)\n\\begin{bytefield}{32}\n  \\bitheader{0, 4, 8, 16, 19, 31} \\\\\n  \\bitbox{4}{Version} & \\bitbox{4}{IHL} & \\bitbox{8}{Type of Service} & \\bitbox{16}{Total Length} \\\\\n  \\bitbox{16}{Identification} & \\bitbox{3}{Flags} & \\bitbox{13}{Fragment Offset} \\\\\n  \\bitbox{8}{Time to Live} & \\bitbox{8}{Protocol} & \\bitbox{16}{Header Checksum} \\\\\n  \\bitbox{32}{Source IP Address} \\\\\n  \\bitbox{32}{Destination IP Address} \\\\\n  \\wordbox{1}{Options & Padding (任意)}\n\\end{bytefield}',
+    tags: ['形式1', 'LaTeX', 'bytefield', 'IPv4', 'パケット', 'ネットワーク', 'RFC791', '構文形式']
+  },
+  {
+    id: 'bytefield-latex-tcp',
+    name: '形式2: TCP セグメントヘッダ仕様 (RFC 793 / LaTeX bytefield)',
+    category: 'ネットワークプロトコル',
+    description: 'ポート番号、32bitシーケンス番号・ACK番号、制御フラグ（SYN/ACK/FIN等）、ウィンドウサイズ、チェックサムの厳密なビット配置。',
+    code: '% title: TCP セグメントヘッダ仕様 (RFC 793)\n\\begin{bytefield}{32}\n  \\bitheader{0, 16, 31} \\\\\n  \\bitbox{16}{送信元ポート (Source Port)} & \\bitbox{16}{宛先ポート (Destination Port)} \\\\\n  \\bitbox{32}{シーケンス番号 (Sequence Number)} \\\\\n  \\bitbox{32}{確認応答番号 (Acknowledgment Number)} \\\\\n  \\bitbox{4}{Data Offset} & \\bitbox{6}{Reserved} & \\bitbox{6}{Flags (URG/ACK/PSH/RST/SYN/FIN)} & \\bitbox{16}{Window Size} \\\\\n  \\bitbox{16}{Checksum} & \\bitbox{16}{Urgent Pointer} \\\\\n  \\wordbox{1}{Options & Padding}\n\\end{bytefield}',
+    tags: ['形式2', 'LaTeX', 'bytefield', 'TCP', 'ポート番号', 'シーケンス番号', 'RFC793', '構文形式']
+  },
+  {
+    id: 'bytefield-custom-packet-udp',
+    name: '形式3: 独自構文 \\packet UDPヘッダ仕様',
+    category: 'ネットワークプロトコル',
+    description: '直感的な\\packetマクロによる簡潔なパケット定義。16bit境界でのポート番号・長さ・チェックサムの記述。',
+    code: '\\packet{\n  title: "UDP データグラムヘッダ (RFC 768)";\n  bits: 32;\n  [16] 送信元ポート番号 (Source Port) [#0284c7];\n  [16] 宛先ポート番号 (Destination Port) [#0284c7];\n  [16] パケット長 (Length) [#10b981];\n  [16] チェックサム (Checksum) [#f59e0b];\n  [32] ペイロードデータ (UDP Payload) [#64748b];\n}',
+    tags: ['形式3', '独自構文', 'packet', 'UDP', 'パケットヘッダ', 'RFC768']
+  },
+  {
+    id: 'bytefield-custom-register-map',
+    name: '形式4: 独自構文 \\packet 32bit マイコン制御レジスタマップ',
+    category: '組込み・ハードウェア',
+    description: 'マイコンのペリフェラル制御レジスタ（CR）における各ビットフィールドの割当と機能（Enable, Mode, IRQ, ClockDiv）の図解。',
+    code: '\\packet{\n  title: "STM32風 タイマー制御レジスタ (TIMx_CR1)";\n  bits: 32;\n  [16] 予約ビット (Reserved) [#94a3b8];\n  [4] フィルタ選択 (CKD) [#8b5cf6];\n  [2] アライメント (CMS) [#06b6d4];\n  [1] カウント方向 (DIR) [#f59e0b];\n  [1] ワンパルス (OPM) [#f59e0b];\n  [1] 自動再ロード (ARPE) [#10b981];\n  [2] クロック分周 (CKD) [#8b5cf6];\n  [4] 予約 (Res) [#94a3b8];\n  [1] カウンタイネーブル (CEN) [#ef4444];\n}',
+    tags: ['形式4', '独自構文', 'packet', 'レジスタマップ', 'ビットフィールド', 'マイコン', '組込み']
   }
 ];

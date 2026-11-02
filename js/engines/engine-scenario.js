@@ -16,9 +16,11 @@ function parseScenarioText(text) {
   let icon = '';
   let theme = 'dark'; // デフォルトはセキュリティ・IT解説で映えるダーク
   let mode = 'auto';  // 'fork' (1対N), 'merge' (N対1)
+  let direction = 'TD'; // 'TD' (上から下) または 'LR' (左から右)
   let commonKey = 'メールアドレス / 携帯電話番号';
 
   let sourceNode = null; // fork時の起点
+  let middleNode = null; // LR/3カラム時の中間ノード
   let noteText = '';     // 中間注記
   const branches = [];   // fork時のブランチ [ { target, result } ]
   const sources = [];    // merge時のソース一覧 [ { title, subLines, keys: [], data: [], style } ]
@@ -59,6 +61,10 @@ function parseScenarioText(text) {
       icon = val.replace(/^["']|["']$/g, '');
     } else if (key === 'theme') {
       theme = val.toLowerCase().includes('light') ? 'light' : 'dark';
+    } else if (key === 'direction' || key === 'dir') {
+      direction = val.trim().toUpperCase();
+    } else if (key === 'middle' || key === 'center' || key === 'hub') {
+      middleNode = parseScenarioNode(val);
     } else if (key === 'mode' || key === 'layout') {
       if (val.toLowerCase().includes('merge') || val.toLowerCase().includes('tree-merge') || val.toLowerCase().includes('aggregate')) {
         mode = 'merge';
@@ -128,8 +134,10 @@ function parseScenarioText(text) {
     icon,
     theme,
     mode,
+    direction,
     commonKey,
     sourceNode,
+    middleNode,
     noteText,
     branches,
     sources,
@@ -378,7 +386,7 @@ function drawScenarioSvg(text, container, label) {
       drawLeakSourceCard(contentGroup, leftX, curY, srcW, cardHeight, src, themeColors, isDark);
 
       // カード右端から合流バスへの水平線
-      drawStraightLine(contentGroup, leftX + srcW, wireY, busX, wireY, themeColors.line, false);
+      drawStraightLine(contentGroup, leftX + srcW, wireY, busX, wireY, themeColors.lineActive, false);
     });
 
     // 2. 縦の合流バスライン（すべての流出データが集まるコネクタ）
@@ -402,15 +410,181 @@ function drawScenarioSvg(text, container, label) {
   }
 
   // ===================================================================
-  // モード2: 1対多 分岐・拡散フロー (画像1: パスワードリスト攻撃)
+  // モード2: 1対多 分岐・拡散フロー / 3カラム・LRレイアウト
   // ===================================================================
+  const isLR = parsed.direction === 'LR' || parsed.middleNode != null;
+  const middleNode = parsed.middleNode;
+  const hasNote = Boolean(parsed.noteText && parsed.noteText.trim());
+  const note = parsed.noteText || '';
+
+  // -----------------------------------------------------------------
+  // パターンA: 左右配置 (LR / 3カラム: 左[source] → 中央[middle] → 右[fork])
+  // -----------------------------------------------------------------
+  if (isLR) {
+    const srcNode = parsed.sourceNode || {
+      title: '【起点】',
+      subLines: [],
+      style: 'default'
+    };
+
+    const branchList = parsed.branches.length > 0 ? parsed.branches : [
+      { target: { title: '【分岐A】', subLines: [], style: 'default' }, result: null }
+    ];
+
+    // 幅と高さの計算
+    const srcW = Math.max(260, calcScenarioNodeWidth(srcNode, '👤', 260));
+    const srcH = calcScenarioNodeHeight(srcNode);
+
+    const midW = middleNode ? Math.max(260, calcScenarioNodeWidth(middleNode, '🏢', 260)) : 0;
+    const midH = middleNode ? calcScenarioNodeHeight(middleNode) : 0;
+
+    let maxTargetW = 240;
+    branchList.forEach(br => {
+      if (br.target) {
+        const tw = calcScenarioNodeWidth(br.target, '🎯', 240);
+        if (tw > maxTargetW) maxTargetW = tw;
+      }
+    });
+
+    const hasAnyResult = branchList.some(br => br.result != null);
+    let maxResultW = 320;
+    if (hasAnyResult) {
+      branchList.forEach(br => {
+        if (br.result) {
+          const icon = br.result.style === 'danger' ? '🚨' : '⚠️';
+          const rw = calcScenarioNodeWidth(br.result, icon, 260);
+          if (rw > maxResultW) maxResultW = rw;
+        }
+      });
+    }
+
+    // ブランチの累積高さと配置計算
+    const branchGap = 16;
+    let totalForkH = 0;
+    const branchHeights = branchList.map(br => {
+      const tH = calcScenarioNodeHeight(br.target);
+      const rH = br.result ? calcScenarioNodeHeight(br.result) : 0;
+      const bH = Math.max(tH, rH, 46);
+      totalForkH += bH;
+      return bH;
+    });
+    totalForkH += (branchList.length - 1) * branchGap;
+
+    const topHeaderY = 72;
+    const contentMaxH = Math.max(srcH, midH, totalForkH);
+    const height = Math.max(500, topHeaderY + contentMaxH + 50);
+
+    const contentCenterY = topHeaderY + contentMaxH / 2;
+
+    const srcX = 48;
+    const srcY = contentCenterY - srcH / 2;
+
+    const colGap = 56;
+    let midX = 0;
+    let midY = 0;
+    let forkX = 0;
+
+    if (middleNode) {
+      midX = srcX + srcW + colGap;
+      midY = contentCenterY - midH / 2;
+      forkX = midX + midW + colGap;
+    } else {
+      forkX = srcX + srcW + colGap;
+    }
+
+    const forkRight = forkX + maxTargetW + (hasAnyResult ? (42 + maxResultW) : 0);
+    const width = Math.max(1040, forkRight + 48);
+
+    container.dataset.baseWidth = width;
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '100%');
+    svg.style.maxWidth = '100%';
+    svg.style.height = 'auto';
+    svg.style.display = 'block';
+
+    appendDefs(svg, themeColors, isDark);
+
+    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    bg.setAttribute('width', width);
+    bg.setAttribute('height', height);
+    bg.setAttribute('rx', '12');
+    bg.setAttribute('fill', themeColors.bg);
+    svg.appendChild(bg);
+
+    const mainIcon = parsed.icon || '⚖️';
+    const mainTitle = parsed.title || 'シナリオフロー';
+    appendTitle(svg, mainIcon, mainTitle, themeColors.textMain, 46);
+
+    const contentGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    svg.appendChild(contentGroup);
+
+    // 1. 左列: source カード描画
+    drawGenericCard(contentGroup, srcX, srcY, srcW, srcH, srcNode.title, srcNode.subLines, getNodeColors(srcNode.style), isDark, '👤');
+
+    // 2. 中央列: middle カード（ある場合）
+    let hubRightX = srcX + srcW;
+    let hubCenterY = contentCenterY;
+
+    if (middleNode) {
+      // source -> middle への矢印
+      drawStraightLine(contentGroup, srcX + srcW, contentCenterY, midX - 6, contentCenterY, themeColors.lineActive, true);
+      drawGenericCard(contentGroup, midX, midY, midW, midH, middleNode.title, middleNode.subLines, getNodeColors(middleNode.style), isDark, '🏢');
+      hubRightX = midX + midW;
+      hubCenterY = contentCenterY;
+    }
+
+    // 3. 右列: fork ブランチ群
+    const forkStartY = contentCenterY - totalForkH / 2;
+    const busX = hubRightX + 24;
+    let curBranchY = forkStartY;
+    const branchCenters = [];
+
+    branchList.forEach((br, idx) => {
+      const bH = branchHeights[idx];
+      const bCenterY = curBranchY + bH / 2;
+      branchCenters.push(bCenterY);
+
+      // バス線からブランチへの矢印
+      drawStraightLine(contentGroup, busX, bCenterY, forkX - 6, bCenterY, themeColors.lineActive, true);
+
+      // ブランチカード
+      drawGenericCard(contentGroup, forkX, curBranchY, maxTargetW, bH, br.target.title, br.target.subLines, getNodeColors(br.target.style), isDark, '🎯');
+
+      if (br.result) {
+        const arrowStartX = forkX + maxTargetW;
+        const resultStartX = arrowStartX + 42;
+        drawStraightLine(contentGroup, arrowStartX, bCenterY, resultStartX - 6, bCenterY, themeColors.lineActive, true);
+        const rColors = getNodeColors(br.result.style);
+        drawGenericCard(contentGroup, resultStartX, curBranchY, maxResultW, bH, br.result.title, br.result.subLines, rColors, isDark, br.result.style === 'danger' ? '🚨' : '⚠️');
+      }
+
+      curBranchY += bH + branchGap;
+    });
+
+    // ハブからバス線への水平線
+    drawStraightLine(contentGroup, hubRightX, hubCenterY, busX, hubCenterY, themeColors.lineActive, false);
+
+    // 縦のバス線
+    const firstCenter = branchCenters[0] || hubCenterY;
+    const lastCenter = branchCenters[branchCenters.length - 1] || hubCenterY;
+    drawStraightLine(contentGroup, busX, Math.min(firstCenter, hubCenterY), busX, Math.max(lastCenter, hubCenterY), themeColors.lineActive, false);
+
+    container.appendChild(svg);
+    appendLabel(container, label);
+    return;
+  }
+
+  // -----------------------------------------------------------------
+  // パターンB: 上下配置 (従来のTDレイアウト)
+  // -----------------------------------------------------------------
   const srcNode = parsed.sourceNode || {
     title: '【漏洩元：サイトA】',
     subLines: ['(セキュリティの甘いサービス)'],
     style: 'default'
   };
-
-  const note = parsed.noteText || '▼ システムの不備からID・パスワードが流出\n[ ID: user@example.com / PW: Secret123! ]';
 
   const branchList = parsed.branches.length > 0 ? parsed.branches : [
     { target: { title: '【サイトB (ECサイト)】', subLines: [], style: 'default' }, result: { title: 'ログイン成功 (登録カードで不正購入)', subLines: [], style: 'warn' } },
@@ -424,16 +598,18 @@ function drawScenarioSvg(text, container, label) {
   const srcW = Math.max(340, calcScenarioNodeWidth(srcNode, '🏢', 340));
   const srcH = 54 + (srcNode.subLines.length * 20);
 
-  // 2. 中間注記カード / バッジ (流出情報)
-  const noteY = srcY + srcH + 30;
-  const noteLines = note ? note.split('\n') : [];
-  const noteH = Math.max(48, 28 + noteLines.length * 20);
+  // 2. 中間注記カード (指定がある場合のみ)
+  const noteLines = hasNote ? note.split('\n') : [];
+  const noteH = hasNote ? Math.max(48, 28 + noteLines.length * 20) : 0;
   let maxNoteW = 460;
-  noteLines.forEach(l => {
-    const lw = calcTextWidthPx(l, 12) + 36;
-    if (lw > maxNoteW) maxNoteW = lw;
-  });
+  if (hasNote) {
+    noteLines.forEach(l => {
+      const lw = calcTextWidthPx(l, 12) + 36;
+      if (lw > maxNoteW) maxNoteW = lw;
+    });
+  }
   const noteW = Math.ceil(maxNoteW);
+  const noteY = hasNote ? (srcY + srcH + 30) : 0;
 
   // 3. 分岐ブランチ群のサイズ計算
   const hasAnyResult = branchList.some(br => br.result != null);
@@ -457,7 +633,7 @@ function drawScenarioSvg(text, container, label) {
     });
   }
 
-  const forkStartY = noteY + noteH;
+  const forkStartY = hasNote ? (noteY + noteH) : (srcY + srcH + 24);
   const forkColX = srcX + 50;
   const branchStartX = srcX + 85;
   const branchStartY = forkStartY + 38;
@@ -488,7 +664,7 @@ function drawScenarioSvg(text, container, label) {
 
   // 全体幅・高さの動的決定
   const contentRight = branchStartX + maxTargetW + (hasAnyResult ? (42 + maxResultW) : 0) + 60;
-  const topCardsRight = Math.max(srcX + srcW + 60, srcX + 16 + noteW + 60);
+  const topCardsRight = Math.max(srcX + srcW + 60, hasNote ? (srcX + 16 + noteW + 60) : 0);
   const width = Math.max(880, Math.ceil(contentRight), Math.ceil(topCardsRight));
   const height = Math.max(520, curY + 30);
 
@@ -521,17 +697,21 @@ function drawScenarioSvg(text, container, label) {
   // 1. トップソースカード (漏洩元)
   drawGenericCard(contentGroup, srcX, srcY, srcW, srcH, srcNode.title, srcNode.subLines, getNodeColors(srcNode.style), isDark, '🏢');
 
-  // 2. 中間注記カード / バッジ (流出情報)
-  drawStraightLine(contentGroup, srcX + 50, srcY + srcH, srcX + 50, noteY, themeColors.lineActive, true);
-  drawNoteBox(contentGroup, srcX + 16, noteY, noteW, noteH, noteLines, themeColors, isDark);
+  // 2. 中間注記カード (ある場合のみ描画)
+  if (hasNote) {
+    drawStraightLine(contentGroup, srcX + 50, srcY + srcH, srcX + 50, noteY, themeColors.lineActive, true);
+    drawNoteBox(contentGroup, srcX + 16, noteY, noteW, noteH, noteLines, themeColors, isDark);
+  } else {
+    drawStraightLine(contentGroup, srcX + 50, srcY + srcH, srcX + 50, forkStartY, themeColors.lineActive, false);
+  }
 
   // 3. 分岐コネクタとブランチノード群
-  drawStraightLine(contentGroup, forkColX, forkStartY, forkColX, forkEndY, themeColors.line, false);
+  drawStraightLine(contentGroup, forkColX, forkStartY, forkColX, forkEndY, themeColors.lineActive, false);
 
   branchPositions.forEach(pos => {
     const { br, topY, centerY, bH } = pos;
 
-    drawStraightLine(contentGroup, forkColX, centerY, branchStartX - 6, centerY, themeColors.line, true);
+    drawStraightLine(contentGroup, forkColX, centerY, branchStartX - 6, centerY, themeColors.lineActive, true);
     drawGenericCard(contentGroup, branchStartX, topY, maxTargetW, bH, br.target.title, br.target.subLines, getNodeColors(br.target.style), isDark, '🎯');
 
     if (br.result) {

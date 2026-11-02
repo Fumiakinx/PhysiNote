@@ -291,7 +291,7 @@ function drawFeynmanSvg(feynmanText, container, labelText) {
   const minY = Math.min(...pts.map((p) => p.y));
   const maxY = Math.max(...pts.map((p) => p.y));
 
-  const pad = 20;
+  const pad = 24;
   let w = maxX - minX;
   let h = maxY - minY;
   if (w < 80) w = 80;
@@ -302,30 +302,13 @@ function drawFeynmanSvg(feynmanText, container, labelText) {
   const vbW = w + pad * 2;
   const vbH = h + pad * 2;
 
-  // 統一仕様: 極端に狭い図でも文字が巨大化しないよう最小幅 680px を中央揃えで確保
-  const naturalW = vbW;
-  const targetMinW = 680;
-  let finalVbX = vbX;
-  let finalVbW = naturalW;
-  if (naturalW < targetMinW) {
-    const extra = (targetMinW - naturalW) / 2;
-    finalVbX = vbX - extra;
-    finalVbW = targetMinW;
-  }
-
-  svg.setAttribute('viewBox', `${finalVbX.toFixed(1)} ${vbY.toFixed(1)} ${finalVbW.toFixed(1)} ${vbH.toFixed(1)}`);
+  svg.setAttribute('viewBox', `${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`);
   svg.setAttribute('width', '100%');
   svg.setAttribute('height', '100%');
-  svg.style.maxWidth = `${finalVbW.toFixed(1)}px`;
+  svg.style.maxWidth = `${Math.min(Math.max(vbW * 1.8, 460), 760)}px`;
   svg.style.margin = '0 auto';
   svg.style.display = 'block';
 
   container.appendChild(svg);
-
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
