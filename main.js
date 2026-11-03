@@ -794,6 +794,31 @@ function autoResizeInput() {
 
 // （DIAGRAM_DEFINITIONS は js/diagram-definitions.js に分離・管理）
 
+// 表形式（テーブル）候補の判定ヘルパー
+function checkTableCandidate(text) {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+
+  // 1. エンジンロード済みなら正確に判定
+  if (typeof parseAnyTable === 'function') {
+    return parseAnyTable(trimmed) !== null;
+  }
+
+  // 2. エンジン未ロード時の候補判定
+  if (/\\(?:table\b|begin\{tabular\})/i.test(trimmed)) return true;
+  if (trimmed.includes('|') && /\|.*\|/.test(trimmed)) return true;
+  if (/(?:^|[\r\n])\s*(?:#|\/\/|\/\*|<!--|%|;)?\s*(?:style|theme)\s*:\s*[a-zA-Z0-9_-]+/i.test(trimmed)) return true;
+
+  const lines = trimmed.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length >= 2) {
+    if (lines[0].includes(',') && lines[1].includes(',')) return true;
+    if (lines[0].includes('\t') && lines[1].includes('\t')) return true;
+  }
+
+  return false;
+}
+
 function updateSyntaxIndicator(rawText) {
   const badgeEl = document.getElementById('syntax-type-badge');
   const descEl = document.getElementById('syntax-type-desc');
@@ -818,8 +843,7 @@ function updateSyntaxIndicator(rawText) {
   }
 
   // 2. 表形式の検出 (parseAnyTable または簡易正規表現で判定)
-  const isTablePattern = /\\(table|begin\{tabular\})/i.test(trimmed) || (trimmed.includes('|') && /\|.*\|/.test(trimmed)) || (typeof parseAnyTable === 'function' && parseAnyTable(trimmed) !== null);
-  if (isTablePattern) {
+  if (checkTableCandidate(trimmed)) {
     badgeEl.textContent = '表形式 (Table)';
     badgeEl.className = 'syntax-badge badge-table';
     descEl.textContent = 'Markdown表 (| a | b |)、CSV、TSV、または LaTeX tabular環境';
@@ -933,7 +957,7 @@ function updatePreview() {
   // ==========================================
   // 表（テーブル：Markdown / CSV / TSV / LaTeX tabular）の検出と処理
   // ==========================================
-  const isTableCandidate = /\\(table|begin\{tabular\})/i.test(text) || (text.includes('|') && /\|.*\|/.test(text));
+  const isTableCandidate = checkTableCandidate(text);
   if (typeof parseAnyTable !== 'function' && isTableCandidate && typeof EngineLoader !== 'undefined') {
     showEngineLoadingIndicator(previewArea, 'データ表');
     EngineLoader.loadEngine('table').then(() => {
@@ -1874,6 +1898,21 @@ const diagramLibraryConfigs = {
         el.textContent = item.code;
       }
     }
+  },
+  code: {
+    modalTitle: 'レトロPC / ソースコード ライブラリ (PC-98・PC-8001・Apple II)',
+    getData: () => (typeof codeLibrary !== 'undefined' ? codeLibrary : []),
+    cardClass: 'code-card',
+    tagClass: 'code-card-tag',
+    previewClass: 'code-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawCodeSvg === 'function') {
+        drawCodeSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
   }
 };
 
@@ -1881,7 +1920,8 @@ const diagramLibraryConfigs = {
 const DIAGRAM_LIBRARY_ENGINES = {
   sankey: ['sankey', 'bs', 'pl'],
   gantt: ['gantt', 'roadmap'],
-  capitaltree: ['capitaltree', 'radialtree', 'orgchart']
+  capitaltree: ['capitaltree', 'radialtree', 'orgchart'],
+  code: ['code']
 };
 
 function openDiagramLibraryModal(type) {
@@ -2303,7 +2343,8 @@ const FORMULA_MODAL_TYPE_MAP = {
   chordflow: 'chordflow',
   crystal: 'crystal',
   scenario: 'scenario',
-  tensor: 'tensor'
+  tensor: 'tensor',
+  code: 'code'
 };
 
 // 式作成の項目ディスパッチ

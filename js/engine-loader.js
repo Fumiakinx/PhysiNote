@@ -51,7 +51,9 @@ const EngineLoader = (() => {
     bytefield: 'engine-bytefield.js',
     table: 'engine-table.js',
     chem: 'engine-chem.js',
-    'chem-struct': 'engine-chem.js'
+    'chem-struct': 'engine-chem.js',
+    code: 'engine-code.js',
+    terminal: 'engine-code.js'
   };
 
   /**

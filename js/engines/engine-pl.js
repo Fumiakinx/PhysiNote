@@ -383,11 +383,21 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
     }
 
     let curY = padTop + 50;
-    group.forEach((n) => {
+    let prevParent = null;
+
+    group.forEach((n, idx) => {
+      // 直前ノードと親（流入元）が異なる場合、グループ分離マージンを追加（重なり完全防止）
+      const parentLinks = links.filter((l) => l.target === n && nodeGeom[l.source]);
+      const currentParent = parentLinks.length > 0 ? parentLinks[0].source : null;
+      if (idx > 0 && currentParent && prevParent && currentParent !== prevParent) {
+        curY += 36; // 親グループ間の境界クリアランス
+      }
+      prevParent = currentParent;
+
       const pct = Math.abs(nodePct[n] || 5);
       const nh = Math.max(12, pct * scalePxPerPct);
       nodeGeom[n] = { x: colX[s], y: curY, w: nodeWidth, h: nh, stage: s };
-      const gap = (s > 0 && s < maxStage && group.length > 1) ? 52 : Math.max(12, minPitch - nh);
+      const gap = (s > 0 && s < maxStage && group.length > 1) ? 62 : Math.max(12, minPitch - nh);
       curY += nh + gap;
     });
 
@@ -720,7 +730,7 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
       const side = meta.side || (isCostOrLoss(n) ? 'above' : 'below');
       const centerX = geom.x + geom.w / 2;
 
-      let startY = side === 'above' ? geom.y - 28 : geom.y + geom.h + 13;
+      let startY = side === 'above' ? geom.y - 32 : geom.y + geom.h + 13;
 
       const pctEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       pctEl.setAttribute('x', centerX.toFixed(1));

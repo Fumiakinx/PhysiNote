@@ -2868,3 +2868,33 @@ const bytefieldLibrary = [
     tags: ['形式4', '独自構文', 'packet', 'レジスタマップ', 'ビットフィールド', 'マイコン', '組込み']
   }
 ];
+
+// ==========================================
+// レトロPC / ソースコード (code) ライブラリデータ定義
+// ==========================================
+const codeLibrary = [
+  {
+    id: 'code-retro-othello-eval',
+    name: '形式1: PC-98風 C言語 オセロAI評価テーブル & 棋譜構造体',
+    category: 'PC-98 / C言語',
+    description: 'PC-98 / CRT風の走査線・ウィンドウ枠付きソースコード枠。オセロAIの重みテーブルと棋譜管理構造体のC言語リスト。',
+    code: '\\code{\n  title: "C:\\\\SRC\\\\OTHELLO.C (オセロAI 評価テーブル・棋譜保存)";\n  theme: pc98;\n  tab: 4;\n  line-numbers: true;\n  scanlines: true;\n\n//評価テーブル\nINT\t\t\t\tg_value[D_ALL] = {\n\t\t 30, -5,  3, -1, -1,  3, -5, 30,\n\t\t -5,  0, -3, -3, -3, -3,  0, -5,\n\t\t  3, -3,  0, -1, -1,  0, -3,  3,\n\t\t -1, -3, -1,  0,  0, -1, -3, -1,\n\t\t -1, -3, -1,  0,  0, -1, -3, -1,\n\t\t  3, -3,  0, -1, -1,  0, -3,  3,\n\t\t -5,  0, -3, -3, -3, -3,  0, -5,\n\t\t 30, -5,  3, -1, -1,  3, -5, 30};\n\n//棋譜保存用構造体\nstruct\tkifu\t\t\t\t\t\t\t//棋譜\n\t\t{\n\t\t\tUINT loc;\t\t\t\t\t//座標\n\t\t\tUINT rev[D_WMAX];\n\t\t}\n\t\t\t\tg_hist[120];\t\t\t//棋譜\n}',
+    tags: ['形式1', '独自構文', 'code', 'terminal', 'レトロPC', 'PC98', 'C言語', 'オセロ', 'ソースリスト']
+  },
+  {
+    id: 'code-retro-pc8001-basic',
+    name: '形式2: PC-8001風 BASIC コマンド＆実行画面',
+    category: 'PC-8001 / BASIC',
+    description: 'PC-8001風の黒地に白文字CRT画面＆最下段ファンクションキー反転バー。noteでの短いコマンド・スクリプト紹介用。',
+    code: '\\code{\n  theme: pc8001;\n\nOk\nauto 1000\n1000 print "hoge"\n1010 print "ﾎｹﾞ"\n1020 \nOk\nrun\nhoge\nﾎｹﾞ\nOk\n}',
+    tags: ['形式2', '独自構文', 'code', 'pc8001', 'レトロPC', 'BASIC', 'コマンド画面']
+  },
+  {
+    id: 'code-retro-apple2-asm',
+    name: '形式3: Apple II風 6502アセンブラ＆エディタ画面',
+    category: 'Apple II / 6502',
+    description: 'Apple II特有の純黒背景＆エメラルドグリーンCRT画面。6502アセンブラやコマンド実行プロンプトの再現。',
+    code: '\\code{\n  theme: apple2;\n\nEditor\n:L\n\n 1 * HELLO WORLD\n 2 *\n 3 COUT  =   $FDED\n 4 *\n 5 START LDY #0\n 6 NEXT  LDA STRING,Y\n 7       BEQ END\n 8       JSR COUT\n 9       INY\n 10      JMP NEXT\n 11 END  RTS\n 12 STRING ASC "HELLO, WORLD"\n 13      DB  0\n:\n}',
+    tags: ['形式3', '独自構文', 'code', 'apple2', 'レトロPC', 'アセンブラ', '6502', 'グリーンモニタ']
+  }
+];

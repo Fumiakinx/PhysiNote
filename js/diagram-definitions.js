@@ -517,6 +517,19 @@ const DIAGRAM_DEFINITIONS = [
     cls: 'bytefield-preview-container',
     label: 'パケットヘッダ・メモリ図',
     getFn: () => typeof drawBytefieldSvg === 'function' ? drawBytefieldSvg : null
+  },
+  // 39. レトロPC / ソースコード (Code / Terminal)
+  {
+    id: 'code',
+    match: (t) => /\\(code|terminal|retrocode|sourcecode)\{/i.test(t),
+    badge: {
+      text: 'レトロPC / ソースコード (Code)',
+      cls: 'badge-custom',
+      desc: '\\code{ title: ...; theme: pc98; /* ソースコード */ } または \\terminal{ ... }'
+    },
+    cls: 'code-preview-container',
+    label: 'レトロPC / コード枠',
+    getFn: () => typeof drawCodeSvg === 'function' ? drawCodeSvg : null
   }
 ];
 
