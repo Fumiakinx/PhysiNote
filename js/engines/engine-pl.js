@@ -244,6 +244,19 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
   }
   nodes.forEach((n) => { if (stages[n] === undefined) stages[n] = 0; });
 
+  // 5.5 流入がなく下流（Stage >= 2）へ合流するノードを接続先の直前ステージへ後ろ詰め配置（中間ノード貫通防止）
+  nodes.forEach((n) => {
+    if ((inSum[n] || 0) === 0 && (outSum[n] || 0) > 0) {
+      const targets = links.filter((l) => l.source === n).map((l) => stages[l.target]);
+      if (targets.length > 0) {
+        const minTargetStage = Math.min(...targets);
+        if (minTargetStage >= 2) {
+          stages[n] = minTargetStage - 1;
+        }
+      }
+    }
+  });
+
   const maxStage = Math.max(1, ...Object.values(stages));
   const stageGroups = [];
   for (let s = 0; s <= maxStage; s++) stageGroups[s] = [];
@@ -360,7 +373,7 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
       // 各ノードの親ノード（流入元）の平均Y座標を算出
       const getParentY = (n) => {
         const parentLinks = links.filter((l) => l.target === n && nodeGeom[l.source]);
-        if (parentLinks.length === 0) return 0;
+        if (parentLinks.length === 0) return 9999; // 流入のない合流項目は下部に整流
         const sumY = parentLinks.reduce((acc, l) => acc + nodeGeom[l.source].y, 0);
         return sumY / parentLinks.length;
       };
@@ -389,13 +402,13 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
       // 直前ノードと親（流入元）が異なる場合、グループ分離マージンを追加（重なり完全防止）
       const parentLinks = links.filter((l) => l.target === n && nodeGeom[l.source]);
       const currentParent = parentLinks.length > 0 ? parentLinks[0].source : null;
-      if (idx > 0 && currentParent && prevParent && currentParent !== prevParent) {
+      if (idx > 0 && currentParent !== prevParent) {
         curY += 36; // 親グループ間の境界クリアランス
       }
       prevParent = currentParent;
 
       const pct = Math.abs(nodePct[n] || 5);
-      const nh = Math.max(12, pct * scalePxPerPct);
+      const nh = Math.max(1.5, pct * scalePxPerPct);
       nodeGeom[n] = { x: colX[s], y: curY, w: nodeWidth, h: nh, stage: s };
       const gap = (s > 0 && s < maxStage && group.length > 1) ? 62 : Math.max(12, minPitch - nh);
       curY += nh + gap;
@@ -604,8 +617,9 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
     rect.setAttribute('y', geom.y.toFixed(1));
     rect.setAttribute('width', geom.w.toFixed(1));
     rect.setAttribute('height', geom.h.toFixed(1));
-    rect.setAttribute('rx', '2.5');
-    rect.setAttribute('ry', '2.5');
+    const nodeRx = Math.min(2.5, geom.h / 2).toFixed(1);
+    rect.setAttribute('rx', nodeRx);
+    rect.setAttribute('ry', nodeRx);
     rect.setAttribute('fill', color);
     rect.setAttribute('class', 'pl-node');
 

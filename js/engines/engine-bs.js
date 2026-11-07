@@ -307,11 +307,56 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
     }
   });
 
+  // 4.6 ノードラベルの自動改行フォーマッター（括弧・中黒・長文を自然な位置で改行）
+  const formatBsNodeLabelLines = (name) => {
+    if (!name || typeof name !== 'string') return [String(name || '')];
+    if (name.includes('\n')) {
+      return name.split('\n').map((l) => l.trim()).filter(Boolean);
+    }
+    const mBracket = name.match(/^([^(（]+)[(（]([^)）]+)[)）]$/);
+    if (mBracket) {
+      const mainPart = mBracket[1].trim();
+      const subPart = `（${mBracket[2].trim()}）`;
+      if (mainPart.length >= 4) {
+        return [mainPart, subPart];
+      }
+    }
+    if (name.length >= 8 && name.includes('・')) {
+      const dotIdx = name.indexOf('・');
+      if (dotIdx >= 2 && dotIdx <= name.length - 3) {
+        return [name.substring(0, dotIdx + 1), name.substring(dotIdx + 1)];
+      }
+    }
+    if (name.length >= 10) {
+      const mid = Math.ceil(name.length / 2);
+      return [name.substring(0, mid), name.substring(mid)];
+    }
+    return [name];
+  };
+
   // 5. 幾何レイアウト・座標計算
   const padTop = 90;
   const padBottom = 50;
-  const padX = 145;
-  const svgWidth = 940;
+
+  // 左右端のラベル最大行長を計測し、余白を動的確保（はみ出し切れを完全防止）
+  let maxLeftLabelLen = 0;
+  if (stageGroups[0]) {
+    stageGroups[0].forEach((n) => {
+      const lines = formatBsNodeLabelLines(n);
+      lines.forEach((l) => { if (l.length > maxLeftLabelLen) maxLeftLabelLen = l.length; });
+    });
+  }
+  const padLeft = Math.max(145, maxLeftLabelLen * 13 + 32);
+
+  let maxRightLabelLen = 0;
+  if (stageGroups[maxStage]) {
+    stageGroups[maxStage].forEach((n) => {
+      const lines = formatBsNodeLabelLines(n);
+      lines.forEach((l) => { if (l.length > maxRightLabelLen) maxRightLabelLen = l.length; });
+    });
+  }
+  const padRight = Math.max(145, maxRightLabelLen * 13 + 32);
+  const svgWidth = Math.max(960, (maxStage > 0 ? (maxStage + 1) * 220 : 600) + padLeft + padRight - 280);
   const nodeWidth = 10;
 
   const baseAssetHeight = 220;
@@ -319,7 +364,7 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
 
   const colX = [];
   for (let s = 0; s <= maxStage; s++) {
-    colX[s] = padX + (maxStage > 0 ? (s / maxStage) * (svgWidth - padX * 2 - nodeWidth) : 0);
+    colX[s] = padLeft + (maxStage > 0 ? (s / maxStage) * (svgWidth - padLeft - padRight - nodeWidth) : 0);
   }
 
   const assetY = padTop + 70;
@@ -504,7 +549,7 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
     }
   } else {
     // 汎用多段サンキーレイアウト
-    const minPitch = 44;
+    const minPitch = 54;
     for (let s = 0; s <= maxStage; s++) {
       const group = stageGroups[s] || [];
       if (group.length === 0) continue;
@@ -517,11 +562,26 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
         nodeGeom[n] = { x: colX[s], y: assetY, w: nodeWidth, h: nh, stage: s };
       } else {
         let currY = assetY;
+        let prevLabelBottomY = -Infinity;
+
         group.forEach((n) => {
           const pct = Math.abs(nodePct[n] || 5);
           const nh = Math.max(4, pct * scalePxPerPct);
+          const nameLines = formatBsNodeLabelLines(n);
+          const isMulti = nameLines.length > 1;
+          const labelHalfH = isMulti ? 26 : 18;
+
+          // バーの中心 centerY において、前のノードのラベル下端と重ならないよう必要に応じて currY を下へ補正
+          let candCenterY = currY + nh / 2;
+          const labelTop = candCenterY - (isMulti ? 18 : 11);
+          if (labelTop < prevLabelBottomY + 10) {
+            candCenterY = prevLabelBottomY + 10 + (isMulti ? 18 : 11);
+            currY = Math.round(candCenterY - nh / 2);
+          }
+
           nodeGeom[n] = { x: colX[s], y: currY, w: nodeWidth, h: nh, stage: s };
-          currY += Math.max(nh + 6, minPitch);
+          prevLabelBottomY = candCenterY + labelHalfH;
+          currY += Math.max(nh + 12, minPitch);
         });
       }
     }
@@ -831,7 +891,9 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
     if (geom.stage === 0) {
       const anchorX = geom.x - 8;
       const centerY = geom.y + geom.h / 2;
-      const startY = centerY - 11;
+      const nameLines = formatBsNodeLabelLines(n);
+      const isMulti = nameLines.length > 1;
+      const startY = centerY - (isMulti ? 18 : 11);
 
       const pctEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       pctEl.setAttribute('x', anchorX.toFixed(1));
@@ -845,17 +907,27 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
 
       const nameEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       nameEl.setAttribute('x', anchorX.toFixed(1));
-      nameEl.setAttribute('y', (startY + 12).toFixed(1));
+      nameEl.setAttribute('y', (startY + 13).toFixed(1));
       nameEl.setAttribute('text-anchor', 'end');
       nameEl.setAttribute('font-size', nameSize);
       nameEl.setAttribute('font-weight', nameWeight);
       nameEl.setAttribute('fill', labelTextColor);
-      nameEl.textContent = n;
+      if (!isMulti) {
+        nameEl.textContent = nameLines[0];
+      } else {
+        nameLines.forEach((ln, lIdx) => {
+          const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+          tspan.setAttribute('x', anchorX.toFixed(1));
+          if (lIdx > 0) tspan.setAttribute('dy', '13');
+          tspan.textContent = ln;
+          nameEl.appendChild(tspan);
+        });
+      }
       textG.appendChild(nameEl);
 
       const valEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       valEl.setAttribute('x', anchorX.toFixed(1));
-      valEl.setAttribute('y', (startY + 24).toFixed(1));
+      valEl.setAttribute('y', (startY + 13 + nameLines.length * 13).toFixed(1));
       valEl.setAttribute('text-anchor', 'end');
       valEl.setAttribute('font-size', valSize);
       valEl.setAttribute('font-weight', valWeight);
@@ -866,7 +938,9 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
     } else if (geom.stage === maxStage) {
       const anchorX = geom.x + geom.w + 8;
       const centerY = geom.y + geom.h / 2;
-      const startY = centerY - 11;
+      const nameLines = formatBsNodeLabelLines(n);
+      const isMulti = nameLines.length > 1;
+      const startY = centerY - (isMulti ? 18 : 11);
 
       const pctEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       pctEl.setAttribute('x', anchorX.toFixed(1));
@@ -880,17 +954,27 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
 
       const nameEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       nameEl.setAttribute('x', anchorX.toFixed(1));
-      nameEl.setAttribute('y', (startY + 12).toFixed(1));
+      nameEl.setAttribute('y', (startY + 13).toFixed(1));
       nameEl.setAttribute('text-anchor', 'start');
       nameEl.setAttribute('font-size', nameSize);
       nameEl.setAttribute('font-weight', nameWeight);
       nameEl.setAttribute('fill', labelTextColor);
-      nameEl.textContent = n;
+      if (!isMulti) {
+        nameEl.textContent = nameLines[0];
+      } else {
+        nameLines.forEach((ln, lIdx) => {
+          const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+          tspan.setAttribute('x', anchorX.toFixed(1));
+          if (lIdx > 0) tspan.setAttribute('dy', '13');
+          tspan.textContent = ln;
+          nameEl.appendChild(tspan);
+        });
+      }
       textG.appendChild(nameEl);
 
       const valEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       valEl.setAttribute('x', anchorX.toFixed(1));
-      valEl.setAttribute('y', (startY + 24).toFixed(1));
+      valEl.setAttribute('y', (startY + 13 + nameLines.length * 13).toFixed(1));
       valEl.setAttribute('text-anchor', 'start');
       valEl.setAttribute('font-size', valSize);
       valEl.setAttribute('font-weight', valWeight);

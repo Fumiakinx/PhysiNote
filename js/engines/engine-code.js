@@ -594,6 +594,7 @@ function drawCodeSvg(text, container, label) {
   const textG = document.createElementNS(svgNS, 'g');
   textG.setAttribute('font-family', "'Consolas', 'Courier New', 'MS Gothic', 'Yu Gothic', monospace");
   textG.setAttribute('font-size', `${fontSize}`);
+  textG.style.whiteSpace = 'pre';
 
   const startY = headerHeight + padTop + fontSize;
 
@@ -617,18 +618,22 @@ function drawCodeSvg(text, container, label) {
     lineText.setAttribute('x', `${codeOriginX}`);
     lineText.setAttribute('y', `${y}`);
     lineText.setAttribute('xml:space', 'preserve');
+    lineText.style.whiteSpace = 'pre';
 
     const tokens = theme.isRawMonochrome
       ? [{ text: line, color: theme.defaultText }]
       : tokenizeLine(line, theme);
 
     if (tokens.length === 0) {
-      lineText.textContent = ' ';
+      lineText.textContent = '\u00A0';
     } else {
       tokens.forEach((tok) => {
         const tspan = document.createElementNS(svgNS, 'tspan');
         tspan.setAttribute('fill', tok.color);
-        tspan.textContent = tok.text;
+        tspan.setAttribute('xml:space', 'preserve');
+        tspan.style.whiteSpace = 'pre';
+        // 半角スペースの縮約・欠落を防止し字下げを確実に保持
+        tspan.textContent = tok.text.replace(/ /g, '\u00A0');
         lineText.appendChild(tspan);
       });
     }

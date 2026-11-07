@@ -475,9 +475,9 @@ function buildCapitalTreeLayout(parsed) {
 
       let totalTagsW = 0;
       n.incomingEdges.forEach((ie) => {
-        let pName = ie.from.trim();
-        if (pName.length > 6) {
-          pName = pName.replace(/[\(（].*?[\)）]/g, '').trim() || pName.slice(0, 6);
+        let pName = ie.from.trim().split(/\\n|\n/)[0].trim();
+        if (pName.length > 8) {
+          pName = pName.replace(/[\(（].*?[\)）]/g, '').trim() || pName.slice(0, 8);
         }
         const text = `${pName} ${ie.ratio || ''}`.trim();
         totalTagsW += getApproxTextWidth(text) + 14;
@@ -1145,11 +1145,18 @@ function drawCapitalTreeSvg(code, container, labelText) {
       cX = Math.round((childNode.x + childNode.width / 2) - spread / 2 + parentIdx * step);
     }
 
+    const depthDiff = childNode.depth - parentNode.depth;
     const cY = Math.round(childNode.y);
-    const midY = Math.round(pY + (cY - pY) * 0.40);
+    let midY;
+    if (depthDiff > 1) {
+      // 中間段を跨ぐエッジは中間段カードの下端より下（子ノード直上）を通過
+      midY = Math.round(cY - 52);
+    } else {
+      midY = Math.round(pY + (cY - pY) * 0.40);
+    }
 
     const isDirectVertical = (pX === cX);
-    edgeDataList.push({ e, edgeIdx, pX, pY, cX, cY, midY, isDirectVertical });
+    edgeDataList.push({ e, edgeIdx, pX, pY, cX, cY, midY, isDirectVertical, depthDiff, childNode });
 
     // 他エッジとの交差判定用垂直セグメント
     if (isDirectVertical) {
@@ -1232,7 +1239,11 @@ function drawCapitalTreeSvg(code, container, labelText) {
     // 比率・注釈バッジ
     if (e.labelText || e.ratio || e.type) {
       const badgeX = cX;
-      const badgeY = Math.round((midY + cY) / 2);
+      let badgeY = Math.round((midY + cY) / 2);
+      if (data.childNode && data.childNode.parents.length > 1) {
+        // 合弁ノードへ入る複数バッジは子ノード直上で高さを揃えて整列
+        badgeY = Math.round(cY - 27);
+      }
       renderBadgeElement(e, badgeX, badgeY);
     }
   });
@@ -1296,9 +1307,9 @@ function drawCapitalTreeSvg(code, container, labelText) {
     const isMultiParent = n.incomingEdges && n.incomingEdges.length > 1;
     if (isMultiParent) {
       const tagList = n.incomingEdges.map((ie) => {
-        let pName = ie.from.trim();
-        if (pName.length > 6) {
-          pName = pName.replace(/[\(（].*?[\)）]/g, '').trim() || pName.slice(0, 6);
+        let pName = ie.from.trim().split(/\\n|\n/)[0].trim();
+        if (pName.length > 8) {
+          pName = pName.replace(/[\(（].*?[\)）]/g, '').trim() || pName.slice(0, 8);
         }
         const text = `${pName} ${ie.ratio || ''}`.trim();
         const w = getApproxTextWidth(text) + 12;
