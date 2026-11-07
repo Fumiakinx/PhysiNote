@@ -274,38 +274,40 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
     }
   });
 
-  // 4.5 グロス拡張ノード（子にマイナスリンクを持つノード）の検出
+  // 4.5 グロス拡張ノード（子にマイナスリンクを持つノード）の検出（伝統的多段B/S限定）
   const grossMeta = {};
-  nodes.forEach((n) => {
-    const outL = links.filter((l) => l.source === n);
-    const hasNeg = outL.some((l) => (l.value !== null && l.value < 0) || (l.percent && l.percent.trim().startsWith('-')));
-    if (hasNeg) {
-      let posPctSum = 0;
-      let negPctSum = 0;
-      let posValSum = 0;
-      let negValSum = 0;
-      outL.forEach((l) => {
-        const p = l.percent ? parseFloat(l.percent.replace('%', '')) : (nodePct[l.target] || 5);
-        const v = l.value !== null ? l.value : (nodeVal[l.target] || 0);
-        if (p < 0 || v < 0) {
-          negPctSum += Math.abs(p);
-          negValSum += Math.abs(v);
-        } else {
-          posPctSum += p;
-          posValSum += v;
-        }
-      });
-      grossMeta[n] = {
-        hasNeg: true,
-        posPct: posPctSum,
-        negPct: negPctSum,
-        posVal: posValSum,
-        negVal: negValSum,
-        netPct: Math.max(0.1, posPctSum - negPctSum),
-        grossPct: posPctSum
-      };
-    }
-  });
+  if (isTraditionalBs) {
+    nodes.forEach((n) => {
+      const outL = links.filter((l) => l.source === n);
+      const hasNeg = outL.some((l) => (l.value !== null && l.value < 0) || (l.percent && l.percent.trim().startsWith('-')));
+      if (hasNeg) {
+        let posPctSum = 0;
+        let negPctSum = 0;
+        let posValSum = 0;
+        let negValSum = 0;
+        outL.forEach((l) => {
+          const p = l.percent ? parseFloat(l.percent.replace('%', '')) : (nodePct[l.target] || 5);
+          const v = l.value !== null ? l.value : (nodeVal[l.target] || 0);
+          if (p < 0 || v < 0) {
+            negPctSum += Math.abs(p);
+            negValSum += Math.abs(v);
+          } else {
+            posPctSum += p;
+            posValSum += v;
+          }
+        });
+        grossMeta[n] = {
+          hasNeg: true,
+          posPct: posPctSum,
+          negPct: negPctSum,
+          posVal: posValSum,
+          negVal: negValSum,
+          netPct: Math.max(0.1, posPctSum - negPctSum),
+          grossPct: posPctSum
+        };
+      }
+    });
+  }
 
   // 4.6 ノードラベルの自動改行フォーマッター（括弧・中黒・長文を自然な位置で改行）
   const formatBsNodeLabelLines = (name) => {
@@ -757,7 +759,7 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
 
     let x1 = srcG.x + srcG.w;
     let x2 = tgtG.x;
-    if (srcGross && srcGross.hasNeg && isNegLink) {
+    if (isTraditionalBs && srcGross && srcGross.hasNeg && isNegLink && colX[5] !== undefined) {
       // パターン2: 欠損金は Stage 4 にあるため、x1 を欠損金の右側、x2 を Stage 5（政府出資金）の左側に設定
       x1 = tgtG.x + tgtG.w;
       x2 = colX[5];
