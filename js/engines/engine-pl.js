@@ -350,7 +350,7 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
       lines.forEach((l) => { if (l.length > maxRightLabelLen) maxRightLabelLen = l.length; });
     });
   }
-  const padRight = Math.max(130, Math.min(240, maxRightLabelLen * 13 + 30));
+  const padRight = Math.max(140, Math.min(260, maxRightLabelLen * 14 + 36));
   const svgWidth = Math.max(960, (maxStage + 1) * 210 + padRight);
   const nodeWidth = 14;
   const baseHeight = 240;
@@ -397,6 +397,8 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
 
     let curY = padTop + 50;
     let prevParent = null;
+    let prevLabelBottom = -Infinity;
+    let prevNodeBottom = -Infinity;
 
     group.forEach((n, idx) => {
       // 直前ノードと親（流入元）が異なる場合、グループ分離マージンを追加（重なり完全防止）
@@ -409,8 +411,32 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
 
       const pct = Math.abs(nodePct[n] || 5);
       const nh = Math.max(1.5, pct * scalePxPerPct);
+
+      if (s === 0 || s === maxStage) {
+        // 左右端列: ラベルが外側（縦3〜4行）に配置されるため、ラベル同士およびバー同士の重なりを完全防止
+        const nameLines = formatNodeLabelLines(n);
+        const totalLines = 1 + nameLines.length + 1; // % + 名称行数 + 金額
+        const lineSpacing = 15;
+        const labelHalfH = ((totalLines - 1) * lineSpacing) / 2;
+
+        if (idx > 0) {
+          const minYForLabel = prevLabelBottom + 12 + labelHalfH - nh / 2;
+          const minYForNode = prevNodeBottom + 14;
+          curY = Math.max(curY, minYForLabel, minYForNode);
+        }
+
+        const centerY = curY + nh / 2;
+        prevLabelBottom = centerY + labelHalfH;
+        prevNodeBottom = curY + nh;
+      } else {
+        if (idx > 0) {
+          curY = Math.max(curY, prevNodeBottom + 14);
+        }
+        prevNodeBottom = curY + nh;
+      }
+
       nodeGeom[n] = { x: colX[s], y: curY, w: nodeWidth, h: nh, stage: s };
-      const gap = (s > 0 && s < maxStage && group.length > 1) ? 62 : Math.max(12, minPitch - nh);
+      const gap = (s > 0 && s < maxStage && group.length > 1) ? 62 : Math.max(14, minPitch - nh);
       curY += nh + gap;
     });
 
@@ -420,17 +446,22 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
   const svgHeight = Math.max(520, maxContentY + padBottom);
 
   // 9. SVG 要素作成
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const svg = typeof createSvgRoot === 'function'
+    ? createSvgRoot(`0 0 ${svgWidth} ${svgHeight}`, svgWidth, { overflow: 'hidden' })
+    : (() => {
+        const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        el.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+        el.setAttribute('width', '100%');
+        el.setAttribute('height', '100%');
+        el.style.maxWidth = `${svgWidth}px`;
+        el.style.margin = '0 auto';
+        el.style.display = 'block';
+        el.style.overflow = 'hidden';
+        return el;
+      })();
   svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
-  svg.setAttribute('width', '100%');
-  svg.setAttribute('height', '100%');
-  svg.style.maxWidth = `${svgWidth}px`;
-  svg.style.margin = '0 auto';
-  svg.style.display = 'block';
   svg.style.background = '#ffffff';
   svg.style.borderRadius = '12px';
-  svg.style.overflow = 'hidden';
   svg.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif';
 
   // 10. ヘッダー描画（B/Sと同一のIRスタイリッシュデザイン）
@@ -654,14 +685,14 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
     }
 
     const nameLines = formatNodeLabelLines(n);
-    const lineSpacing = 13;
+    const lineSpacing = 15;
 
     if (geom.stage === 0) {
       // 左端列: ノードの左側に右揃え表示（複数行垂直中央揃え）
       const anchorX = geom.x - 8;
       const centerY = geom.y + geom.h / 2;
-      const totalH = (1 + nameLines.length + 1) * lineSpacing;
-      const startY = centerY - totalH / 2 + 10;
+      const totalLines = 1 + nameLines.length + 1;
+      const startY = centerY - ((totalLines - 1) * lineSpacing) / 2 + 4;
 
       const pctEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       pctEl.setAttribute('x', anchorX.toFixed(1));
@@ -701,8 +732,8 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
       // 右端列: ノードの右側に左揃え表示（複数行垂直中央揃え）
       const anchorX = geom.x + geom.w + 8;
       const centerY = geom.y + geom.h / 2;
-      const totalH = (1 + nameLines.length + 1) * lineSpacing;
-      const startY = centerY - totalH / 2 + 10;
+      const totalLines = 1 + nameLines.length + 1;
+      const startY = centerY - ((totalLines - 1) * lineSpacing) / 2 + 4;
 
       const pctEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       pctEl.setAttribute('x', anchorX.toFixed(1));
@@ -795,7 +826,9 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
 
   container.appendChild(svg);
 
-  if (labelText) {
+  if (typeof appendDiagramLabel === 'function') {
+    appendDiagramLabel(container, labelText);
+  } else if (labelText) {
     const lbl = document.createElement('div');
     lbl.className = 'chem-structure-label';
     lbl.textContent = labelText;

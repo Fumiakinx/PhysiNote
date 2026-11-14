@@ -909,6 +909,39 @@ function showEngineLoadingIndicator(container, label) {
   `;
 }
 
+function showEngineErrorIndicator(container, label) {
+  if (!container) return;
+  container.innerHTML = `
+    <div class="chem-render-error" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:120px;gap:6px;">
+      <div style="font-size:22px;">⚠️</div>
+      <div>${label ? `${label} ` : ''}描画エンジンの読み込みに失敗しました。構文やブラウザコンソールをご確認ください。</div>
+    </div>
+  `;
+}
+
+function loadAndRenderEngine(engineId, label, rawText, isAvailableFn) {
+  if (typeof EngineLoader === 'undefined') return false;
+  if (EngineLoader.isLoaded(engineId) && !isAvailableFn()) {
+    showEngineErrorIndicator(previewArea, label);
+    return true;
+  }
+  showEngineLoadingIndicator(previewArea, label);
+  EngineLoader.loadEngine(engineId).then(() => {
+    if (inputArea.value !== rawText) return;
+    if (isAvailableFn()) {
+      updatePreview();
+    } else {
+      showEngineErrorIndicator(previewArea, label);
+    }
+  }).catch((err) => {
+    console.error(`エンジン [${engineId}] ロードエラー:`, err);
+    if (inputArea.value === rawText) {
+      showEngineErrorIndicator(previewArea, label);
+    }
+  });
+  return true;
+}
+
 function updatePreview() {
   autoResizeInput();
   hideSymbolTooltip();
@@ -942,13 +975,7 @@ function updatePreview() {
       if (fn) {
         renderCustomDiagramElement(def.cls, def.label, fn, text, previewArea, warningBadge, previewBox, explanationCard);
         return;
-      } else if (typeof EngineLoader !== 'undefined') {
-        showEngineLoadingIndicator(previewArea, def.label);
-        EngineLoader.loadEngine(def.id).then(() => {
-          if (inputArea.value === rawText) updatePreview();
-        }).catch((err) => {
-          console.error(`エンジン [${def.id}] ロードエラー:`, err);
-        });
+      } else if (loadAndRenderEngine(def.id, def.label, rawText, () => Boolean(def.getFn()))) {
         return;
       }
     }
@@ -958,12 +985,10 @@ function updatePreview() {
   // 表（テーブル：Markdown / CSV / TSV / LaTeX tabular）の検出と処理
   // ==========================================
   const isTableCandidate = checkTableCandidate(text);
-  if (typeof parseAnyTable !== 'function' && isTableCandidate && typeof EngineLoader !== 'undefined') {
-    showEngineLoadingIndicator(previewArea, 'データ表');
-    EngineLoader.loadEngine('table').then(() => {
-      if (inputArea.value === rawText) updatePreview();
-    });
-    return;
+  if (typeof parseAnyTable !== 'function' && isTableCandidate) {
+    if (loadAndRenderEngine('table', 'データ表', rawText, () => typeof parseAnyTable === 'function')) {
+      return;
+    }
   }
   const tableData = typeof parseAnyTable === 'function' ? parseAnyTable(text) : null;
   if (tableData) {
@@ -974,12 +999,10 @@ function updatePreview() {
   // ==========================================
   // 化学構造式 (\chemfig / \smiles) の検出と処理
   // ==========================================
-  if (/\\(chemfig|smiles)\{/i.test(text) && typeof chemfigToSmiles !== 'function' && typeof EngineLoader !== 'undefined') {
-    showEngineLoadingIndicator(previewArea, '化学構造式');
-    EngineLoader.loadEngine('chem').then(() => {
-      if (inputArea.value === rawText) updatePreview();
-    });
-    return;
+  if (/\\(chemfig|smiles)\{/i.test(text) && typeof chemfigToSmiles !== 'function') {
+    if (loadAndRenderEngine('chem', '化学構造式', rawText, () => typeof chemfigToSmiles === 'function')) {
+      return;
+    }
   }
   const chemRegex = /\\(chemfig|smiles)\{((?:[^{}]|\{[^{}]*\})*)\}/g;
   const chemMatches = [];
@@ -1265,10 +1288,21 @@ previewArea.addEventListener('mouseout', (e) => {
   }
 });
 
-// 入力イベントに合わせてリアルタイム更新
-inputArea.addEventListener('input', () => {
+// 入力イベントに合わせてリアルタイム更新（手入力時はデバウンスで負荷軽減、プログラム発火は即時描画）
+let previewDebounceTimer = null;
+inputArea.addEventListener('input', (e) => {
   hideSymbolTooltip();
-  updatePreview();
+  if (e && e.isTrusted === false) {
+    clearTimeout(previewDebounceTimer);
+    updatePreview();
+    return;
+  }
+  autoResizeInput();
+  updateSyntaxIndicator(inputArea ? inputArea.value : '');
+  clearTimeout(previewDebounceTimer);
+  previewDebounceTimer = setTimeout(() => {
+    updatePreview();
+  }, 180);
 });
 
 // ==========================================
@@ -1330,7 +1364,26 @@ function openModal() {
   categoryTabs.forEach((tab) => {
     tab.classList.toggle('active', tab.dataset.category === 'すべて');
   });
-  renderFormulaCards();
+  if (typeof formulaLibrary === 'undefined' && typeof EngineLoader !== 'undefined') {
+    if (emptyMessage) emptyMessage.style.display = 'none';
+    cardGrid.innerHTML = `
+      <div style="grid-column: 1 / -1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 48px; color: var(--text-muted, #64748b); gap: 12px;">
+        <div style="font-size: 32px;">⏳</div>
+        <div style="font-size: 14px;">ライブラリデータを読み込み中...</div>
+      </div>
+    `;
+    EngineLoader.loadLibraries().then(() => {
+      if (libraryModal.classList.contains('active')) {
+        renderFormulaCards();
+      }
+    }).catch(() => {
+      if (libraryModal.classList.contains('active')) {
+        showEngineErrorIndicator(cardGrid, 'ライブラリデータ');
+      }
+    });
+  } else {
+    renderFormulaCards();
+  }
   searchInput.focus();
 }
 
@@ -1341,6 +1394,7 @@ function closeModal() {
 }
 
 function renderFormulaCards() {
+  if (typeof formulaLibrary === 'undefined') return;
   const query = searchInput.value.trim().toLowerCase();
   cardGrid.innerHTML = '';
 
@@ -1427,7 +1481,11 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-searchInput.addEventListener('input', renderFormulaCards);
+let formulaSearchTimer = null;
+searchInput.addEventListener('input', () => {
+  clearTimeout(formulaSearchTimer);
+  formulaSearchTimer = setTimeout(renderFormulaCards, 120);
+});
 
 categoryTabs.forEach((tab) => {
   tab.addEventListener('click', () => {
@@ -1924,45 +1982,34 @@ const DIAGRAM_LIBRARY_ENGINES = {
   code: ['code']
 };
 
-function openDiagramLibraryModal(type) {
-  const config = diagramLibraryConfigs[type];
-  if (!config || !diagramLibraryModal) return;
+function renderDiagramCategoryTabs(config) {
+  if (!diagramCategoryTabs) return;
+  diagramCategoryTabs.innerHTML = '';
+  const rawList = typeof config.getData === 'function' ? config.getData() : [];
+  const catSet = new Set();
+  rawList.forEach((item) => {
+    if (item.category) catSet.add(item.category);
+  });
+  const categories = ['すべて', ...Array.from(catSet)];
 
-  currentDiagramType = type;
-  currentDiagramCategory = 'すべて';
-
-  if (diagramModalTitle) diagramModalTitle.textContent = config.modalTitle;
-  if (diagramSearchInput) diagramSearchInput.value = '';
-
-  if (diagramCategoryTabs) {
-    diagramCategoryTabs.innerHTML = '';
-    const rawList = typeof config.getData === 'function' ? config.getData() : [];
-    const catSet = new Set();
-    rawList.forEach((item) => {
-      if (item.category) catSet.add(item.category);
+  categories.forEach((cat) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'category-tab' + (cat === 'すべて' ? ' active' : '');
+    btn.dataset.category = cat;
+    btn.textContent = cat;
+    btn.addEventListener('click', () => {
+      diagramCategoryTabs.querySelectorAll('.category-tab').forEach((t) => t.classList.remove('active'));
+      btn.classList.add('active');
+      currentDiagramCategory = cat;
+      renderDiagramCards();
     });
-    const categories = ['すべて', ...Array.from(catSet)];
+    diagramCategoryTabs.appendChild(btn);
+  });
+}
 
-    categories.forEach((cat) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'category-tab' + (cat === 'すべて' ? ' active' : '');
-      btn.dataset.category = cat;
-      btn.textContent = cat;
-      btn.addEventListener('click', () => {
-        diagramCategoryTabs.querySelectorAll('.category-tab').forEach((t) => t.classList.remove('active'));
-        btn.classList.add('active');
-        currentDiagramCategory = cat;
-        renderDiagramCards();
-      });
-      diagramCategoryTabs.appendChild(btn);
-    });
-  }
-
-  diagramLibraryModal.classList.add('active');
-  diagramLibraryModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-
+function loadEnginesAndRenderDiagramModal(type, config) {
+  renderDiagramCategoryTabs(config);
   const requiredEngines = DIAGRAM_LIBRARY_ENGINES[type] || [type];
   const unloaded = (typeof EngineLoader !== 'undefined')
     ? requiredEngines.filter((eng) => !EngineLoader.isLoaded(eng))
@@ -1985,10 +2032,54 @@ function openDiagramLibraryModal(type) {
       })
       .catch((err) => {
         console.error('エンジン一括ロードエラー:', err);
-        renderDiagramCards();
+        if (currentDiagramType === type && diagramLibraryModal.classList.contains('active')) {
+          renderDiagramCards();
+        }
       });
   } else {
     renderDiagramCards();
+  }
+}
+
+function openDiagramLibraryModal(type) {
+  const config = diagramLibraryConfigs[type];
+  if (!config || !diagramLibraryModal) return;
+
+  currentDiagramType = type;
+  currentDiagramCategory = 'すべて';
+
+  if (diagramModalTitle) diagramModalTitle.textContent = config.modalTitle;
+  if (diagramSearchInput) diagramSearchInput.value = '';
+  if (diagramEmptyMessage) diagramEmptyMessage.style.display = 'none';
+
+  diagramLibraryModal.classList.add('active');
+  diagramLibraryModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+
+  if (typeof formulaLibrary === 'undefined' && typeof EngineLoader !== 'undefined') {
+    if (diagramCategoryTabs) diagramCategoryTabs.innerHTML = '';
+    if (diagramCardGrid) {
+      diagramCardGrid.innerHTML = `
+        <div style="grid-column: 1 / -1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 48px; color: var(--text-muted, #64748b); gap: 12px;">
+          <div style="font-size: 32px;">⏳</div>
+          <div style="font-size: 14px;">${config.modalTitle || 'ライブラリ'} データを読み込み中...</div>
+        </div>
+      `;
+    }
+    EngineLoader.loadLibraries()
+      .then(() => {
+        if (currentDiagramType === type && diagramLibraryModal.classList.contains('active')) {
+          loadEnginesAndRenderDiagramModal(type, config);
+        }
+      })
+      .catch((err) => {
+        console.error('ライブラリデータロードエラー:', err);
+        if (currentDiagramType === type && diagramLibraryModal.classList.contains('active')) {
+          showEngineErrorIndicator(diagramCardGrid, 'ライブラリデータ');
+        }
+      });
+  } else {
+    loadEnginesAndRenderDiagramModal(type, config);
   }
 
   if (diagramSearchInput) diagramSearchInput.focus();
@@ -2110,7 +2201,11 @@ document.addEventListener('keydown', (e) => {
 });
 
 if (diagramSearchInput) {
-  diagramSearchInput.addEventListener('input', renderDiagramCards);
+  let diagramSearchTimer = null;
+  diagramSearchInput.addEventListener('input', () => {
+    clearTimeout(diagramSearchTimer);
+    diagramSearchTimer = setTimeout(renderDiagramCards, 120);
+  });
 }
 
 // 既存互換ラッパー関数群
@@ -2380,10 +2475,11 @@ document.querySelectorAll('#formula-menu-panel .menu-item-btn').forEach((btn) =>
   });
 });
 
-// メニュー項目ホバー時のエンジン先行プリフェッチ
+// メニュー項目ホバー時のライブラリ・エンジン先行プリフェッチ
 document.querySelectorAll('#diagram-menu-panel .menu-item-btn, #formula-menu-panel .menu-item-btn').forEach((btn) => {
   btn.addEventListener('mouseenter', () => {
     if (typeof EngineLoader === 'undefined') return;
+    EngineLoader.loadLibraries().catch(() => {});
     const diagramType = btn.dataset.diagram ? (DIAGRAM_MODAL_TYPE_MAP[btn.dataset.diagram] || btn.dataset.diagram) : null;
     const formulaType = btn.dataset.formula ? (FORMULA_MODAL_TYPE_MAP[btn.dataset.formula] || btn.dataset.formula) : null;
     const target = diagramType || formulaType;

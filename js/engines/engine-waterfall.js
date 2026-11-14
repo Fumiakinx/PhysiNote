@@ -214,15 +214,128 @@ function drawWaterfallSvg(code, container, labelText) {
   const N = bars.length;
   const isBlock = style === 'block';
 
-  const width = Math.max(N * 88 + 140, 760);
-  const height = title ? 420 : 380;
+  // 文字列幅推定・X軸ラベル多段改行レイアウト事前算出
+  const estimateStrW = (str, sz, isBold = false) => {
+    if (typeof estimateSvgTextWidth === 'function') {
+      return estimateSvgTextWidth(str, sz, isBold);
+    }
+    let w = 0;
+    for (let i = 0; i < str.length; i++) {
+      const c = str.charCodeAt(i);
+      w += (c <= 0x7e || (c >= 0xff61 && c <= 0xff9f)) ? sz * 0.58 : sz * 0.98;
+    }
+    return w;
+  };
+
+  const fullTitleStr = title ? (title + (unit ? `（単位: ${unit}）` : '')) : '';
+  const estTitleW = estimateStrW(fullTitleStr, 16.5, true);
+
+  // 長文タイトルの文字サイズ自動調整（標準16.5px、700px超で自然に縮小、下限13.5px）
+  let titleFontSize = 16.5;
+  if (estTitleW > 700) {
+    titleFontSize = Math.max(13.5, 16.5 * (700 / estTitleW));
+  }
+  const scaledTitleW = estTitleW * (titleFontSize / 16.5);
+  const minWidthForTitle = title ? Math.ceil(scaledTitleW + 64) : 0;
+
+  const width = Math.max(N * 88 + 140, 760, minWidthForTitle);
   const marginTop = title ? 75 : 55;
-  const marginBottom = 65;
   const marginLeft = 65;
   const marginRight = 35;
 
   const plotW = width - marginLeft - marginRight;
-  const plotH = height - marginTop - marginBottom;
+  const stepW = plotW / N;
+
+  const splitSegment = (seg) => {
+    if (!seg) return [];
+    const parenIdx = seg.search(/[（(]/);
+    if (parenIdx > 1 && parenIdx < seg.length - 1) {
+      return [seg.slice(0, parenIdx).trim(), seg.slice(parenIdx).trim()];
+    }
+
+    const splitKeywords = ['による', 'に係る', 'に関する', 'における', 'について', 'での', '及び', '並びに', '等の', 'その他', 'のうち', '・'];
+    let bestIdx = -1;
+    let bestScore = Infinity;
+    const center = seg.length / 2;
+
+    for (const kw of splitKeywords) {
+      let pos = seg.indexOf(kw);
+      while (pos !== -1) {
+        const candidates = kw === '・' ? [pos + 1] : [pos, pos + kw.length];
+        for (const splitPos of candidates) {
+          if (splitPos >= 2 && splitPos <= seg.length - 2) {
+            const diff = Math.abs(splitPos - center);
+            if (diff < bestScore) {
+              bestScore = diff;
+              bestIdx = splitPos;
+            }
+          }
+        }
+        pos = seg.indexOf(kw, pos + 1);
+      }
+    }
+
+    if (bestIdx !== -1) {
+      return [seg.slice(0, bestIdx).trim(), seg.slice(bestIdx).trim()];
+    }
+
+    const alphaIdx = seg.search(/[A-Za-z0-9]/);
+    if (alphaIdx >= 3 && alphaIdx < seg.length) {
+      return [seg.slice(0, alphaIdx).trim(), seg.slice(alphaIdx).trim()];
+    }
+
+    const mid = Math.ceil(seg.length / 2);
+    return [seg.slice(0, mid), seg.slice(mid)];
+  };
+
+  const formatWaterfallLabelLayout = (rawLabel, availStepW) => {
+    if (!rawLabel) return { lines: [''], fontSize: 13 };
+    const clean = String(rawLabel).replace(/\\n/g, '\n');
+    const maxSafeW = Math.max(availStepW - 14, 36);
+    const wrapTargetW = Math.min(maxSafeW, 102);
+
+    let lines;
+    if (clean.includes('\n')) {
+      lines = clean.split('\n').map((s) => s.trim()).filter(Boolean);
+    } else if (clean.length <= 7 && estimateStrW(clean, 13) <= maxSafeW) {
+      lines = [clean];
+    } else {
+      lines = splitSegment(clean);
+      let guard = 0;
+      while (guard < 3) {
+        let changed = false;
+        const nextLines = [];
+        for (const ln of lines) {
+          if (ln.length >= 6 && estimateStrW(ln, 12.5) > wrapTargetW && lines.length + nextLines.length < 4) {
+            const parts = splitSegment(ln);
+            if (parts.length > 1 && parts[0] && parts[1]) {
+              nextLines.push(...parts);
+              changed = true;
+              continue;
+            }
+          }
+          nextLines.push(ln);
+        }
+        lines = nextLines;
+        if (!changed) break;
+        guard++;
+      }
+    }
+
+    let fontSize = 13;
+    const maxW = Math.max(...lines.map((l) => estimateStrW(l, fontSize)));
+    if (maxW > maxSafeW) {
+      fontSize = Math.max(9.5, fontSize * (maxSafeW / maxW));
+    }
+
+    return { lines, fontSize };
+  };
+
+  const barLabelLayouts = bars.map((b) => isBlock ? { lines: [b.label], fontSize: 13 } : formatWaterfallLabelLayout(b.label, stepW));
+  const maxLabelLines = Math.max(1, ...barLabelLayouts.map((l) => l.lines.length));
+  const marginBottom = Math.max(65, 30 + maxLabelLines * 16);
+  const plotH = title ? 280 : 260;
+  const height = marginTop + plotH + marginBottom;
 
   // 最大・最小値の計算
   let minVal = 0;
@@ -262,11 +375,11 @@ function drawWaterfallSvg(code, container, labelText) {
     tEl.setAttribute('x', width / 2);
     tEl.setAttribute('y', 25);
     tEl.setAttribute('text-anchor', 'middle');
-    tEl.setAttribute('font-size', '16.5');
+    tEl.setAttribute('font-size', titleFontSize.toFixed(1));
     tEl.setAttribute('font-weight', '700');
     tEl.setAttribute('fill', '#1e293b');
     tEl.setAttribute('font-family', 'sans-serif');
-    tEl.textContent = title + (unit ? `（単位: ${unit}）` : '');
+    tEl.textContent = fullTitleStr;
     svg.appendChild(tEl);
   }
 
@@ -313,7 +426,6 @@ function drawWaterfallSvg(code, container, labelText) {
   }
 
   // バー寸法
-  const stepW = plotW / N;
   const barW = isBlock ? stepW : Math.min(stepW * 0.65, 52);
 
   const barG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -387,30 +499,27 @@ function drawWaterfallSvg(code, container, labelText) {
     barG.appendChild(valTxt);
 
     // X軸ラベル
+    const layout = barLabelLayouts[i] || { lines: [b.label], fontSize: 13 };
     const labelTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     labelTxt.setAttribute('x', bx + barW / 2);
     labelTxt.setAttribute('y', height - marginBottom + 20);
     labelTxt.setAttribute('text-anchor', 'middle');
-    labelTxt.setAttribute('font-size', '13');
+    labelTxt.setAttribute('font-size', layout.fontSize.toFixed(1));
     labelTxt.setAttribute('font-weight', '600');
     labelTxt.setAttribute('fill', '#334155');
     labelTxt.setAttribute('font-family', 'sans-serif');
 
-    if (b.label.length > 7 && !isBlock) {
-      const p1 = b.label.slice(0, Math.ceil(b.label.length / 2));
-      const p2 = b.label.slice(Math.ceil(b.label.length / 2));
-      const t1 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-      t1.setAttribute('x', bx + barW / 2);
-      t1.setAttribute('dy', '0');
-      t1.textContent = p1;
-      const t2 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-      t2.setAttribute('x', bx + barW / 2);
-      t2.setAttribute('dy', '15');
-      t2.textContent = p2;
-      labelTxt.appendChild(t1);
-      labelTxt.appendChild(t2);
+    if (layout.lines.length > 1) {
+      const lineDy = Math.round(layout.fontSize + 2);
+      layout.lines.forEach((lineStr, lineIdx) => {
+        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        tspan.setAttribute('x', bx + barW / 2);
+        tspan.setAttribute('dy', lineIdx === 0 ? '0' : String(lineDy));
+        tspan.textContent = lineStr;
+        labelTxt.appendChild(tspan);
+      });
     } else {
-      labelTxt.textContent = b.label;
+      labelTxt.textContent = layout.lines[0] || b.label;
     }
     barG.appendChild(labelTxt);
 

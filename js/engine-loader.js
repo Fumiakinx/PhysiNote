@@ -6,6 +6,7 @@
 const EngineLoader = (() => {
   const loadedEngines = new Set();
   const loadingPromises = new Map();
+  const LIBRARY_SCRIPT_SRC = 'js/data/diagram-libraries.js';
 
   // 図種 ID とエンジンファイル名のマッピング定義
   const ENGINE_MAP = {
@@ -57,46 +58,66 @@ const EngineLoader = (() => {
   };
 
   /**
+   * 任意のスクリプトを一度だけ非同期ロードする内部ヘルパー
+   * @param {string} cacheKey
+   * @param {string} src
+   * @returns {Promise<void>}
+   */
+  function loadScriptOnce(cacheKey, src) {
+    if (loadedEngines.has(cacheKey)) {
+      return Promise.resolve();
+    }
+    if (loadingPromises.has(cacheKey)) {
+      return loadingPromises.get(cacheKey);
+    }
+
+    const promise = new Promise((resolve, reject) => {
+      const existingScript = document.querySelector(`script[src*="${src}"]`);
+      if (existingScript && loadedEngines.has(cacheKey)) {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = src;
+      script.async = true;
+      script.onload = () => {
+        loadedEngines.add(cacheKey);
+        loadingPromises.delete(cacheKey);
+        resolve();
+      };
+      script.onerror = (err) => {
+        loadingPromises.delete(cacheKey);
+        console.error(`スクリプト [${src}] の読み込みに失敗しました:`, err);
+        reject(err);
+      };
+      document.head.appendChild(script);
+    });
+
+    loadingPromises.set(cacheKey, promise);
+    return promise;
+  }
+
+  /**
    * 指定されたエンジンを非同期ロード
    * @param {string} engineId 
    * @returns {Promise<void>}
    */
   function loadEngine(engineId) {
     const fileName = ENGINE_MAP[engineId] || (engineId.startsWith('engine-') ? `${engineId}.js` : `engine-${engineId}.js`);
-    
-    if (loadedEngines.has(fileName)) {
+    return loadScriptOnce(fileName, `js/engines/${fileName}`);
+  }
+
+  /**
+   * ダイアグラム・数式ライブラリプリセットデータを遅延ロード
+   * @returns {Promise<void>}
+   */
+  function loadLibraries() {
+    if (typeof formulaLibrary !== 'undefined') {
+      loadedEngines.add(LIBRARY_SCRIPT_SRC);
       return Promise.resolve();
     }
-    if (loadingPromises.has(fileName)) {
-      return loadingPromises.get(fileName);
-    }
-
-    const promise = new Promise((resolve, reject) => {
-      // 既存のスクリプトタグがあればそれを確認
-      const existingScript = document.querySelector(`script[src*="${fileName}"]`);
-      if (existingScript && loadedEngines.has(fileName)) {
-        resolve();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = `js/engines/${fileName}`;
-      script.async = true;
-      script.onload = () => {
-        loadedEngines.add(fileName);
-        loadingPromises.delete(fileName);
-        resolve();
-      };
-      script.onerror = (err) => {
-        loadingPromises.delete(fileName);
-        console.error(`エンジン [${fileName}] の読み込みに失敗しました:`, err);
-        reject(err);
-      };
-      document.head.appendChild(script);
-    });
-
-    loadingPromises.set(fileName, promise);
-    return promise;
+    return loadScriptOnce(LIBRARY_SCRIPT_SRC, LIBRARY_SCRIPT_SRC);
   }
 
   /**
@@ -111,6 +132,7 @@ const EngineLoader = (() => {
 
   return {
     loadEngine,
+    loadLibraries,
     isLoaded,
     ENGINE_MAP
   };

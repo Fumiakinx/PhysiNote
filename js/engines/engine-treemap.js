@@ -301,6 +301,79 @@ function drawTreemapSvg(code, container, labelText) {
   const { title, unit, mode, items, groups } = data;
   const isHierarchical = groups && groups.length > 0;
 
+  // テキスト幅の簡易推定ヘルパー（共通ユーティリティ利用）
+  const estimateTextWidth = (str, sz) => {
+    if (typeof estimateSvgTextWidth === 'function') {
+      return estimateSvgTextWidth(str, sz, false);
+    }
+    if (!str) return 0;
+    let w = 0;
+    for (let i = 0; i < str.length; i++) {
+      const code = str.charCodeAt(i);
+      if (code <= 0x7e || (code >= 0xff61 && code <= 0xff9f)) {
+        w += sz * 0.58;
+      } else {
+        w += sz * 0.95;
+      }
+    }
+    return w;
+  };
+
+  // 単位連動フォーマッター（10,000倍時の単位繰り上げ: 億円 -> 兆円、百万円 -> 億円等）
+  const formatTreemapValueWithUnit = (val, u) => {
+    if (val === null || val === undefined || isNaN(val)) return '';
+    const num = Number(val);
+    const unitStr = (u || '').trim();
+
+    // 1. 単位が「億円」「億」の場合: 10,000億円以上は「兆円」「兆」
+    if (/^億(?:円)?$/.test(unitStr)) {
+      if (num >= 10000) {
+        const trVal = (num / 10000).toFixed(1);
+        return `${trVal}${unitStr === '億' ? '兆' : '兆円'}`;
+      }
+      return `${num.toLocaleString()}${unitStr}`;
+    }
+
+    // 2. 単位が「百万円」の場合: 10,000百万円以上は「億円」 (100百万円 = 1億円)
+    if (/^百万円?$/.test(unitStr)) {
+      if (num >= 10000) {
+        const okuVal = (num / 100).toFixed(1);
+        return `${okuVal}億円`;
+      }
+      return `${num.toLocaleString()}${unitStr}`;
+    }
+
+    // 3. 単位が「万円」「万」の場合: 10,000万円以上は「億円」「億」
+    if (/^万(?:円)?$/.test(unitStr)) {
+      if (num >= 10000) {
+        const okuVal = (num / 10000).toFixed(1);
+        return `${okuVal}${unitStr === '万' ? '億' : '億円'}`;
+      }
+      return `${num.toLocaleString()}${unitStr}`;
+    }
+
+    // 4. 単位が「円」の場合: 10,000円以上は「万円」、100,000,000円以上は「億円」
+    if (unitStr === '円') {
+      if (num >= 100000000) {
+        const okuVal = (num / 100000000).toFixed(1);
+        return `${okuVal}億円`;
+      }
+      if (num >= 10000) {
+        const manVal = (num / 10000).toFixed(1);
+        return `${manVal}万円`;
+      }
+      return `${num.toLocaleString()}円`;
+    }
+
+    // 5. その他の単位または単位なしの場合: 10,000以上なら「万」を付与
+    if (num >= 10000) {
+      const manVal = (num / 10000).toFixed(1);
+      return `${manVal}万${unitStr}`;
+    }
+
+    return `${num.toLocaleString()}${unitStr}`;
+  };
+
   const width = 800;
   const titleH = title ? 46 : 14;
   const margin = 10;
@@ -308,7 +381,7 @@ function drawTreemapSvg(code, container, labelText) {
   const plotY = titleH;
   const plotW = width - margin * 2;
   const plotH = 450;
-  const totalH = plotY + plotH + margin;
+  let totalH = plotY + plotH + margin;
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', `0 0 ${width} ${totalH}`);
@@ -438,6 +511,7 @@ function drawTreemapSvg(code, container, labelText) {
     // フラットツリーマップ描画（従来スタイル）
     // ==========================================
     const rects = computeSquarifiedTreemap(items, plotX, plotY, plotW, plotH);
+    const hiddenItems = [];
 
     rects.forEach((r, idx) => {
       const tileGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -488,37 +562,102 @@ function drawTreemapSvg(code, container, labelText) {
         textG.style.pointerEvents = 'none';
 
         const cx = rx + rw / 2;
-        let fontSize = Math.min(Math.max(Math.floor(Math.min(rw / 7, rh / 4)), 11), 15);
-        const charW = fontSize * 0.95;
+        let fontSize = Math.min(Math.max(Math.floor(Math.min(rw / 6.5, rh / 4)), 9.5), 15);
+        let charW = fontSize * 0.95;
         const maxCharsPerLine = Math.max(Math.floor((rw - 6) / charW), 2);
 
-        let labelLines = [r.label];
-        const canWrap = rh >= 55 && r.label.length > maxCharsPerLine;
+        // 1. ラベル行の分割（明示改行 \n 優先 ＆ 記号・中央分割）
+        let labelLines = [];
+        const cleanLabel = String(r.label || '').replace(/\\n/g, '\n');
+        if (cleanLabel.includes('\n')) {
+          labelLines = cleanLabel.split('\n').map((s) => s.trim()).filter(Boolean);
+        } else {
+          labelLines = [cleanLabel];
+        }
+
+        const canWrap = rh >= 50 && labelLines.length === 1 && (labelLines[0].length > maxCharsPerLine || estimateTextWidth(labelLines[0], fontSize) > rw - 8);
         if (canWrap) {
-          const sepMatch = r.label.search(/[・/ \t(（\-]/);
-          if (sepMatch > 0 && sepMatch < r.label.length - 1) {
-            const splitIdx = sepMatch + 1;
-            labelLines = [r.label.slice(0, splitIdx).trim(), r.label.slice(splitIdx).trim()];
+          const lStr = labelLines[0];
+          const sepMatch = lStr.search(/[・/ \t(（\-]/);
+          if (sepMatch > 0 && sepMatch < lStr.length - 1) {
+            const sepChar = lStr[sepMatch];
+            if (sepChar === '・' || sepChar === '/') {
+              // 中黒やスラッシュ自体を除去して自然に分割
+              labelLines = [lStr.slice(0, sepMatch).trim(), lStr.slice(sepMatch + 1).trim()];
+            } else {
+              labelLines = [lStr.slice(0, sepMatch + 1).trim(), lStr.slice(sepMatch + 1).trim()];
+            }
           } else {
-            const mid = Math.ceil(r.label.length / 2);
-            labelLines = [r.label.slice(0, mid), r.label.slice(mid)];
+            const mid = Math.ceil(lStr.length / 2);
+            labelLines = [lStr.slice(0, mid), lStr.slice(mid)];
           }
         }
 
+        // 2. ラベル文字が枠幅に収まるようフォントサイズを動的オートフィット（縮小）
+        const maxAvailLabelW = Math.max(rw - 8, 20);
+        const maxLineW = Math.max(...labelLines.map((line) => estimateTextWidth(line, fontSize)));
+        if (maxLineW > maxAvailLabelW) {
+          const fitFontSize = Math.max(fontSize * (maxAvailLabelW / maxLineW), 9.0);
+          fontSize = Math.min(fontSize, fitFontSize);
+          charW = fontSize * 0.95;
+        }
+
+        // 3. それでも収まらない超極小タイルの場合のみ安全ガードとして省略
         labelLines = labelLines.map((line) => {
-          const limit = Math.max(Math.floor((rw - 6) / charW), 2);
+          if (estimateTextWidth(line, fontSize) <= maxAvailLabelW) return line;
+          const limit = Math.max(Math.floor(maxAvailLabelW / charW), 2);
           return line.length > limit ? line.slice(0, limit - 1) + '…' : line;
         });
 
-        const showValue = rh >= (labelLines.length * 16 + 28) && rw >= 48;
-        const showChange = r.change && rh >= (labelLines.length * 16 + (showValue ? 30 : 16) + 16) && rw >= 56;
+        // 数値行の自動分割・幅フィット判定
+        const valFontSize = Math.min(Math.max(fontSize - 2, 9.0), 13);
+        const valUnitStr = formatTreemapValueWithUnit(r.value, unit);
+        const pctStr = `(${r.pct.toFixed(1)}%)`;
+        const fullValStr = `${valUnitStr} ${pctStr}`;
+
+        const maxAvailW = Math.max(rw - 6, 10);
+        const fullValW = estimateTextWidth(fullValStr, valFontSize);
+
+        let valLines = [];
+        if (fullValW <= maxAvailW) {
+          valLines = [fullValStr];
+        } else {
+          // 幅が不足する場合、数値と構成比を2行に分割
+          const w1 = estimateTextWidth(valUnitStr, valFontSize);
+          const w2 = estimateTextWidth(pctStr, valFontSize);
+          if (Math.max(w1, w2) <= maxAvailW) {
+            valLines = [valUnitStr, pctStr];
+          } else {
+            // さらにフォントサイズを縮小して収まるか判定
+            const reducedSz = 8.5;
+            if (Math.max(estimateTextWidth(valUnitStr, reducedSz), estimateTextWidth(pctStr, reducedSz)) <= maxAvailW) {
+              valLines = [valUnitStr, pctStr];
+            } else if (estimateTextWidth(pctStr, valFontSize) <= maxAvailW) {
+              valLines = [pctStr]; // 比率のみ表示
+            }
+          }
+        }
 
         const labelLineH = fontSize + 3;
-        const valueLineH = fontSize + 2;
-        const changeLineH = fontSize + 2;
+        const valLineH = valFontSize + 2;
+        const changeLineH = valFontSize + 2;
+
+        const neededValH = valLines.length > 0 ? (valLines.length * valLineH + 4) : 0;
+        const showValue = valLines.length > 0 && rh >= (labelLines.length * labelLineH + neededValH + 6) && rw >= 36;
+        const actualValLines = showValue ? valLines : [];
+
+        // 変化率（showChange）判定
+        let showChange = false;
+        if (r.change) {
+          const chgW = estimateTextWidth(r.change, valFontSize);
+          const neededChangeH = (showValue ? actualValLines.length * valLineH + 4 : 0) + changeLineH + 6;
+          if (chgW <= maxAvailW && rh >= (labelLines.length * labelLineH + neededChangeH) && rw >= 40) {
+            showChange = true;
+          }
+        }
 
         let totalContentH = (labelLines.length - 1) * labelLineH;
-        if (showValue) totalContentH += valueLineH + 4;
+        if (showValue) totalContentH += actualValLines.length * valLineH + 4;
         if (showChange) totalContentH += changeLineH + 4;
 
         let curY = ry + (rh - totalContentH) / 2 + fontSize * 0.35;
@@ -544,18 +683,28 @@ function drawTreemapSvg(code, container, labelText) {
         }
         textG.appendChild(labelTxt);
 
-        if (showValue) {
-          curY += valueLineH + 4;
+        if (showValue && actualValLines.length > 0) {
+          curY += valLineH + 4;
           const valTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
           valTxt.setAttribute('x', cx);
           valTxt.setAttribute('y', curY);
           valTxt.setAttribute('text-anchor', 'middle');
-          valTxt.setAttribute('font-size', String(Math.max(fontSize - 2, 10.5)));
+          valTxt.setAttribute('font-size', String(valFontSize));
           valTxt.setAttribute('font-weight', '500');
           valTxt.setAttribute('opacity', '0.95');
 
-          const compactVal = r.value >= 10000 ? `${(r.value / 10000).toFixed(1)}万` : String(r.value);
-          valTxt.textContent = `${compactVal}${unit ? unit : ''} (${r.pct.toFixed(1)}%)`;
+          if (actualValLines.length === 1) {
+            valTxt.textContent = actualValLines[0];
+          } else {
+            actualValLines.forEach((line, lIdx) => {
+              const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+              tspan.setAttribute('x', cx);
+              tspan.setAttribute('dy', lIdx === 0 ? '0' : String(valLineH));
+              tspan.textContent = line;
+              valTxt.appendChild(tspan);
+            });
+            curY += (actualValLines.length - 1) * valLineH;
+          }
           textG.appendChild(valTxt);
         }
 
@@ -566,7 +715,7 @@ function drawTreemapSvg(code, container, labelText) {
           chgTxt.setAttribute('x', cx);
           chgTxt.setAttribute('y', curY);
           chgTxt.setAttribute('text-anchor', 'middle');
-          chgTxt.setAttribute('font-size', String(Math.max(fontSize - 2, 10.5)));
+          chgTxt.setAttribute('font-size', String(valFontSize));
           chgTxt.setAttribute('font-weight', '700');
           chgTxt.textContent = r.change;
           chgG.appendChild(chgTxt);
@@ -574,14 +723,203 @@ function drawTreemapSvg(code, container, labelText) {
         }
 
         tileGroup.appendChild(textG);
+      } else {
+        // 枠内に収まらない極小タイルをコールアウト・凡例対象として収集
+        hiddenItems.push({
+          item: r,
+          fillColor,
+          rx,
+          ry,
+          rw,
+          rh,
+          cx: rx + rw / 2,
+          bottomY: ry + rh,
+          isBottomEdge: (ry + rh) >= (plotY + plotH - 8)
+        });
       }
 
       tileG.appendChild(tileGroup);
     });
+
+    // 極小タイル（枠外コールアウト・下部凡例）の描画
+    if (hiddenItems.length > 0) {
+      const calloutG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const bottomEdgeItems = hiddenItems.filter((h) => h.isBottomEdge);
+      const otherHiddenItems = hiddenItems.filter((h) => !h.isBottomEdge);
+
+      const baseLineY = plotY + plotH + 18;
+      const rowHeight = 24;
+      const occupiedRangesByRow = [];
+
+      const findAvailableRow = (x1, x2) => {
+        for (let rIdx = 0; rIdx < occupiedRangesByRow.length; rIdx++) {
+          const ranges = occupiedRangesByRow[rIdx];
+          const conflict = ranges.some(([rx1, rx2]) => !(x2 < rx1 - 12 || x1 > rx2 + 12));
+          if (!conflict) {
+            ranges.push([x1, x2]);
+            return rIdx;
+          }
+        }
+        occupiedRangesByRow.push([[x1, x2]]);
+        return occupiedRangesByRow.length - 1;
+      };
+
+      const appendHiddenItemTextSpans = (txtEl, item, valStr, pctStr) => {
+        const spLabel = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        spLabel.setAttribute('font-weight', '700');
+        spLabel.setAttribute('fill', '#1e293b');
+        spLabel.textContent = item.label;
+        txtEl.appendChild(spLabel);
+
+        const spVal = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        spVal.setAttribute('font-weight', '500');
+        spVal.setAttribute('fill', '#475569');
+        spVal.textContent = `: ${valStr} ${pctStr}`;
+        txtEl.appendChild(spVal);
+
+        if (item.change) {
+          const spChg = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+          spChg.setAttribute('font-weight', '700');
+          const isNeg = item.change.startsWith('-');
+          const isPos = item.change.startsWith('+');
+          spChg.setAttribute('fill', isNeg ? '#e11d48' : (isPos ? '#059669' : '#475569'));
+          spChg.textContent = ` ${item.change}`;
+          txtEl.appendChild(spChg);
+        }
+      };
+
+      const pendingChipAdjusts = [];
+
+      // 1. プロット最下端に接している極小タイル: 引き出し線（リーダー線）付きコールアウト
+      bottomEdgeItems.forEach((h) => {
+        const valStr = formatTreemapValueWithUnit(h.item.value, unit);
+        const pctStr = `(${h.item.pct.toFixed(1)}%)`;
+        const chgStr = h.item.change ? ` ${h.item.change}` : '';
+        const plainInfo = `${h.item.label}: ${valStr} ${pctStr}${chgStr}`;
+        const estW = estimateTextWidth(plainInfo, 12);
+
+        const isRightSide = h.cx > width / 2;
+        const elbowLen = 16;
+        let textX, anchor, boxX1, boxX2, elbowX;
+
+        if (isRightSide) {
+          elbowX = Math.min(h.cx - elbowLen, width - margin - 10);
+          textX = elbowX - 6;
+          anchor = 'end';
+          boxX1 = textX - estW - 18;
+          boxX2 = h.cx + 4;
+        } else {
+          elbowX = Math.max(h.cx + elbowLen, margin + 10);
+          textX = elbowX + 20;
+          anchor = 'start';
+          boxX1 = h.cx - 4;
+          boxX2 = textX + estW + 6;
+        }
+
+        const rIdx = findAvailableRow(boxX1, boxX2);
+        const lineY = baseLineY + rIdx * rowHeight;
+
+        const leader = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        leader.setAttribute('d', `M ${h.cx.toFixed(1)} ${h.bottomY.toFixed(1)} L ${h.cx.toFixed(1)} ${lineY.toFixed(1)} L ${elbowX.toFixed(1)} ${lineY.toFixed(1)}`);
+        leader.setAttribute('fill', 'none');
+        leader.setAttribute('stroke', h.fillColor);
+        leader.setAttribute('stroke-width', '1.5');
+        calloutG.appendChild(leader);
+
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('cx', elbowX.toFixed(1));
+        dot.setAttribute('cy', lineY.toFixed(1));
+        dot.setAttribute('r', '2.5');
+        dot.setAttribute('fill', h.fillColor);
+        calloutG.appendChild(dot);
+
+        const chip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        chip.setAttribute('x', String(isRightSide ? textX - estW - 15 : elbowX + 6));
+        chip.setAttribute('y', String(lineY - 5));
+        chip.setAttribute('width', '10');
+        chip.setAttribute('height', '10');
+        chip.setAttribute('rx', '2');
+        chip.setAttribute('fill', h.fillColor);
+        calloutG.appendChild(chip);
+
+        const txtEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txtEl.setAttribute('x', String(textX));
+        txtEl.setAttribute('y', String(lineY + 4));
+        txtEl.setAttribute('text-anchor', anchor);
+        txtEl.setAttribute('font-size', '12');
+        txtEl.setAttribute('font-family', 'sans-serif');
+        appendHiddenItemTextSpans(txtEl, h.item, valStr, pctStr);
+        calloutG.appendChild(txtEl);
+
+        if (isRightSide) {
+          pendingChipAdjusts.push({ chip, txtEl, textX, estW });
+        }
+      });
+
+      // 2. 下端以外の位置にある極小タイル: 下部凡例エリアに整列表示
+      if (otherHiddenItems.length > 0) {
+        let curRow = occupiedRangesByRow.length;
+        let curX = plotX + 4;
+        const maxRight = width - margin - 4;
+
+        otherHiddenItems.forEach((h) => {
+          const valStr = formatTreemapValueWithUnit(h.item.value, unit);
+          const pctStr = `(${h.item.pct.toFixed(1)}%)`;
+          const chgStr = h.item.change ? ` ${h.item.change}` : '';
+          const plainInfo = `${h.item.label}: ${valStr} ${pctStr}${chgStr}`;
+          const estW = estimateTextWidth(plainInfo, 11.5);
+          const itemTotalW = 16 + estW + 18;
+
+          if (curX + itemTotalW > maxRight && curX > plotX + 4) {
+            curRow++;
+            curX = plotX + 4;
+          }
+
+          const lineY = baseLineY + curRow * rowHeight;
+
+          const chip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          chip.setAttribute('x', String(curX));
+          chip.setAttribute('y', String(lineY - 5));
+          chip.setAttribute('width', '10');
+          chip.setAttribute('height', '10');
+          chip.setAttribute('rx', '2');
+          chip.setAttribute('fill', h.fillColor);
+          calloutG.appendChild(chip);
+
+          const txtEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          txtEl.setAttribute('x', String(curX + 15));
+          txtEl.setAttribute('y', String(lineY + 4));
+          txtEl.setAttribute('font-size', '11.5');
+          txtEl.setAttribute('font-family', 'sans-serif');
+          appendHiddenItemTextSpans(txtEl, h.item, valStr, pctStr);
+          calloutG.appendChild(txtEl);
+
+          curX += itemTotalW;
+        });
+
+        occupiedRangesByRow.length = curRow + 1;
+      }
+
+      const totalRows = Math.max(1, occupiedRangesByRow.length);
+      totalH = plotY + plotH + totalRows * rowHeight + margin + 4;
+      svg.setAttribute('viewBox', `0 0 ${width} ${totalH}`);
+      bg.setAttribute('height', String(totalH));
+
+      tileG.appendChild(calloutG);
+      svg._pendingChipAdjusts = pendingChipAdjusts;
+    }
   }
 
   svg.appendChild(tileG);
   container.appendChild(svg);
+
+  // DOMマウント後のテキスト幅実測による右寄せコールアウトチップ位置の精密補正
+  if (svg._pendingChipAdjusts && svg._pendingChipAdjusts.length > 0) {
+    svg._pendingChipAdjusts.forEach(({ chip, txtEl, textX, estW }) => {
+      const actualW = (typeof txtEl.getComputedTextLength === 'function' ? txtEl.getComputedTextLength() : 0) || estW;
+      chip.setAttribute('x', String(textX - actualW - 15));
+    });
+  }
 
   if (labelText) {
     const lbl = document.createElement('div');

@@ -3,33 +3,106 @@
 // ==========================================
 
 function getApproxTextWidth(str) {
+  if (typeof estimateSvgTextWidth === 'function') {
+    return estimateSvgTextWidth(str, 12.5, false);
+  }
   if (!str) return 0;
   let w = 0;
   for (let i = 0; i < str.length; i++) {
-    w += str.charCodeAt(i) > 255 ? 12 : 7;
+    const code = str.charCodeAt(i);
+    if (code > 255) {
+      w += 12.5;
+    } else if (code >= 65 && code <= 90) {
+      w += 8.8;
+    } else {
+      w += 6.8;
+    }
   }
   return w;
 }
 
+function wrapNodeLineByWidth(seg, maxLineW = 172) {
+  if (!seg) return [];
+  if (getApproxTextWidth(seg) <= maxLineW) return [seg];
+
+  const result = [];
+  let rest = seg.trim();
+  while (rest && getApproxTextWidth(rest) > maxLineW) {
+    let limit = 0;
+    let accW = 0;
+    for (let i = 0; i < rest.length; i++) {
+      const cw = getApproxTextWidth(rest[i]);
+      if (accW + cw > maxLineW && i > 0) break;
+      accW += cw;
+      limit = i + 1;
+    }
+
+    // 収容幅の後半側でスペース・中黒・括弧などの自然な区切りを探索
+    let splitIdx = -1;
+    const minBreak = Math.max(2, Math.floor(limit * 0.4));
+    for (let i = limit; i >= minBreak; i--) {
+      const prevCh = rest[i - 1];
+      const curCh = rest[i] || '';
+      if (prevCh === ' ' || prevCh === '　' || prevCh === '・' || prevCh === ')' || prevCh === '）') {
+        splitIdx = i;
+        break;
+      }
+      if (curCh === '(' || curCh === '（') {
+        splitIdx = i;
+        break;
+      }
+    }
+
+    // 法人格（「株式会社」「有限会社」等）の直前での改行を探索
+    if (splitIdx === -1) {
+      for (const suffix of ['株式会社', '有限会社']) {
+        const idx = rest.lastIndexOf(suffix, limit);
+        if (idx >= minBreak && idx <= limit) {
+          splitIdx = idx;
+          break;
+        }
+      }
+    }
+    if (splitIdx <= 0) splitIdx = limit;
+
+    const head = rest.slice(0, splitIdx).trim();
+    if (head) result.push(head);
+    rest = rest.slice(splitIdx).trim();
+  }
+  if (rest) result.push(rest);
+  return result;
+}
+
 function splitNodeText(name) {
   if (!name) return [''];
+  const maxLineW = 172;
   if (name.includes('\\n') || name.includes('\n')) {
-    return name.split(/\\n|\n/).map((s) => s.trim()).filter(Boolean);
+    const rawParts = name.split(/\\n|\n/).map((s) => s.trim()).filter(Boolean);
+    const out = [];
+    rawParts.forEach((p) => out.push(...wrapNodeLineByWidth(p, maxLineW)));
+    return out.length > 0 ? out : [''];
   }
   // " / " のようなスラッシュ区切りがある場合
   if (name.includes(' / ')) {
     const parts = name.split(' / ').map((s) => s.trim()).filter(Boolean);
-    if (parts.length === 2) {
-      return [`${parts[0]} /`, parts[1]];
-    }
-    return parts;
+    const rawParts = parts.length === 2 ? [`${parts[0]} /`, parts[1]] : parts;
+    const out = [];
+    rawParts.forEach((p) => out.push(...wrapNodeLineByWidth(p, maxLineW)));
+    return out.length > 0 ? out : [''];
   }
   // 文字列幅が120px以上（全角約10文字以上）なら自動折り返し
   if (getApproxTextWidth(name) >= 120) {
     // スペース、中黒、丸括弧などの区切り文字で分割可能か試行
     const delimMatch = name.match(/^(.*?[（\(・\s])(.*)$/);
     if (delimMatch && getApproxTextWidth(delimMatch[1]) >= 36 && getApproxTextWidth(delimMatch[2]) >= 36) {
-      return [delimMatch[1].trim(), delimMatch[2].trim()];
+      const p1 = delimMatch[1].trim();
+      const p2 = delimMatch[2].trim();
+      if (getApproxTextWidth(p1) <= maxLineW && getApproxTextWidth(p2) <= maxLineW) {
+        return [p1, p2];
+      }
+    }
+    if (getApproxTextWidth(name) > maxLineW) {
+      return wrapNodeLineByWidth(name, maxLineW);
     }
     const mid = Math.ceil(name.length / 2);
     return [name.slice(0, mid), name.slice(mid)];
@@ -237,8 +310,12 @@ function parseEdgeMeta(attrStr) {
       }
 
       // 他社・外部出資（合弁パートナー、浮動株などの比率表記）か判定
-      // ※ 説明文の「預金残高」「持株会社」「合弁事業」等の誤認を防ぐため、必ず % を含む外部出資表記に限定
-      const isExternalShare = /%/.test(p) && (/他社|外部|パートナー|合弁|浮動株|ファンド|持株会|自治体|有志/i.test(p) || labels.length >= 1);
+      // ※ 説明文の「10%超を占める」「間接所有割合10%を含む」等の誤認を防ぐため、%末尾の短文リストまたは外部出資キーワード短文に限定
+      const shareSegments = p.split(/\s*(?:\/|\\n|\n)\s*/).filter(Boolean);
+      const allPercentSegments = shareSegments.length > 0 && shareSegments.every((s) => /\d+(?:\.\d+)?%[※\*]?[）\)]?$/.test(s.trim()) && s.trim().length <= 28);
+      const looksLikeSentence = /(?:における|を占める|を含む|による|および|など|。)/.test(p);
+      const hasExternalKeyword = /他社|外部|パートナー|合弁|浮動株|ファンド|持株会|自治体|有志|創業者/.test(p);
+      const isExternalShare = /%/.test(p) && !looksLikeSentence && (allPercentSegments || (hasExternalKeyword && p.length <= 28));
       if (isExternalShare) {
         if (p.includes('\\n') || p.includes('\n')) {
           extraLines.push(...p.split(/\\n|\n/).map((s) => s.trim()).filter(Boolean));
@@ -378,7 +455,7 @@ function buildCapitalTreeLayout(parsed) {
       if (w > maxLineWidth) maxLineWidth = w;
     });
 
-    const nodeWidth = Math.max(164, Math.min(220, maxLineWidth + 28));
+    const nodeWidth = Math.max(164, maxLineWidth + 28);
 
     nodeMap.set(key, {
       ...val,
@@ -426,7 +503,7 @@ function buildCapitalTreeLayout(parsed) {
       });
       const badgeW = maxBadgeLineW + 24;
       if (badgeW > childNode.width) {
-        childNode.width = Math.min(badgeW + 12, 250);
+        childNode.width = Math.min(badgeW + 14, 300);
       }
     }
   });
@@ -546,12 +623,32 @@ function buildCapitalTreeLayout(parsed) {
       cols = Math.max(2, cols);
       const rows = Math.ceil(count / cols);
 
-      // 孫を持つノード（branchChildren）を最下行の左側に配置（葉ノードを上段および最下行右側に集めて衝突回避）
+      // 孫を持つノード（branchChildren）を最下行に配置し、複数ある場合は孫の展開列数に応じて葉ノードを間に挟んで交差回避
       if (branchChildren.length > 0 && branchChildren.length < count) {
         const upperSlots = (rows - 1) * cols;
         const upperLeaves = leafChildren.slice(0, upperSlots);
-        const remainingLeaves = leafChildren.slice(upperSlots);
-        parentNode.children = [...upperLeaves, ...branchChildren, ...remainingLeaves];
+        const remainingLeaves = [...leafChildren.slice(upperSlots)];
+        const bottomRow = [];
+
+        if (branchChildren.length === 1 || remainingLeaves.length === 0) {
+          bottomRow.push(...branchChildren, ...remainingLeaves);
+        } else {
+          // 手前の孫持ちノードが横に広げる子ノード数に応じ、間に余り葉ノードを差し込んで配線交差を防ぐ
+          branchChildren.forEach((bc, bIdx) => {
+            bottomRow.push(bc);
+            if (bIdx < branchChildren.length - 1 && remainingLeaves.length > 0) {
+              const neededGapCols = Math.max(1, (bc.children ? bc.children.length : 1) - 1);
+              const reserveForRest = Math.max(0, branchChildren.length - 2 - bIdx);
+              const insertCount = Math.min(neededGapCols, Math.max(1, remainingLeaves.length - reserveForRest));
+              for (let k = 0; k < insertCount && remainingLeaves.length > 0; k++) {
+                bottomRow.push(remainingLeaves.shift());
+              }
+            }
+          });
+          bottomRow.push(...remainingLeaves);
+        }
+
+        parentNode.children = [...upperLeaves, ...bottomRow];
       }
 
       // 多段配置用の子ノード幅・間隔の最適化（メモ長を維持しつつスリム化）
@@ -561,7 +658,7 @@ function buildCapitalTreeLayout(parsed) {
           const w = getApproxTextWidth(l);
           if (w > maxL) maxL = w;
         });
-        c.width = Math.max(c.width || 140, maxL + 20);
+        c.width = Math.max(c.width || 140, maxL + 28);
       });
 
       const rowChildren = [];
@@ -578,7 +675,7 @@ function buildCapitalTreeLayout(parsed) {
         cols,
         rows,
         rowChildren,
-        gapX: 18
+        gapX: 22
       };
     }
   });
@@ -849,13 +946,18 @@ function drawCapitalTreeSvg(code, container, labelText) {
   const layout = buildCapitalTreeLayout(parsed);
   const { title, note, nodes, edges, totalW, totalH } = layout;
 
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
-  svg.setAttribute('width', '100%');
-  svg.setAttribute('height', '100%');
-  svg.style.maxWidth = `${totalW}px`;
-  svg.style.display = 'block';
-  svg.style.margin = '0 auto';
+  const svg = typeof createSvgRoot === 'function'
+    ? createSvgRoot(`0 0 ${totalW} ${totalH}`, totalW)
+    : (() => {
+        const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        el.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+        el.setAttribute('width', '100%');
+        el.setAttribute('height', '100%');
+        el.style.maxWidth = `${totalW}px`;
+        el.style.display = 'block';
+        el.style.margin = '0 auto';
+        return el;
+      })();
 
   // 背景
   const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -942,11 +1044,21 @@ function drawCapitalTreeSvg(code, container, labelText) {
 
   // 比率・注釈バッジ描画ヘルパー（複数行・合弁他社出資対応）
   function renderBadgeElement(e, badgeX, badgeY) {
-    const labelLines = e.labelLines && e.labelLines.length > 0
+    const rawLabelLines = e.labelLines && e.labelLines.length > 0
       ? e.labelLines
       : (e.labelText ? e.labelText.split(/\\n|\n/) : (e.ratio ? [e.ratio] : []));
 
-    if (labelLines.length === 0) return;
+    if (rawLabelLines.length === 0) return;
+
+    // バッジ行が極端に長い場合は折り返して隣接ノード・バッジとの衝突を防止
+    const labelLines = [];
+    rawLabelLines.forEach((ln) => {
+      if (getApproxTextWidth(ln) > 260) {
+        labelLines.push(...wrapCapitalTreeNote(ln, 34));
+      } else {
+        labelLines.push(ln);
+      }
+    });
 
     let maxLineW = 0;
     labelLines.forEach((l) => {
@@ -1453,7 +1565,9 @@ function drawCapitalTreeSvg(code, container, labelText) {
   svg.appendChild(nodeG);
   container.appendChild(svg);
 
-  if (labelText) {
+  if (typeof appendDiagramLabel === 'function') {
+    appendDiagramLabel(container, labelText);
+  } else if (labelText) {
     const lbl = document.createElement('div');
     lbl.className = 'chem-structure-label';
     lbl.textContent = labelText;

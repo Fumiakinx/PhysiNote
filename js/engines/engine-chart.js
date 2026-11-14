@@ -932,7 +932,7 @@ function renderPieOrDonutChart(g, parsed, colors, svgNS) {
   const total = items.reduce((acc, it) => acc + (it.value || 0), 0) || 1;
   const isDonut = parsed.type === 'donut';
 
-  const cx = 320;
+  const cx = 260;
   const cy = 175;
   const r = 130;
   const innerR = isDonut ? 70 : 0;
@@ -1028,11 +1028,12 @@ function renderPieOrDonutChart(g, parsed, colors, svgNS) {
     g.appendChild(centerG);
   }
 
-  // 右側凡例リスト
+  // 右側凡例リスト（幅拡張 ＆ 上下中央整列）
   const legendG = document.createElementNS(svgNS, 'g');
-  const legX = 520;
-  const legY = 60;
-  const itemH = 34;
+  const legX = 430;
+  const valX = 805;
+  const itemH = items.length > 7 ? Math.max(26, Math.floor(270 / items.length)) : 34;
+  const legY = Math.max(30, Math.round(cy - (items.length * itemH) / 2));
 
   items.forEach((item, idx) => {
     const y = legY + idx * itemH;
@@ -1044,7 +1045,7 @@ function renderPieOrDonutChart(g, parsed, colors, svgNS) {
     row.innerHTML = `
       <rect x="${legX}" y="${y}" width="16" height="16" rx="4" fill="${color}" />
       <text x="${legX + 26}" y="${y + 13}" font-size="13" font-weight="500" fill="${colors.textMain}">${item.name}</text>
-      <text x="${legX + 240}" y="${y + 13}" text-anchor="end" font-size="13" font-weight="bold" fill="${color}">${val.toLocaleString()} (${pct}%)</text>
+      <text x="${valX}" y="${y + 13}" text-anchor="end" font-size="13" font-weight="bold" fill="${color}">${val.toLocaleString()} (${pct}%)</text>
     `;
     legendG.appendChild(row);
   });

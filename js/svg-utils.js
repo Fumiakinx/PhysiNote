@@ -84,3 +84,44 @@ function createSvgArrowMarker(defs, id, color = '#64748b', options = {}) {
   return marker;
 }
 
+/**
+ * 文字列の概算描画幅(px)を算出する（英大文字・英小文字・全角対応）
+ * @param {string} str
+ * @param {number} [fontSize=12]
+ * @param {boolean} [isBold=false]
+ * @returns {number}
+ */
+function estimateSvgTextWidth(str, fontSize = 12, isBold = false) {
+  if (!str) return 0;
+  const s = String(str);
+  const scale = fontSize / 12;
+  const boldMul = isBold ? 1.06 : 1;
+  let w = 0;
+  for (let i = 0; i < s.length; i++) {
+    const code = s.charCodeAt(i);
+    if (code > 255) {
+      w += 12;
+    } else if (code >= 65 && code <= 90) {
+      w += 8.2;
+    } else {
+      w += 6.5;
+    }
+  }
+  return w * scale * boldMul;
+}
+
+/**
+ * 全角=2、半角=1として文字列の表示単位長を返す
+ * @param {string} str
+ * @returns {number}
+ */
+function getTextDisplayUnits(str) {
+  if (!str) return 0;
+  const s = String(str);
+  let units = 0;
+  for (let i = 0; i < s.length; i++) {
+    units += s.charCodeAt(i) > 255 ? 2 : 1;
+  }
+  return units;
+}
+
