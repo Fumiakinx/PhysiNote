@@ -357,6 +357,123 @@ textarea:focus {
   border-color: #0284c7;
 }
 
+textarea#formula-input::selection {
+  background-color: #fde047;
+  color: #0f172a;
+}
+
+/* 構文エディタ内検索バー (Ctrl+F) */
+.editor-find-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+.editor-find-input-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 6px;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  padding: 3px 8px;
+}
+
+.editor-find-input-wrap:focus-within {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.editor-find-icon {
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.editor-find-input {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #0f172a;
+}
+
+.editor-find-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.editor-find-count.no-match {
+  color: #dc2626;
+}
+
+.editor-find-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.editor-find-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  background-color: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.editor-find-btn:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.editor-find-toggle.active {
+  background-color: #e0f2fe;
+  border-color: #0284c7;
+  color: #0369a1;
+}
+
+.editor-find-close {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.editor-find-mirror {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  border: none;
+  box-sizing: border-box;
+}
+
 /* プレビューコンテナ */
 .preview-container {
   position: relative;
@@ -1258,6 +1375,14 @@ body.modal-open {
 
 .physi-table .katex {
   font-size: 1.05em;
+}
+
+.physi-flag-emoji {
+  height: 1.15em;
+  width: auto;
+  vertical-align: -0.18em;
+  display: inline-block;
+  margin-right: 0.12em;
 }
 
 /* ==========================================

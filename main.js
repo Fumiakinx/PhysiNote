@@ -2492,6 +2492,180 @@ document.querySelectorAll('#diagram-menu-panel .menu-item-btn, #formula-menu-pan
 
 // （画像エクスポート機能は js/export-manager.js に分離・管理）
 
+// ==========================================
+// 構文エディタ内検索 (Ctrl+F)
+// ==========================================
+(function initEditorFind() {
+  const findBar = document.getElementById('editor-find-bar');
+  const findInput = document.getElementById('editor-find-input');
+  const findCount = document.getElementById('editor-find-count');
+  const findCaseBtn = document.getElementById('editor-find-case-btn');
+  const findPrevBtn = document.getElementById('editor-find-prev-btn');
+  const findNextBtn = document.getElementById('editor-find-next-btn');
+  const findCloseBtn = document.getElementById('editor-find-close-btn');
+  const findMirror = document.getElementById('editor-find-mirror');
+
+  if (!inputArea || !findBar || !findInput || !findCount) return;
+
+  let matchIndices = [];
+  let currentMatchIdx = -1;
+  let caseSensitive = false;
+
+  function scrollEditorToPosition(charIndex) {
+    if (!findMirror) return;
+    const style = window.getComputedStyle(inputArea);
+    findMirror.style.width = `${inputArea.clientWidth}px`;
+    findMirror.style.paddingTop = style.paddingTop;
+    findMirror.style.paddingRight = style.paddingRight;
+    findMirror.style.paddingBottom = style.paddingBottom;
+    findMirror.style.paddingLeft = style.paddingLeft;
+    findMirror.style.fontFamily = style.fontFamily;
+    findMirror.style.fontSize = style.fontSize;
+    findMirror.style.fontWeight = style.fontWeight;
+    findMirror.style.lineHeight = style.lineHeight;
+    findMirror.style.letterSpacing = style.letterSpacing;
+
+    findMirror.textContent = inputArea.value.slice(0, charIndex);
+    const marker = document.createElement('span');
+    marker.textContent = '\u200b';
+    findMirror.appendChild(marker);
+
+    const lineH = parseFloat(style.lineHeight) || 22;
+    const targetTop = Math.max(0, marker.offsetTop - inputArea.clientHeight / 2 + lineH / 2);
+    inputArea.scrollTop = targetTop;
+  }
+
+  function applyCurrentSelection(shouldSelectAndScroll) {
+    const queryLen = findInput.value.length;
+    if (matchIndices.length === 0 || currentMatchIdx < 0 || currentMatchIdx >= matchIndices.length) {
+      findCount.textContent = '0件';
+      findCount.classList.toggle('no-match', queryLen > 0);
+      return;
+    }
+
+    const start = matchIndices[currentMatchIdx];
+    const end = start + queryLen;
+    findCount.textContent = `${currentMatchIdx + 1} / ${matchIndices.length}`;
+    findCount.classList.remove('no-match');
+
+    if (shouldSelectAndScroll) {
+      inputArea.setSelectionRange(start, end);
+      scrollEditorToPosition(start);
+    }
+  }
+
+  function updateFindMatches(jumpToNearest) {
+    const rawQuery = findInput.value;
+    matchIndices = [];
+    currentMatchIdx = -1;
+
+    if (!rawQuery) {
+      findCount.textContent = '0件';
+      findCount.classList.remove('no-match');
+      return;
+    }
+
+    const source = caseSensitive ? inputArea.value : inputArea.value.toLowerCase();
+    const query = caseSensitive ? rawQuery : rawQuery.toLowerCase();
+
+    let pos = 0;
+    while (true) {
+      const idx = source.indexOf(query, pos);
+      if (idx === -1) break;
+      matchIndices.push(idx);
+      pos = idx + Math.max(1, query.length);
+    }
+
+    if (matchIndices.length > 0) {
+      if (jumpToNearest) {
+        const cursor = inputArea.selectionStart || 0;
+        const nearIdx = matchIndices.findIndex((m) => m >= cursor);
+        currentMatchIdx = nearIdx !== -1 ? nearIdx : 0;
+      } else {
+        currentMatchIdx = 0;
+      }
+    }
+
+    applyCurrentSelection(jumpToNearest);
+  }
+
+  function moveFindMatch(step) {
+    if (matchIndices.length === 0) {
+      updateFindMatches(true);
+      return;
+    }
+    currentMatchIdx = (currentMatchIdx + step + matchIndices.length) % matchIndices.length;
+    applyCurrentSelection(true);
+  }
+
+  function openEditorFindBar() {
+    const selStart = inputArea.selectionStart;
+    const selEnd = inputArea.selectionEnd;
+    if (document.activeElement === inputArea && selEnd > selStart) {
+      const selectedText = inputArea.value.slice(selStart, selEnd);
+      if (selectedText && !selectedText.includes('\n') && selectedText.length <= 120) {
+        findInput.value = selectedText;
+      }
+    }
+
+    findBar.style.display = 'flex';
+    findInput.focus();
+    findInput.select();
+    updateFindMatches(true);
+  }
+
+  function closeEditorFindBar() {
+    if (findBar.style.display === 'none') return;
+    findBar.style.display = 'none';
+    inputArea.focus();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'f') {
+      const active = document.activeElement;
+      if (active === inputArea || findBar.contains(active)) {
+        e.preventDefault();
+        openEditorFindBar();
+      }
+    } else if (e.key === 'Escape' && findBar.style.display !== 'none') {
+      const active = document.activeElement;
+      if (active === inputArea || findBar.contains(active)) {
+        e.preventDefault();
+        closeEditorFindBar();
+      }
+    }
+  });
+
+  findInput.addEventListener('input', () => updateFindMatches(true));
+  findInput.addEventListener('keydown', (e) => {
+    if (e.isComposing) return;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      moveFindMatch(e.shiftKey ? -1 : 1);
+    }
+  });
+
+  if (findPrevBtn) findPrevBtn.addEventListener('click', () => moveFindMatch(-1));
+  if (findNextBtn) findNextBtn.addEventListener('click', () => moveFindMatch(1));
+  if (findCloseBtn) findCloseBtn.addEventListener('click', closeEditorFindBar);
+
+  if (findCaseBtn) {
+    findCaseBtn.addEventListener('click', () => {
+      caseSensitive = !caseSensitive;
+      findCaseBtn.classList.toggle('active', caseSensitive);
+      findCaseBtn.setAttribute('aria-pressed', String(caseSensitive));
+      updateFindMatches(true);
+      findInput.focus();
+    });
+  }
+
+  inputArea.addEventListener('input', () => {
+    if (findBar.style.display !== 'none') {
+      updateFindMatches(false);
+    }
+  });
+})();
+
 // 🏠 ローカル環境でのポータル戻るリンクの切り替え
 window.addEventListener('DOMContentLoaded', () => {
   const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';

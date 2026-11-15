@@ -1,6 +1,55 @@
 // ==========================================
 // 表（テーブル：LaTeX tabular / Markdown / CSV / TSV）パーサー & レンダラー
 // ==========================================
+// セル値が数値（単位・通貨・%含む）かどうかを判定し、未指定列の配置を推論する
+function classifyNumericTableCell(rawCell) {
+  if (rawCell == null) return 'empty';
+  let s = String(rawCell).trim();
+  if (!s) return 'empty';
+
+  s = s
+    .replace(/\\(?:cellcolor|rowcolor)(?:\s*\[[^\]]*\])?\s*\{[^}]+\}/gi, '')
+    .replace(/\\textcolor(?:\s*\[[^\]]*\])?\s*\{[^}]+\}\s*\{((?:[^{}]|\{[^{}]*\})*)\}/gi, '$1')
+    .replace(/\\(?:textbf|textit|mathrm)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/gi, '$1')
+    .trim();
+
+  if (s.startsWith('$') && s.endsWith('$') && s.length >= 2) {
+    s = s.slice(1, -1).trim();
+  }
+  s = s.replace(/\\%/g, '%');
+
+  if (!s || /^[-―—－]+$|^N\/?A$|^(?:不明|未定|非開示)$/i.test(s)) {
+    return 'placeholder';
+  }
+  if (/^\([^()]+\)$/.test(s)) {
+    s = s.slice(1, -1).trim();
+  }
+
+  const numericRe = /^[+\-−▲△]?\s*(?:US\$|HK\$|S\$|AU\$|豪\$|[¥￥$€£])?\s*(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?\s*(?:%|％|pt|pts|bps|倍|株|件|人|社|名|個|回|本|台|店舗?|ヵ月|ヶ月|か月|年|日|時間|分|秒|(?:(?:兆|億|万|千|百)+)?(?:円|ドル|ユーロ|ポンド|ウォン|元|US\$|HK\$|S\$|AU\$|豪\$|\$|¥|￥|€|£))?$/i;
+  return numericRe.test(s) ? 'numeric' : 'text';
+}
+
+function inferNumericColumnAligns(headers, rows, existingAligns) {
+  const colCount = Math.max(headers.length, ...(rows.map((r) => r.length)));
+  const result = [];
+  for (let c = 0; c < colCount; c++) {
+    const preset = existingAligns && existingAligns[c];
+    if (preset) {
+      result.push(preset);
+      continue;
+    }
+    let numericCount = 0;
+    let textCount = 0;
+    for (let r = 0; r < rows.length; r++) {
+      const kind = classifyNumericTableCell(rows[r][c]);
+      if (kind === 'numeric') numericCount++;
+      else if (kind === 'text') textCount++;
+    }
+    result.push(numericCount > 0 && textCount === 0 ? 'right' : 'left');
+  }
+  return result;
+}
+
 function parseAnyTable(rawText) {
   if (!rawText || typeof rawText !== 'string') return null;
   let text = rawText.trim();
@@ -423,7 +472,7 @@ function parseAnyTable(rawText) {
           if (l && r) return 'center';
           if (r) return 'right';
           if (l) return 'left';
-          return 'left';
+          return null;
         });
         rowsStartIndex = 2;
       }
@@ -433,6 +482,7 @@ function parseAnyTable(rawText) {
       for (let i = rowsStartIndex; i < lines.length; i++) {
         rows.push(splitMdRow(lines[i]));
       }
+      aligns = inferNumericColumnAligns(headers, rows, aligns);
 
       const rowBgColors = [];
       const headerColor = extractRowColor(headers) || highlightMap[0] || null;
@@ -547,7 +597,8 @@ function parseAnyTable(rawText) {
             rowBgColors.push(rColor);
           });
 
-          return { headers: firstRow, rows, aligns: [], style, title, rowBgColors, colBgColors };
+          const aligns = inferNumericColumnAligns(firstRow, rows, []);
+          return { headers: firstRow, rows, aligns, style, title, rowBgColors, colBgColors };
         }
       }
     }
@@ -635,6 +686,13 @@ function renderTableCellHtml(rawCellText) {
   } else if (/^[・\-\*•]\s*/.test(str.trim())) {
     str = `<div class="physi-table-bullet">${str}</div>`;
   }
+
+  // 5. 国旗絵文字（Regional Indicator 2文字ペア）をカラー国旗PNG画像へ置換（Windows等での英字フォールバック対策）
+  str = str.replace(/([\u{1F1E6}-\u{1F1FF}]{2})/gu, (flag) => {
+    const code = Array.from(flag, (ch) => ch.codePointAt(0).toString(16)).join('-');
+    const src = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${code}.png`;
+    return `<img class="physi-flag-emoji" src="${src}" alt="${flag}" draggable="false" crossorigin="anonymous" onerror="this.replaceWith(document.createTextNode(this.alt))">`;
+  });
 
   return str;
 }

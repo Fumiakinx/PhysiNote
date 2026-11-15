@@ -23,6 +23,8 @@
   const exportTableThemeGroup = document.getElementById('export-table-theme-group');
   const exportCellPaddingSlider = document.getElementById('export-cell-padding-slider');
   const exportCellPaddingValue = document.getElementById('export-cell-padding-value');
+  const exportCellWidthSlider = document.getElementById('export-cell-width-slider');
+  const exportCellWidthValue = document.getElementById('export-cell-width-value');
   const exportTableThemeRadios = document.querySelectorAll('input[name="export-table-theme"]');
 
   const getPreviewArea = () => document.getElementById('formula-preview');
@@ -261,10 +263,21 @@
 
     // 5. 表（テーブル）専用オプションの反映
     if (tableEl) {
-      const baseWidth = parseFloat(tableEl.dataset.baseTableWidth) || 700;
-      const calcWidth = Math.round(baseWidth * widthRatio);
-      tableEl.style.width = `${calcWidth}px`;
-      tableEl.style.minWidth = `${calcWidth}px`;
+      const cellWidthPercent = exportCellWidthSlider ? parseInt(exportCellWidthSlider.value, 10) : 100;
+      const validCellWidthPercent = Number.isNaN(cellWidthPercent) ? 100 : cellWidthPercent;
+      if (exportCellWidthValue) {
+        exportCellWidthValue.textContent = `${validCellWidthPercent}%`;
+      }
+      const cellWidthRatio = validCellWidthPercent / 100;
+
+      tableEl.querySelectorAll('th, td').forEach((cell) => {
+        if (validCellWidthPercent === 100) {
+          cell.style.minWidth = '';
+        } else {
+          const baseMinW = cell.matches(':first-child, .table-col-first') ? 80 : 120;
+          cell.style.minWidth = `${Math.round(baseMinW * cellWidthRatio)}px`;
+        }
+      });
 
       if (exportCellPaddingSlider && exportCellPaddingValue) {
         const padPercent = parseInt(exportCellPaddingSlider.value, 10) || 100;
@@ -288,6 +301,23 @@
           td.style.padding = `${padYtd}px ${padX}px`;
           td.style.lineHeight = `${lineH}`;
         });
+      }
+
+      if (validCellWidthPercent !== 100) {
+        // セル最小幅が変更されている場合は内容幅基準で表幅を再計算
+        tableEl.style.width = 'auto';
+        tableEl.style.minWidth = '0px';
+        if (widthRatio !== 1) {
+          const naturalCompactWidth = tableEl.offsetWidth || parseFloat(tableEl.dataset.baseTableWidth) || 700;
+          const calcWidth = Math.round(naturalCompactWidth * widthRatio);
+          tableEl.style.width = `${calcWidth}px`;
+          tableEl.style.minWidth = `${calcWidth}px`;
+        }
+      } else {
+        const baseWidth = parseFloat(tableEl.dataset.baseTableWidth) || 700;
+        const calcWidth = Math.round(baseWidth * widthRatio);
+        tableEl.style.width = `${calcWidth}px`;
+        tableEl.style.minWidth = `${calcWidth}px`;
       }
 
       tableEl.classList.remove(
@@ -345,6 +375,7 @@
   if (exportWidthSlider) exportWidthSlider.addEventListener('input', updateExportStyle);
   if (exportPaddingSlider) exportPaddingSlider.addEventListener('input', updateExportStyle);
   if (exportCellPaddingSlider) exportCellPaddingSlider.addEventListener('input', updateExportStyle);
+  if (exportCellWidthSlider) exportCellWidthSlider.addEventListener('input', updateExportStyle);
   exportBgRadios.forEach((radio) => radio.addEventListener('change', updateExportStyle));
   exportColorRadios.forEach((radio) => radio.addEventListener('change', updateExportStyle));
   exportTableThemeRadios.forEach((radio) => radio.addEventListener('change', updateExportStyle));
