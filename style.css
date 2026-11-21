@@ -3547,3 +3547,9 @@ body.modal-open {
   background-color: #e2e8f0;
   color: #1e293b;
 }
+
+/* ソフトウェアスタック図 (Tech Stack) */
+.techstack-card-tag {
+  background-color: #e0f2fe;
+  color: #0c4a6e;
+}

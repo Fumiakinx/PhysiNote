@@ -56,7 +56,10 @@ const EngineLoader = (() => {
     code: 'engine-code.js',
     terminal: 'engine-code.js',
     network: 'engine-network.js',
-    netdiag: 'engine-network.js'
+    netdiag: 'engine-network.js',
+    techstack: 'engine-techstack.js',
+    softwarestack: 'engine-techstack.js',
+    stack: 'engine-techstack.js'
   };
 
   /**

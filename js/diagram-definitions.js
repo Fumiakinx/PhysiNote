@@ -363,7 +363,7 @@ const DIAGRAM_DEFINITIONS = [
   // 27. 有向グラフ / ネットワーク図 (Graph)
   {
     id: 'graph',
-    match: (t) => /\\(graph|digraph|network)\{/i.test(t),
+    match: (t) => /\\(graph|digraph)\{/i.test(t),
     badge: {
       text: '有向グラフ / ネットワーク図 (Graph)',
       cls: 'badge-custom',
@@ -538,11 +538,24 @@ const DIAGRAM_DEFINITIONS = [
     badge: {
       text: '独自書式 (ネットワーク構成図)',
       cls: 'badge-custom',
-      desc: '\\network{ title: ...; router -> switch -> desktop; } (Cisco準拠・脆弱性強調)'
+      desc: '\\network{ icons: mono|cisco|modern; title: ...; router -> switch -> desktop; }'
     },
     cls: 'network-preview-container',
     label: 'ネットワーク構成図',
     getFn: () => typeof drawNetworkSvg === 'function' ? drawNetworkSvg : null
+  },
+  // 41. ソフトウェアスタック図 (技術スタック図)
+  {
+    id: 'techstack',
+    match: (t) => /\\(techstack|softwarestack|stack)\{/i.test(t),
+    badge: {
+      text: '独自書式 (ソフトウェアスタック図)',
+      cls: 'badge-custom',
+      desc: '\\techstack{ title: ...; layer: app, "アプリ", "..."; row: - web, ...; }'
+    },
+    cls: 'techstack-preview-container',
+    label: 'ソフトウェアスタック図',
+    getFn: () => typeof drawTechStackSvg === 'function' ? drawTechStackSvg : null
   }
 ];
 

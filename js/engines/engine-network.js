@@ -11,6 +11,7 @@ function parseNetworkText(rawText) {
   const lines = content.split('\n');
   let title = '';
   let theme = 'light';
+  let iconTheme = 'mono'; // 'mono' | 'cisco' | 'modern'
   let direction = 'LR'; // 'LR' | 'TD' | 'GRID'
   let cols = 0;
 
@@ -20,6 +21,7 @@ function parseNetworkText(rawText) {
   const nodeMap = new Map();
   const edges = [];
   const legendItems = [];
+  let nextBusGroupId = 1;
 
   let currentZoneId = null;
   let inLegend = false;
@@ -127,7 +129,7 @@ function parseNetworkText(rawText) {
       const attrM = cleanLeg.match(/\[([^\]]+)\]\s*$/);
       const attrs = attrM ? parseAttrs(attrM[1]) : parseAttrs('');
       const textPart = (attrM ? cleanLeg.slice(0, attrM.index) : cleanLeg).trim();
-      const kindM = textPart.match(/^(arrow|line|dotted|wifi|box|zone|badge)\b\s*(.*)$/i);
+      const kindM = textPart.match(/^(arrow|line|dotted|wifi|box|zone|badge|alert)\b\s*(.*)$/i);
       const kind = kindM ? kindM[1].toLowerCase() : 'line';
       const legLabel = (kindM ? kindM[2] : textPart).replace(/^["']|["']$/g, '').trim();
       if (legLabel) {
@@ -137,12 +139,18 @@ function parseNetworkText(rawText) {
     }
 
     // メタ設定
-    const metaM = line.match(/^(title|theme|direction|dir|layout|cols)\s*:\s*(.+)$/i);
+    const metaM = line.match(/^(title|theme|icons|icon_style|direction|dir|layout|cols)\s*:\s*(.+)$/i);
     if (metaM && !line.includes('->') && !line.includes('<->') && !line.includes('--') && !line.includes('..')) {
       const k = metaM[1].toLowerCase();
       const v = metaM[2].trim().replace(/;$/, '').replace(/^["']|["']$/g, '').trim();
       if (k === 'title') title = v;
       else if (k === 'theme') theme = v.toLowerCase().includes('dark') ? 'dark' : 'light';
+      else if (k === 'icons' || k === 'icon_style') {
+        const lv = v.toLowerCase();
+        if (lv.includes('cisco')) iconTheme = 'cisco';
+        else if (lv.includes('modern') || lv.includes('3d') || lv.includes('rich') || lv.includes('color')) iconTheme = 'modern';
+        else iconTheme = 'mono';
+      }
       else if (k === 'direction' || k === 'dir') direction = v.toUpperCase() === 'TD' ? 'TD' : 'LR';
       else if (k === 'layout') direction = v.toLowerCase().includes('grid') ? 'GRID' : (v.toUpperCase() === 'TD' ? 'TD' : 'LR');
       else if (k === 'cols') cols = parseInt(v, 10) || 0;
@@ -213,6 +221,7 @@ function parseNetworkText(rawText) {
         targetIds = [targetsRaw.trim()];
       }
 
+      const busGroup = targetIds.length > 1 ? nextBusGroupId++ : null;
       ensureImplicitNode(fromId);
       targetIds.forEach((tId) => {
         ensureImplicitNode(tId);
@@ -221,6 +230,7 @@ function parseNetworkText(rawText) {
           to: tId,
           arrow: arrowDir,
           label: edgeLabel,
+          busGroup,
           ...attrs
         });
       });
@@ -283,14 +293,471 @@ function parseNetworkText(rawText) {
     }
   }
 
-  return { title, theme, direction, cols, zones, nodes, edges, legendItems };
+  return { title, theme, iconTheme, direction, cols, zones, nodes, edges, legendItems };
 }
 
+let _networkSvgUidSeq = 0;
+
 // ==========================================
-// Cisco準拠＋モノトーン統一 ベクターアイコン描画
+// 3系統アイコン描画ディスパッチャ (mono / cisco / modern)
 // （viewBox空間: 0..48 x 0..48 基準）
 // ==========================================
-function renderNetworkIconGlyph(type, strokeColor, fillBg, accentFill, svgNS) {
+function renderNetworkIconGlyph(type, iconTheme, strokeColor, fillBg, accentFill, gradIds, svgNS) {
+  if (iconTheme === 'cisco') {
+    return renderCiscoIconGlyph(type, gradIds, svgNS);
+  }
+  if (iconTheme === 'modern') {
+    return renderModernIconGlyph(type, gradIds, svgNS);
+  }
+  return renderMonoIconGlyph(type, strokeColor, fillBg, accentFill, svgNS);
+}
+
+// 1. Cisco風 3Dブルー＋白抜きアイコン
+function renderCiscoIconGlyph(type, gradIds, svgNS) {
+  const g = document.createElementNS(svgNS, 'g');
+  const add = (tag, attrs) => {
+    const el = document.createElementNS(svgNS, tag);
+    Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, String(v)));
+    g.appendChild(el);
+    return el;
+  };
+  const edge = { stroke: '#0c4a6e', 'stroke-width': '1.2', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' };
+  const wLine = { stroke: '#ffffff', 'stroke-width': '1.8', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none' };
+  const bodyFill = `url(#${gradIds.ciscoBody})`;
+  const topFill = `url(#${gradIds.ciscoTop})`;
+  const brickFill = `url(#${gradIds.ciscoBrick})`;
+  const normType = String(type || 'desktop').toLowerCase().replace(/[\s_-]/g, '');
+
+  switch (normType) {
+    case 'router': {
+      add('path', { d: 'M7,16 L7,33 A17,6.5 0 0,0 41,33 L41,16 Z', fill: bodyFill, ...edge });
+      add('ellipse', { cx: 24, cy: 16, rx: 17, ry: 6.5, fill: topFill, ...edge });
+      add('path', { d: 'M14,13 L21,15 M21,15 L17,15.8 M21,15 L19.5,12.5', ...wLine, 'stroke-width': '1.6' });
+      add('path', { d: 'M34,19 L27,17 M27,17 L31,16.2 M27,17 L28.5,19.5', ...wLine, 'stroke-width': '1.6' });
+      add('path', { d: 'M14,19 L21,17 M21,17 L19.5,19.5 M21,17 L17,16.2', ...wLine, 'stroke-width': '1.6' });
+      add('path', { d: 'M34,13 L27,15 M27,15 L28.5,12.5 M27,15 L31,15.8', ...wLine, 'stroke-width': '1.6' });
+      break;
+    }
+    case 'switch':
+    case 'l2sw':
+    case 'l2switch':
+    case 'switchinghub':
+    case 'hub': {
+      add('polygon', { points: '5,22 13,14 43,14 35,22', fill: topFill, ...edge });
+      add('rect', { x: 5, y: 22, width: 30, height: 12, fill: bodyFill, ...edge });
+      add('polygon', { points: '35,22 43,14 43,26 35,34', fill: '#075985', ...edge });
+      add('path', { d: 'M13,16.8 L27,16.8 M24,15 L27,16.8 L24,18.6', ...wLine, 'stroke-width': '1.6' });
+      add('path', { d: 'M34,19.6 L19,19.6 M22,17.8 L19,19.6 L22,21.4', ...wLine, 'stroke-width': '1.6' });
+      for (let px = 9; px <= 29; px += 5) {
+        add('rect', { x: px, y: 26.5, width: 2.8, height: 3, fill: '#bae6fd' });
+      }
+      break;
+    }
+    case 'l3switch':
+    case 'l3sw':
+    case 'coreswitch': {
+      add('polygon', { points: '5,22 13,13 43,13 35,22', fill: topFill, ...edge });
+      add('rect', { x: 5, y: 22, width: 30, height: 13, fill: bodyFill, ...edge });
+      add('polygon', { points: '35,22 43,13 43,26 35,35', fill: '#075985', ...edge });
+      add('circle', { cx: 24, cy: 17.5, r: 3.3, fill: '#ffffff' });
+      add('path', { d: 'M14,17.5 L20,17.5 M28,17.5 L34,17.5 M21,15 L24,13.5 L27,15 M21,20 L24,21.5 L27,20', ...wLine, 'stroke-width': '1.5' });
+      break;
+    }
+    case 'firewall':
+    case 'fw':
+    case 'utm': {
+      add('rect', { x: 7, y: 12, width: 34, height: 24, rx: 1.5, fill: brickFill, stroke: '#7f1d1d', 'stroke-width': '1.3' });
+      [20, 28].forEach((ly) => add('line', { x1: 7, y1: ly, x2: 41, y2: ly, stroke: '#fee2e2', 'stroke-width': '1.3' }));
+      [[18, 12, 20], [30, 12, 20], [13, 20, 28], [24, 20, 28], [35, 20, 28], [18, 28, 36], [30, 28, 36]].forEach(([vx, y1, y2]) => {
+        add('line', { x1: vx, y1, x2: vx, y2, stroke: '#fee2e2', 'stroke-width': '1.3' });
+      });
+      if (normType === 'utm') {
+        add('path', { d: 'M32,26 L40,26 L40,32 C40,36 36,39 36,39 C36,39 32,36 32,32 Z', fill: topFill, stroke: '#ffffff', 'stroke-width': '1.3' });
+      }
+      break;
+    }
+    case 'ap':
+    case 'wifiap':
+    case 'wireless':
+    case 'wificonnect': {
+      add('rect', { x: 9, y: 27, width: 30, height: 10, rx: 2, fill: bodyFill, ...edge });
+      add('path', { d: 'M13,18 A15,15 0 0,1 35,18', stroke: '#0284c7', 'stroke-width': '2', fill: 'none', 'stroke-linecap': 'round' });
+      add('path', { d: 'M17,21.5 A9.5,9.5 0 0,1 31,21.5', stroke: '#0284c7', 'stroke-width': '2', fill: 'none', 'stroke-linecap': 'round' });
+      add('circle', { cx: 24, cy: 24.5, r: 1.6, fill: '#0284c7' });
+      add('circle', { cx: 15, cy: 32, r: 1.4, fill: '#ffffff' });
+      add('circle', { cx: 20, cy: 32, r: 1.4, fill: '#ffffff' });
+      break;
+    }
+    case 'onu':
+    case 'modem':
+    case 'hgw': {
+      add('rect', { x: 8, y: 24, width: 32, height: 13, rx: 1.5, fill: bodyFill, ...edge });
+      add('line', { x1: 34, y1: 24, x2: 34, y2: 10, stroke: '#0369a1', 'stroke-width': '2.2', 'stroke-linecap': 'round' });
+      add('circle', { cx: 34, cy: 9.5, r: 2, fill: '#0284c7' });
+      [14, 19, 24].forEach((cx) => add('circle', { cx, cy: 30.5, r: 1.4, fill: '#bae6fd' }));
+      break;
+    }
+    case 'vpn':
+    case 'gateway': {
+      add('rect', { x: 9, y: 19, width: 30, height: 19, rx: 2, fill: bodyFill, ...edge });
+      add('path', { d: 'M17,19 L17,14.5 A7,7 0 0,1 31,14.5 L31,19', stroke: '#0369a1', 'stroke-width': '2.4', fill: 'none' });
+      add('circle', { cx: 24, cy: 27, r: 2.4, fill: '#ffffff' });
+      add('line', { x1: 24, y1: 29, x2: 24, y2: 33.5, ...wLine });
+      break;
+    }
+    case 'internet':
+    case 'wan':
+    case 'globe': {
+      add('circle', { cx: 24, cy: 24, r: 15, fill: topFill, ...edge });
+      add('ellipse', { cx: 24, cy: 24, rx: 6.5, ry: 15, ...wLine, 'stroke-width': '1.4' });
+      add('line', { x1: 9, y1: 24, x2: 39, y2: 24, ...wLine, 'stroke-width': '1.4' });
+      add('path', { d: 'M11.5,16.5 Q24,19.5 36.5,16.5', ...wLine, 'stroke-width': '1.3' });
+      add('path', { d: 'M11.5,31.5 Q24,28.5 36.5,31.5', ...wLine, 'stroke-width': '1.3' });
+      break;
+    }
+    case 'cloud':
+    case 'infra': {
+      add('path', { d: 'M14,34 L35,34 A7,7 0 0,0 36,20.2 A10,10 0 0,0 17,16 A8,8 0 0,0 14,34 Z', fill: topFill, ...edge });
+      break;
+    }
+    case 'server': {
+      add('polygon', { points: '13,10 19,6 35,6 29,10', fill: topFill, ...edge });
+      add('rect', { x: 13, y: 10, width: 16, height: 30, fill: bodyFill, ...edge });
+      add('polygon', { points: '29,10 35,6 35,36 29,40', fill: '#075985', ...edge });
+      [15, 19.5, 24].forEach((ly) => add('line', { x1: 16, y1: ly, x2: 26, y2: ly, ...wLine, 'stroke-width': '1.5' }));
+      add('circle', { cx: 21, cy: 33, r: 1.8, fill: '#bae6fd' });
+      break;
+    }
+    case 'rack':
+    case 'rackserver': {
+      [9, 19.5, 30].forEach((ry) => {
+        add('rect', { x: 8, y: ry, width: 32, height: 8.5, rx: 1, fill: bodyFill, ...edge });
+        add('circle', { cx: 13, cy: ry + 4.2, r: 1.3, fill: '#bae6fd' });
+        add('line', { x1: 19, y1: ry + 4.2, x2: 35, y2: ry + 4.2, ...wLine, 'stroke-width': '1.4' });
+      });
+      break;
+    }
+    case 'vm':
+    case 'virtualserver': {
+      add('rect', { x: 9, y: 12, width: 22, height: 26, rx: 1.5, fill: '#075985', ...edge });
+      add('rect', { x: 17, y: 8, width: 22, height: 26, rx: 1.5, fill: topFill, stroke: '#ffffff', 'stroke-width': '1.4', 'stroke-dasharray': '3 2' });
+      add('line', { x1: 21, y1: 15, x2: 35, y2: 15, ...wLine, 'stroke-width': '1.5' });
+      add('line', { x1: 21, y1: 20, x2: 35, y2: 20, ...wLine, 'stroke-width': '1.5' });
+      break;
+    }
+    case 'db':
+    case 'database': {
+      add('path', { d: 'M12,13 L12,34 A12,4.5 0 0,0 36,34 L36,13 Z', fill: bodyFill, ...edge });
+      add('ellipse', { cx: 24, cy: 13, rx: 12, ry: 4.5, fill: topFill, ...edge });
+      add('path', { d: 'M12,20 A12,4.5 0 0,0 36,20', ...wLine, 'stroke-width': '1.3' });
+      add('path', { d: 'M12,27 A12,4.5 0 0,0 36,27', ...wLine, 'stroke-width': '1.3' });
+      break;
+    }
+    case 'nas':
+    case 'storage': {
+      add('rect', { x: 10, y: 11, width: 28, height: 26, rx: 1.5, fill: bodyFill, ...edge });
+      [14.5, 20, 25.5, 31].forEach((bx) => {
+        add('rect', { x: bx, y: 15, width: 3.5, height: 15, rx: 0.6, fill: topFill, stroke: '#ffffff', 'stroke-width': '1.1' });
+      });
+      break;
+    }
+    case 'ups': {
+      add('rect', { x: 13, y: 9, width: 22, height: 30, rx: 1.5, fill: bodyFill, ...edge });
+      add('path', { d: 'M25.5,14 L20,23 L24.5,23 L22.5,31 L28.5,21 L24,21 Z', fill: '#fde047' });
+      break;
+    }
+    case 'desktop':
+    case 'pc':
+    case 'workstation':
+    case 'imac':
+    case 'monitor':
+    case 'lcd': {
+      add('rect', { x: 7, y: 12, width: 25, height: 18, rx: 1.5, fill: bodyFill, ...edge });
+      add('rect', { x: 10, y: 15, width: 19, height: 12, fill: '#bae6fd' });
+      add('line', { x1: 19.5, y1: 30, x2: 19.5, y2: 35, stroke: '#0c4a6e', 'stroke-width': '2.4' });
+      add('line', { x1: 13, y1: 35, x2: 26, y2: 35, stroke: '#0c4a6e', 'stroke-width': '2.2', 'stroke-linecap': 'round' });
+      if (normType !== 'imac' && normType !== 'monitor' && normType !== 'lcd') {
+        add('rect', { x: 34, y: 13, width: 8, height: 22, rx: 1, fill: topFill, ...edge });
+      }
+      break;
+    }
+    case 'laptop':
+    case 'notebook': {
+      add('rect', { x: 11, y: 12, width: 26, height: 17, rx: 1.5, fill: bodyFill, ...edge });
+      add('rect', { x: 13.5, y: 14.5, width: 21, height: 12, fill: '#bae6fd' });
+      add('polygon', { points: '7,35 11,29 37,29 41,35', fill: topFill, ...edge });
+      break;
+    }
+    case 'tablet': {
+      add('rect', { x: 12, y: 8, width: 24, height: 32, rx: 2.5, fill: bodyFill, ...edge });
+      add('rect', { x: 15, y: 12, width: 18, height: 22, fill: '#bae6fd' });
+      add('circle', { cx: 24, cy: 36.8, r: 1.3, fill: '#ffffff' });
+      break;
+    }
+    case 'mobile':
+    case 'smartphone':
+    case 'phone': {
+      add('rect', { x: 16, y: 8, width: 16, height: 32, rx: 2.5, fill: bodyFill, ...edge });
+      add('rect', { x: 18, y: 12, width: 12, height: 21, fill: '#bae6fd' });
+      add('circle', { cx: 24, cy: 36.5, r: 1.3, fill: '#ffffff' });
+      break;
+    }
+    case 'macmini': {
+      add('rect', { x: 8, y: 21, width: 32, height: 12, rx: 2, fill: topFill, ...edge });
+      add('line', { x1: 14, y1: 27, x2: 34, y2: 27, ...wLine, 'stroke-width': '1.6' });
+      break;
+    }
+    case 'kiosk': {
+      add('polygon', { points: '14,12 34,12 32,26 16,26', fill: bodyFill, ...edge });
+      add('rect', { x: 18, y: 15, width: 12, height: 8, fill: '#bae6fd' });
+      add('rect', { x: 19, y: 26, width: 10, height: 12, fill: topFill, ...edge });
+      break;
+    }
+    case 'camera':
+    case 'cctv': {
+      add('polygon', { points: '10,16 32,12 35,23 13,27', fill: bodyFill, ...edge });
+      add('line', { x1: 34, y1: 17, x2: 39, y2: 15.5, stroke: '#0c4a6e', 'stroke-width': '2' });
+      add('path', { d: 'M17,26.5 L17,34 L10,34', stroke: '#0c4a6e', 'stroke-width': '2', fill: 'none' });
+      break;
+    }
+    case 'printer': {
+      add('rect', { x: 14, y: 9, width: 20, height: 9, fill: '#e0f2fe', ...edge });
+      add('rect', { x: 8, y: 18, width: 32, height: 14, rx: 1.5, fill: bodyFill, ...edge });
+      add('rect', { x: 14, y: 27, width: 20, height: 11, fill: '#ffffff', ...edge });
+      break;
+    }
+    case 'attacker':
+    case 'hacker': {
+      add('circle', { cx: 24, cy: 18, r: 7, fill: brickFill, stroke: '#7f1d1d', 'stroke-width': '1.3' });
+      add('path', { d: 'M11,38 C11,29 37,29 37,38 Z', fill: brickFill, stroke: '#7f1d1d', 'stroke-width': '1.3' });
+      add('path', { d: 'M18,17 L22,19 L26,19 L30,17', ...wLine, 'stroke-width': '1.6' });
+      break;
+    }
+    default: {
+      add('rect', { x: 11, y: 11, width: 26, height: 26, rx: 3, fill: bodyFill, ...edge });
+      add('circle', { cx: 24, cy: 24, r: 5, fill: '#ffffff' });
+      break;
+    }
+  }
+  return g;
+}
+
+// 2. 現代風（立体グラデーション＋鮮やかな青LCDスクリーン＋シルバー/ダーク筐体）アイコン
+function renderModernIconGlyph(type, gradIds, svgNS) {
+  const g = document.createElementNS(svgNS, 'g');
+  const add = (tag, attrs) => {
+    const el = document.createElementNS(svgNS, tag);
+    Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, String(v)));
+    g.appendChild(el);
+    return el;
+  };
+  const screenFill = `url(#${gradIds.modScreen})`;
+  const silverFill = `url(#${gradIds.modSilver})`;
+  const darkFill = `url(#${gradIds.modDark})`;
+  const skyFill = `url(#${gradIds.modSky})`;
+  const brickFill = `url(#${gradIds.modBrick})`;
+  const darkRim = { stroke: '#334155', 'stroke-width': '1.2', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' };
+  const silverRim = { stroke: '#64748b', 'stroke-width': '1.2', 'stroke-linejoin': 'round', 'stroke-linecap': 'round' };
+  const drawGloss = (x, y, w, h) => {
+    add('polygon', { points: `${x},${y} ${x + w * 0.6},${y} ${x + w * 0.2},${y + h} ${x},${y + h}`, fill: '#ffffff', opacity: '0.2' });
+  };
+
+  const normType = String(type || 'desktop').toLowerCase().replace(/[\s_-]/g, '');
+
+  switch (normType) {
+    case 'desktop':
+    case 'pc':
+    case 'workstation': {
+      // 右タワー本体（3Dメタリック）
+      add('rect', { x: 31, y: 12, width: 11, height: 25, rx: 1.5, fill: darkFill, ...darkRim });
+      add('line', { x1: 33.5, y1: 16, x2: 39.5, y2: 16, stroke: '#94a3b8', 'stroke-width': '1.2' });
+      add('circle', { cx: 36.5, cy: 31, r: 1.4, fill: '#38bdf8' });
+      // 左ワイド液晶モニター
+      add('line', { x1: 18, y1: 30, x2: 18, y2: 35, stroke: '#475569', 'stroke-width': '3' });
+      add('ellipse', { cx: 18, cy: 36, rx: 7, ry: 2, fill: silverFill, ...silverRim });
+      add('rect', { x: 5, y: 12, width: 26, height: 18, rx: 1.5, fill: darkFill, ...darkRim });
+      add('rect', { x: 7, y: 14, width: 22, height: 14, rx: 0.8, fill: screenFill });
+      drawGloss(7, 14, 22, 14);
+      break;
+    }
+    case 'imac': {
+      add('polygon', { points: '20,31 28,31 30,38 18,38', fill: silverFill, ...silverRim });
+      add('rect', { x: 7, y: 10, width: 34, height: 22, rx: 2, fill: silverFill, ...silverRim });
+      add('rect', { x: 9, y: 12, width: 30, height: 15, rx: 1, fill: screenFill, stroke: '#1e293b', 'stroke-width': '1' });
+      drawGloss(9, 12, 30, 15);
+      add('circle', { cx: 24, cy: 29.5, r: 1.1, fill: '#475569' });
+      break;
+    }
+    case 'monitor':
+    case 'lcd': {
+      add('rect', { x: 21, y: 31, width: 6, height: 5, fill: darkFill });
+      add('ellipse', { cx: 24, cy: 37, rx: 8.5, ry: 2.2, fill: darkFill, ...darkRim });
+      add('rect', { x: 6, y: 10, width: 36, height: 22, rx: 1.8, fill: darkFill, ...darkRim });
+      add('rect', { x: 8.5, y: 12.5, width: 31, height: 17, rx: 0.8, fill: screenFill });
+      drawGloss(8.5, 12.5, 31, 17);
+      break;
+    }
+    case 'macmini': {
+      add('rect', { x: 7, y: 20, width: 34, height: 12, rx: 3, fill: silverFill, ...silverRim });
+      add('line', { x1: 14, y1: 27, x2: 34, y2: 27, stroke: '#475569', 'stroke-width': '1.6', 'stroke-linecap': 'round' });
+      add('circle', { cx: 36, cy: 27, r: 1.1, fill: '#38bdf8' });
+      break;
+    }
+    case 'laptop':
+    case 'notebook': {
+      add('rect', { x: 10, y: 10, width: 28, height: 18, rx: 1.8, fill: darkFill, ...darkRim });
+      add('rect', { x: 12, y: 12, width: 24, height: 14, rx: 0.8, fill: screenFill });
+      drawGloss(12, 12, 24, 14);
+      add('polygon', { points: '5,35 10,28 38,28 43,35', fill: silverFill, ...silverRim });
+      add('polygon', { points: '12,30 36,30 38,33 10,33', fill: '#334155' });
+      break;
+    }
+    case 'tablet': {
+      add('rect', { x: 11, y: 7, width: 26, height: 34, rx: 3.5, fill: darkFill, ...darkRim });
+      add('rect', { x: 13.5, y: 10, width: 21, height: 26, rx: 1, fill: screenFill });
+      drawGloss(13.5, 10, 21, 26);
+      add('circle', { cx: 24, cy: 38.2, r: 1.2, fill: '#94a3b8' });
+      break;
+    }
+    case 'mobile':
+    case 'smartphone':
+    case 'phone': {
+      add('rect', { x: 15, y: 7, width: 18, height: 34, rx: 3.5, fill: darkFill, ...darkRim });
+      add('rect', { x: 17, y: 10, width: 14, height: 26, rx: 1.2, fill: screenFill });
+      drawGloss(17, 10, 14, 26);
+      add('line', { x1: 21, y1: 38.2, x2: 27, y2: 38.2, stroke: '#94a3b8', 'stroke-width': '1.4', 'stroke-linecap': 'round' });
+      break;
+    }
+    case 'kiosk': {
+      add('polygon', { points: '12,38 36,38 33,34 15,34', fill: silverFill, ...silverRim });
+      add('polygon', { points: '19,34 29,34 27,22 21,22', fill: silverFill, ...silverRim });
+      add('polygon', { points: '12,10 36,10 33,24 15,24', fill: silverFill, ...silverRim });
+      add('polygon', { points: '14.5,12 33.5,12 31.2,22 16.8,22', fill: screenFill });
+      break;
+    }
+    case 'server': {
+      add('polygon', { points: '13,9 20,6 35,6 28,9', fill: silverFill, ...darkRim });
+      add('rect', { x: 13, y: 9, width: 15, height: 31, rx: 1, fill: darkFill, ...darkRim });
+      add('polygon', { points: '28,9 35,6 35,36 28,40', fill: '#334155', ...darkRim });
+      [13, 17, 21].forEach((ly) => add('line', { x1: 16, y1: ly, x2: 25, y2: ly, stroke: '#94a3b8', 'stroke-width': '1.4' }));
+      add('circle', { cx: 20.5, cy: 33, r: 1.8, fill: '#38bdf8' });
+      break;
+    }
+    case 'rack':
+    case 'rackserver': {
+      [9, 19.5, 30].forEach((ry) => {
+        add('rect', { x: 8, y: ry, width: 32, height: 8.5, rx: 1.5, fill: darkFill, ...darkRim });
+        add('circle', { cx: 12.5, cy: ry + 4.2, r: 1.4, fill: '#38bdf8' });
+        add('rect', { x: 17, y: ry + 2.5, width: 19, height: 3.5, rx: 0.7, fill: '#475569' });
+      });
+      break;
+    }
+    case 'vm':
+    case 'virtualserver': {
+      add('rect', { x: 9, y: 12, width: 22, height: 26, rx: 2, fill: darkFill, ...darkRim });
+      add('rect', { x: 17, y: 8, width: 22, height: 26, rx: 2, fill: skyFill, stroke: '#0284c7', 'stroke-width': '1.4', 'stroke-dasharray': '3 2' });
+      add('line', { x1: 21, y1: 15, x2: 35, y2: 15, stroke: '#ffffff', 'stroke-width': '1.5' });
+      add('line', { x1: 21, y1: 20, x2: 35, y2: 20, stroke: '#ffffff', 'stroke-width': '1.5' });
+      add('circle', { cx: 28, cy: 27.5, r: 1.8, fill: '#ffffff' });
+      break;
+    }
+    case 'db':
+    case 'database': {
+      add('path', { d: 'M12,13 L12,34 A12,4.5 0 0,0 36,34 L36,13 Z', fill: silverFill, ...silverRim });
+      add('ellipse', { cx: 24, cy: 13, rx: 12, ry: 4.5, fill: skyFill, stroke: '#0284c7', 'stroke-width': '1.3' });
+      add('path', { d: 'M12,20 A12,4.5 0 0,0 36,20', fill: 'none', stroke: '#0284c7', 'stroke-width': '1.4' });
+      add('path', { d: 'M12,27 A12,4.5 0 0,0 36,27', fill: 'none', stroke: '#0284c7', 'stroke-width': '1.4' });
+      break;
+    }
+    case 'nas':
+    case 'storage': {
+      add('rect', { x: 10, y: 11, width: 28, height: 26, rx: 2.5, fill: darkFill, ...darkRim });
+      [14.5, 20, 25.5, 31].forEach((bx) => {
+        add('rect', { x: bx, y: 15, width: 3.5, height: 15, rx: 0.7, fill: silverFill });
+        add('circle', { cx: bx + 1.75, cy: 33.5, r: 1.1, fill: '#38bdf8' });
+      });
+      break;
+    }
+    case 'ups': {
+      add('rect', { x: 13, y: 9, width: 22, height: 30, rx: 2, fill: darkFill, ...darkRim });
+      add('path', { d: 'M25.5,14 L20,23 L24.5,23 L22.5,31 L28.5,21 L24,21 Z', fill: '#38bdf8' });
+      add('circle', { cx: 24, cy: 35, r: 1.4, fill: '#34d399' });
+      break;
+    }
+    case 'router': {
+      add('line', { x1: 15, y1: 23, x2: 15, y2: 11, stroke: '#334155', 'stroke-width': '2', 'stroke-linecap': 'round' });
+      add('line', { x1: 33, y1: 23, x2: 33, y2: 11, stroke: '#334155', 'stroke-width': '2', 'stroke-linecap': 'round' });
+      add('rect', { x: 8, y: 23, width: 32, height: 13, rx: 3, fill: silverFill, ...silverRim });
+      [14, 19, 24].forEach((cx) => add('circle', { cx, cy: 29.5, r: 1.5, fill: '#0284c7' }));
+      add('rect', { x: 29, y: 27.5, width: 7, height: 4, rx: 0.8, fill: '#334155' });
+      break;
+    }
+    case 'switch':
+    case 'l2sw':
+    case 'l2switch':
+    case 'l3switch':
+    case 'l3sw':
+    case 'hub': {
+      add('rect', { x: 6, y: 18, width: 36, height: 13, rx: 2, fill: silverFill, ...silverRim });
+      for (let px = 10; px <= 34; px += 4.5) {
+        add('rect', { x: px, y: 22, width: 2.8, height: 4, rx: 0.5, fill: '#1e293b' });
+        add('circle', { cx: px + 1.4, cy: 28.5, r: 1, fill: '#10b981' });
+      }
+      break;
+    }
+    case 'firewall':
+    case 'fw':
+    case 'utm': {
+      add('rect', { x: 7, y: 13, width: 34, height: 23, rx: 2, fill: brickFill, stroke: '#7f1d1d', 'stroke-width': '1.2' });
+      [20.5, 28].forEach((ly) => add('line', { x1: 7, y1: ly, x2: 41, y2: ly, stroke: '#fecaca', 'stroke-width': '1.2' }));
+      [[18, 13, 20.5], [30, 13, 20.5], [13, 20.5, 28], [24, 20.5, 28], [35, 20.5, 28], [18, 28, 36], [30, 28, 36]].forEach(([vx, y1, y2]) => {
+        add('line', { x1: vx, y1, x2: vx, y2, stroke: '#fecaca', 'stroke-width': '1.2' });
+      });
+      add('path', { d: 'M34,37 C38,37 40,33 38.5,29 C37,26 35,23 35,23 C35,23 32,26 31,29.5 C30,33 31.5,37 34,37 Z', fill: '#f59e0b', stroke: '#ffffff', 'stroke-width': '1' });
+      break;
+    }
+    case 'ap':
+    case 'wifiap':
+    case 'wireless': {
+      add('rect', { x: 10, y: 27, width: 28, height: 10, rx: 4, fill: silverFill, ...silverRim });
+      add('path', { d: 'M13,18 A15,15 0 0,1 35,18', stroke: '#0284c7', 'stroke-width': '2.2', fill: 'none', 'stroke-linecap': 'round' });
+      add('path', { d: 'M17,21.5 A9.5,9.5 0 0,1 31,21.5', stroke: '#0284c7', 'stroke-width': '2.2', fill: 'none', 'stroke-linecap': 'round' });
+      add('circle', { cx: 24, cy: 24.5, r: 1.8, fill: '#0284c7' });
+      add('circle', { cx: 24, cy: 32, r: 1.5, fill: '#0284c7' });
+      break;
+    }
+    case 'onu':
+    case 'modem': {
+      add('rect', { x: 8, y: 24, width: 32, height: 13, rx: 2, fill: silverFill, ...silverRim });
+      add('line', { x1: 34, y1: 24, x2: 34, y2: 10, stroke: '#475569', 'stroke-width': '2' });
+      add('circle', { cx: 14, cy: 30.5, r: 1.4, fill: '#10b981' });
+      add('circle', { cx: 19, cy: 30.5, r: 1.4, fill: '#10b981' });
+      add('circle', { cx: 24, cy: 30.5, r: 1.4, fill: '#38bdf8' });
+      break;
+    }
+    case 'internet':
+    case 'wan':
+    case 'globe': {
+      add('circle', { cx: 24, cy: 24, r: 15, fill: screenFill, stroke: '#1d4ed8', 'stroke-width': '1.2' });
+      add('ellipse', { cx: 24, cy: 24, rx: 6.5, ry: 15, fill: 'none', stroke: '#e0f2fe', 'stroke-width': '1.3' });
+      add('line', { x1: 9, y1: 24, x2: 39, y2: 24, stroke: '#e0f2fe', 'stroke-width': '1.3' });
+      add('path', { d: 'M11.5,16.5 Q24,19.5 36.5,16.5', fill: 'none', stroke: '#e0f2fe', 'stroke-width': '1.2' });
+      add('path', { d: 'M11.5,31.5 Q24,28.5 36.5,31.5', fill: 'none', stroke: '#e0f2fe', 'stroke-width': '1.2' });
+      break;
+    }
+    case 'cloud':
+    case 'infra': {
+      add('path', { d: 'M14,34 L35,34 A7,7 0 0,0 36,20.2 A10,10 0 0,0 17,16 A8,8 0 0,0 14,34 Z', fill: skyFill, stroke: '#0284c7', 'stroke-width': '1.3' });
+      break;
+    }
+    default:
+      return renderMonoIconGlyph(type, '#334155', '#f8fafc', '#e2e8f0', svgNS);
+  }
+  return g;
+}
+
+// 3. 統一モノトーン線画アイコン（現行デフォルト）
+function renderMonoIconGlyph(type, strokeColor, fillBg, accentFill, svgNS) {
   const g = document.createElementNS(svgNS, 'g');
   const add = (tag, attrs) => {
     const el = document.createElementNS(svgNS, tag);
@@ -545,6 +1012,27 @@ function renderNetworkIconGlyph(type, strokeColor, fillBg, accentFill, svgNS) {
       break;
     }
 
+    // モノトーン側でも新規機器タイプに対応（imac / monitor / macmini / kiosk）
+    case 'imac':
+    case 'monitor':
+    case 'lcd': {
+      add('rect', { x: 7, y: 11, width: 34, height: 21, rx: 2, fill: fillBg, ...baseStroke });
+      add('line', { x1: 24, y1: 32, x2: 24, y2: 37, ...baseStroke });
+      add('line', { x1: 16, y1: 37, x2: 32, y2: 37, ...baseStroke });
+      break;
+    }
+    case 'macmini': {
+      add('rect', { x: 8, y: 21, width: 32, height: 11, rx: 2.5, fill: fillBg, ...baseStroke });
+      add('line', { x1: 14, y1: 27, x2: 34, y2: 27, ...baseStroke, 'stroke-width': '1.5' });
+      break;
+    }
+    case 'kiosk': {
+      add('polygon', { points: '14,12 34,12 32,25 16,25', fill: fillBg, ...baseStroke });
+      add('rect', { x: 20, y: 25, width: 8, height: 12, fill: accentFill, ...baseStroke });
+      add('line', { x1: 14, y1: 37, x2: 34, y2: 37, ...baseStroke });
+      break;
+    }
+
     // プリンター
     case 'printer': {
       add('rect', { x: 14, y: 9, width: 20, height: 9, fill: accentFill, ...baseStroke });
@@ -662,14 +1150,88 @@ function drawNetworkSvg(rawCode, container, labelText) {
   const zones = parsed.zones;
 
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
-  const nodeW = 138;
-  const nodeH = 104;
-  const colGap = 78;
-  const rowGap = 28;
-  const zonePadX = 22;
-  const zonePadTop = 32;
-  const zonePadBottom = 18;
-  const zoneBandGap = 32;
+  const nodeW = 152;
+  const nodeH = 114;
+  const colGap = 198;
+  const rowGap = 26;
+  const zonePadX = 18;
+  const zonePadTop = 30;
+  const zonePadBottom = 14;
+  const zoneBandGap = 28;
+
+  const measureNetTextW = (s, fs = 10, isBold = false) => {
+    let w = 0;
+    const str = String(s || '');
+    const jpFactor = isBold ? 1.08 : 1.04;
+    const asciiFactor = isBold ? 0.66 : 0.62;
+    for (let i = 0; i < str.length; i++) {
+      w += str.charCodeAt(i) > 255 ? fs * jpFactor : fs * asciiFactor;
+    }
+    return w;
+  };
+  const wrapNetText = (text, maxW = 92, fs = 10, isBold = false) => {
+    const out = [];
+    String(text || '').split('\n').forEach((para) => {
+      const t = para.trim();
+      if (!t) return;
+      if (measureNetTextW(t, fs, isBold) <= maxW) {
+        out.push(t);
+        return;
+      }
+      let rest = t;
+      while (rest.length > 0) {
+        if (measureNetTextW(rest, fs, isBold) <= maxW) {
+          out.push(rest);
+          break;
+        }
+        let fit = 1;
+        for (let i = 1; i <= rest.length; i++) {
+          if (measureNetTextW(rest.slice(0, i), fs, isBold) > maxW) {
+            fit = Math.max(1, i - 1);
+            break;
+          }
+          fit = i;
+        }
+        let brk = fit;
+        let foundBreak = false;
+        const minL = Math.max(2, Math.floor(fit * 0.4));
+        for (let j = fit; j >= minL; j--) {
+          const prev = rest[j - 1];
+          const cur = rest[j];
+          if (
+            prev === '/' || prev === '／' || prev === '、' || prev === '・' || prev === ' ' ||
+            prev === 'の' || prev === '時' ||
+            cur === '（' || cur === '(' || cur === '【' || cur === '「'
+          ) {
+            brk = j;
+            foundBreak = true;
+            break;
+          }
+        }
+        if (!foundBreak) {
+          while (brk > minL && /^[）)】」」、。.,]/.test(rest[brk] || '')) brk--;
+          if (rest.length - brk === 1 && brk > minL) brk--;
+        }
+        const chunk = rest.slice(0, brk).trimEnd();
+        if (chunk) out.push(chunk);
+        rest = rest.slice(brk).trimStart();
+      }
+    });
+    return out;
+  };
+
+  // 各ノードのタイトル・サブテキストを事前折り返しし、切れずに収まる高さを算出
+  let effectiveNodeH = nodeH;
+  nodes.forEach((n) => {
+    n._lblLines = wrapNetText(n.label, nodeW - 16, 11.5, true);
+    n._subLines = n.subLabel ? wrapNetText(n.subLabel, nodeW - 16, 9.5, false) : [];
+    const neededH = 80 + Math.max(1, n._lblLines.length) * 14 + (n._subLines.length > 0 ? (n._subLines.length - 1) * 12 + 12 : 4);
+    if (neededH > effectiveNodeH) effectiveNodeH = neededH;
+  });
+
+  const verticalStackEdgeSet = new Set();
+  const collapsedToTarget = new Map();
+  const verticalParentOf = new Map();
 
   // 1. レイアウト座標 (col, row) 決定
   if (parsed.direction === 'GRID') {
@@ -679,27 +1241,88 @@ function drawNetworkSvg(rawCode, container, labelText) {
       if (n.row == null) n.row = Math.floor(idx / gridCols);
     });
   } else {
-    // エッジに基づくトポロジカル階層算出
+    // DFSによるサイクル検出（戻り辺を除外し、双方向エッジによる列の無限右送りを防止）
     const outAdj = new Map();
     const inDeg = new Map();
     nodes.forEach((n) => {
       outAdj.set(n.id, []);
       inDeg.set(n.id, 0);
     });
-    edges.forEach((e) => {
+    edges.forEach((e, idx) => {
       if (nodeById.has(e.from) && nodeById.has(e.to)) {
-        outAdj.get(e.from).push(e.to);
+        outAdj.get(e.from).push({ to: e.to, idx });
         inDeg.set(e.to, (inDeg.get(e.to) || 0) + 1);
       }
+    });
+
+    const companionEdgeSet = new Set();
+    const companionTargetOf = new Map();
+
+    // LR時: 外部回線系起点（入次数0・出次数1）が別ゾーンの境界機器(Firebox等)へ繋がる場合は同列直上に縦積み
+    if (parsed.direction === 'LR') {
+      const upstreamTypes = new Set(['internet', 'cloud', 'wan']);
+      const gatewayTypes = new Set(['firewall', 'utm', 'router', 'waf', 'proxy', 'gateway']);
+      edges.forEach((e, idx) => {
+        const src = nodeById.get(e.from);
+        const dst = nodeById.get(e.to);
+        if (!src || !dst) return;
+        if (src.col != null || src.row != null || dst.row != null) return;
+        if (src.zoneId === dst.zoneId) return;
+        if ((inDeg.get(src.id) || 0) !== 0 || (outAdj.get(src.id) || []).length !== 1) return;
+        if ((outAdj.get(dst.id) || []).length < 1) return;
+        if (!(upstreamTypes.has(src.type) || gatewayTypes.has(dst.type))) return;
+        if (verticalParentOf.has(dst.id)) return;
+        collapsedToTarget.set(src.id, dst.id);
+        verticalParentOf.set(dst.id, src.id);
+        verticalStackEdgeSet.add(idx);
+      });
+
+      // LR時: `--`（無向関連）のみで別経路から入力を持つ末端ターゲットに付随する孤立ノードは右側コンパニオン列へ配置
+      edges.forEach((e, idx) => {
+        if (e.arrow !== 'none' || verticalStackEdgeSet.has(idx)) return;
+        const src = nodeById.get(e.from);
+        const dst = nodeById.get(e.to);
+        if (!src || !dst || src.col != null) return;
+        if (collapsedToTarget.has(src.id) || verticalParentOf.has(src.id)) return;
+        if ((inDeg.get(src.id) || 0) !== 0 || (outAdj.get(src.id) || []).length !== 1) return;
+        if ((inDeg.get(dst.id) || 0) <= 1 || (outAdj.get(dst.id) || []).length > 0) return;
+        companionTargetOf.set(src.id, dst.id);
+        companionEdgeSet.add(idx);
+      });
+    }
+
+    const dfsState = new Map(); // 0:未訪問, 1:探索中, 2:完了
+    const backEdgeSet = new Set();
+    const dfsWalk = (id) => {
+      dfsState.set(id, 1);
+      (outAdj.get(id) || []).forEach(({ to, idx }) => {
+        if (verticalStackEdgeSet.has(idx) || companionEdgeSet.has(idx)) return;
+        const st = dfsState.get(to) || 0;
+        if (st === 1) {
+          backEdgeSet.add(idx);
+        } else if (st === 0) {
+          dfsWalk(to);
+        }
+      });
+      dfsState.set(id, 2);
+    };
+
+    // 入力次数0のノード（起点）から優先的にDFS
+    nodes.filter((n) => (inDeg.get(n.id) || 0) === 0 && !collapsedToTarget.has(n.id) && !companionTargetOf.has(n.id)).forEach((n) => {
+      if ((dfsState.get(n.id) || 0) === 0) dfsWalk(n.id);
+    });
+    nodes.forEach((n) => {
+      if ((dfsState.get(n.id) || 0) === 0) dfsWalk(n.id);
     });
 
     const layerMap = new Map();
     nodes.forEach((n) => layerMap.set(n.id, n.col != null ? n.col : 0));
 
-    // DAG的最長パスで列（層）を決定（循環ガード付き）
+    // 戻り辺・縦積み辺・右側コンパニオン辺を除いたDAG上で最長パス列を決定
     for (let iter = 0; iter < nodes.length; iter++) {
       let changed = false;
-      edges.forEach((e) => {
+      edges.forEach((e, idx) => {
+        if (backEdgeSet.has(idx) || verticalStackEdgeSet.has(idx) || companionEdgeSet.has(idx)) return;
         const toNode = nodeById.get(e.to);
         if (toNode && toNode.col == null && nodeById.has(e.from)) {
           const nextL = (layerMap.get(e.from) || 0) + 1;
@@ -711,123 +1334,324 @@ function drawNetworkSvg(rawCode, container, labelText) {
       });
       if (!changed) break;
     }
+
+    // 入力辺を持たない末端起点ノードは接続先直前（minOutCol - 1）へ寄せて線を短縮
     nodes.forEach((n) => {
-      if (n.col == null) n.col = layerMap.get(n.id) || 0;
+      if (n.col != null || collapsedToTarget.has(n.id) || companionTargetOf.has(n.id)) return;
+      if ((inDeg.get(n.id) || 0) === 0) {
+        const outs = (outAdj.get(n.id) || []).map((o) => layerMap.get(o.to)).filter((c) => typeof c === 'number');
+        if (outs.length > 0) {
+          const minTargetCol = Math.min(...outs);
+          if (minTargetCol > 1) {
+            layerMap.set(n.id, minTargetCol - 1);
+          }
+        }
+      }
     });
 
-    // ゾーンが重ならないよう縦バンド（row帯域）へ分離配置
+    // 右側コンパニオンノードを接続先の右列へ配置
+    companionTargetOf.forEach((dstId, srcId) => {
+      const dstNode = nodeById.get(dstId);
+      const targetCol = dstNode && dstNode.col != null ? dstNode.col : (layerMap.get(dstId) || 0);
+      layerMap.set(srcId, targetCol + 1);
+    });
+
+    // 縦積み起点ノードを接続先ターゲットと同列へ揃える
+    collapsedToTarget.forEach((dstId, srcId) => {
+      const dstNode = nodeById.get(dstId);
+      const targetCol = dstNode && dstNode.col != null ? dstNode.col : (layerMap.get(dstId) || 0);
+      layerMap.set(srcId, targetCol);
+    });
+
+    // 空列を詰めてコンパクトな連続列番号 (0, 1, 2, ...) へ正規化
+    const allAutoCols = nodes.every((n) => n.col == null);
+    if (allAutoCols) {
+      const sortedUnique = Array.from(new Set(Array.from(layerMap.values()))).sort((a, b) => a - b);
+      const colRemap = new Map(sortedUnique.map((c, idx) => [c, idx]));
+      nodes.forEach((n) => {
+        n.col = colRemap.get(layerMap.get(n.id) || 0) || 0;
+      });
+    } else {
+      nodes.forEach((n) => {
+        if (n.col == null) n.col = layerMap.get(n.id) || 0;
+      });
+    }
+
+    // ゾーン同士が同列で重ならない範囲でコンパクトに行を割り当て（接続先の平均行へ寄せて水平直線化）
     const hasExplicitRows = nodes.every((n) => n.row != null);
     if (!hasExplicitRows) {
-      let nextBandRow = 0;
-      const zoneBandInfo = new Map();
+      const colOccupiedRows = new Map();
+      const isBandFree = (minC, maxC, startR, spanH) => {
+        for (let c = minC; c <= maxC; c++) {
+          const used = colOccupiedRows.get(c);
+          if (!used) continue;
+          for (let r = startR; r < startR + spanH; r++) {
+            if (used.has(r)) return false;
+          }
+        }
+        return true;
+      };
+      const markBand = (minC, maxC, startR, spanH) => {
+        for (let c = minC; c <= maxC; c++) {
+          if (!colOccupiedRows.has(c)) colOccupiedRows.set(c, new Set());
+          for (let r = startR; r < startR + spanH; r++) {
+            colOccupiedRows.get(c).add(r);
+          }
+        }
+      };
 
-      // ゾーンがある場合はゾーン単位で縦バンドを割り当て（ゾーン外の骨幹ノードは中央後配置）
+      // 明示行があるノード分の占有を先に登録
+      nodes.forEach((n) => {
+        if (n.row != null) markBand(n.col, n.col, Math.round(n.row), 1);
+      });
+
       zones.forEach((z) => {
         const members = nodes.filter((n) => n.zoneId === z.id);
         if (members.length === 0) return;
         const byCol = new Map();
+        let minC = Infinity;
+        let maxC = -Infinity;
         members.forEach((m) => {
           if (!byCol.has(m.col)) byCol.set(m.col, []);
           byCol.get(m.col).push(m);
+          minC = Math.min(minC, m.col);
+          maxC = Math.max(maxC, m.col);
         });
         let maxStack = 1;
         byCol.forEach((list) => {
           if (list.length > maxStack) maxStack = list.length;
         });
+
+        // 既に配置済みの接続相手行（および縦積み子機器の推定行）から理想開始行を算出
+        const neighborRows = [];
+        const memberSet = new Set(members.map((m) => m.id));
+        edges.forEach((e) => {
+          const otherId = memberSet.has(e.from) ? e.to : (memberSet.has(e.to) ? e.from : null);
+          if (!otherId || memberSet.has(otherId)) return;
+          const otherN = nodeById.get(otherId);
+          if (!otherN) return;
+          if (otherN.row != null) {
+            neighborRows.push(otherN.row);
+          } else if (verticalParentOf.has(otherN.id)) {
+            const vp = nodeById.get(verticalParentOf.get(otherN.id));
+            if (vp && vp.row != null) neighborRows.push(vp.row + 1.3);
+          }
+        });
+        const idealStart = neighborRows.length > 0
+          ? Math.max(0, Math.round(neighborRows.reduce((a, b) => a + b, 0) / neighborRows.length - (maxStack - 1) / 2))
+          : 0;
+
+        let chosenStart = 0;
+        const rowCandidates = [];
+        for (let r = 0; r <= 20; r++) rowCandidates.push(r);
+        rowCandidates.sort((a, b) => (Math.abs(a - idealStart) - Math.abs(b - idealStart)) || (a - b));
+        for (const cand of rowCandidates) {
+          if (isBandFree(minC, maxC, cand, maxStack)) {
+            chosenStart = cand;
+            break;
+          }
+        }
+
         byCol.forEach((list) => {
           if (list.length === 1 && maxStack > 1) {
-            if (list[0].row == null) list[0].row = nextBandRow + (maxStack - 1) / 2;
+            if (list[0].row == null) list[0].row = chosenStart + (maxStack - 1) / 2;
           } else {
             list.forEach((m, rIdx) => {
-              if (m.row == null) m.row = nextBandRow + rIdx;
+              if (m.row == null) m.row = chosenStart + rIdx;
             });
           }
         });
-        zoneBandInfo.set(z.id, { startRow: nextBandRow, rows: maxStack });
-        nextBandRow += maxStack;
-      });
+        markBand(minC, maxC, chosenStart, maxStack);
 
-      // ゾーン未所属ノードを列ごとに配置（ゾーンバンドが複数なら接続先中心付近へ）
-      const unzoned = nodes.filter((n) => !n.zoneId);
-      const unzonedByCol = new Map();
-      unzoned.forEach((u) => {
-        if (!unzonedByCol.has(u.col)) unzonedByCol.set(u.col, []);
-        unzonedByCol.get(u.col).push(u);
-      });
-      const totalBandRows = Math.max(1, nextBandRow);
-      unzonedByCol.forEach((list) => {
-        list.forEach((u, idx) => {
-          if (u.row != null) return;
-          if (zones.length > 0 && list.length === 1) {
-            u.row = (totalBandRows - 1) / 2;
-          } else if (zones.length > 0) {
-            const step = totalBandRows / (list.length + 1);
-            u.row = step * (idx + 1) - 0.5;
-          } else {
-            u.row = idx;
+        // 同ゾーン内に直下縦積みターゲット(Firebox等)が繋がる場合、直下1行分を予約して重なりを防ぐ
+        members.forEach((m) => {
+          if (collapsedToTarget.has(m.id)) {
+            const child = nodeById.get(collapsedToTarget.get(m.id));
+            if (child && !child.zoneId) markBand(child.col, child.col, chosenStart + maxStack, 1);
           }
         });
       });
     }
   }
+
+  // ゾーン見出しを推定幅で自動改行し、複数行時は上余白を拡張
+  zones.forEach((z) => {
+    const members = nodes.filter((n) => n.zoneId === z.id);
+    const minC = members.length ? Math.min(...members.map((m) => m.col || 0)) : 0;
+    const maxC = members.length ? Math.max(...members.map((m) => m.col || 0)) : 0;
+    const estHeaderW = Math.max(140, (maxC - minC) * (nodeW + colGap) + nodeW + zonePadX * 2 - 22);
+    z._hdrLines = wrapNetText(z.label, estHeaderW, 12, true);
+    z._padTop = z._hdrLines.length > 1 ? (32 + (z._hdrLines.length - 1) * 16) : zonePadTop;
+  });
 
   // 2. ピクセル座標変換（LR: col->X, row->Y / TD: row->X, col->Y）
   const padLeft = 40;
   const padTop = parsed.title ? 66 : 30;
   const stepX = nodeW + colGap;
-  const stepY = nodeH + rowGap;
+  const stepY = effectiveNodeH + rowGap;
 
-  // ゾーンバンド間の追加余白を計算（LR時は縦並びゾーン間に余白を確保）
+  // 列範囲が重なりつつ縦に並ぶゾーン間のみ追加余白を確保（列非重複ゾーンは行Yを揃えて水平直通を維持）
   const zoneYShift = new Map();
   if (parsed.direction !== 'GRID' && zones.length > 1) {
-    // ゾーンごとの最小row順で追加Yギャップを蓄積
     const orderedZones = zones
       .map((z) => {
-        const mems = nodes.filter((n) => n.zoneId === z.id);
+        const mems = nodes.filter((n) => n.zoneId === z.id && n.row != null);
         const minR = mems.length ? Math.min(...mems.map((m) => m.row)) : 0;
-        return { z, minR, mems };
+        const maxR = mems.length ? Math.max(...mems.map((m) => m.row)) : 0;
+        const minC = mems.length ? Math.min(...mems.map((m) => m.col)) : 0;
+        const maxC = mems.length ? Math.max(...mems.map((m) => m.col)) : 0;
+        return { z, minR, maxR, minC, maxC, mems, shift: 0 };
       })
       .filter((item) => item.mems.length > 0)
-      .sort((a, b) => a.minR - b.minR);
+      .sort((a, b) => (a.minR - b.minR) || (a.minC - b.minC));
 
-    orderedZones.forEach((item, zIdx) => {
-      const extra = zIdx * zoneBandGap;
+    orderedZones.forEach((item, idx) => {
+      let extra = 0;
+      const itemPadTop = item.z._padTop || zonePadTop;
+      const itemTopBase = padTop + item.minR * stepY - itemPadTop;
+      const itemIds = new Set(item.mems.map((m) => m.id));
+      for (let prevIdx = 0; prevIdx < idx; prevIdx++) {
+        const prev = orderedZones[prevIdx];
+        const colOverlap = !(prev.maxC < item.minC || item.maxC < prev.minC);
+        if (colOverlap && item.minR > prev.maxR) {
+          const prevBottomPx = padTop + prev.maxR * stepY + effectiveNodeH + prev.shift + zonePadBottom;
+          const prevIds = new Set(prev.mems.map((m) => m.id));
+          const hasSameColCrossEdge = edges.some((e) => {
+            const s = nodeById.get(e.from);
+            const d = nodeById.get(e.to);
+            return s && d && s.col === d.col && ((prevIds.has(s.id) && itemIds.has(d.id)) || (itemIds.has(s.id) && prevIds.has(d.id)));
+          });
+          const requiredGap = hasSameColCrossEdge ? 62 : 22;
+          extra = Math.max(extra, Math.ceil((prevBottomPx + requiredGap) - itemTopBase));
+        }
+      }
+      item.shift = extra;
       item.mems.forEach((m) => zoneYShift.set(m.id, extra));
     });
   }
 
+  // 先にゾーン所属ノード・明示座標ノードのピクセル位置とゾーン外枠を確定
   nodes.forEach((n) => {
+    n.w = nodeW;
+    n.h = effectiveNodeH;
     if (parsed.direction === 'TD') {
-      n.x = padLeft + n.row * (nodeW + 34);
-      n.y = padTop + n.col * (nodeH + 54);
+      n.x = padLeft + (n.row || 0) * (nodeW + 34);
+      n.y = padTop + n.col * (effectiveNodeH + 54);
     } else {
       n.x = padLeft + n.col * stepX;
-      n.y = padTop + n.row * stepY + (zoneYShift.get(n.id) || 0);
+      if (n.row != null) {
+        n.y = padTop + n.row * stepY + (zoneYShift.get(n.id) || 0);
+      }
     }
-    n.w = nodeW;
-    n.h = nodeH;
   });
 
-  // ゾーンがある列に左右余白が必要なら、後続ノードや全体座標を微調整せずゾーン背景をパディング付き算出
   const zoneBoxes = [];
-  zones.forEach((z) => {
-    const members = nodes.filter((n) => n.zoneId === z.id);
-    if (members.length === 0) return;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    members.forEach((m) => {
-      minX = Math.min(minX, m.x);
-      minY = Math.min(minY, m.y);
-      maxX = Math.max(maxX, m.x + m.w);
-      maxY = Math.max(maxY, m.y + m.h);
+  const computeZoneBoxes = () => {
+    zoneBoxes.length = 0;
+    zones.forEach((z) => {
+      const members = nodes.filter((n) => n.zoneId === z.id && n.y != null);
+      if (members.length === 0) return;
+      const pTop = z._padTop || zonePadTop;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      members.forEach((m) => {
+        minX = Math.min(minX, m.x);
+        minY = Math.min(minY, m.y);
+        maxX = Math.max(maxX, m.x + m.w);
+        maxY = Math.max(maxY, m.y + m.h);
+      });
+      zoneBoxes.push({
+        zone: z,
+        x: minX - zonePadX,
+        y: minY - pTop,
+        w: (maxX - minX) + zonePadX * 2,
+        h: (maxY - minY) + pTop + zonePadBottom
+      });
     });
-    zoneBoxes.push({
-      zone: z,
-      x: minX - zonePadX,
-      y: minY - zonePadTop,
-      w: (maxX - minX) + zonePadX * 2,
-      h: (maxY - minY) + zonePadTop + zonePadBottom
+  };
+  computeZoneBoxes();
+
+  // 未所属ノードを配置（直上縦積み親がいる場合はその直下にラベル余白込みで配置）
+  if (parsed.direction !== 'GRID' && parsed.direction !== 'TD') {
+    const unzoned = nodes.filter((n) => n.y == null);
+    unzoned.forEach((u) => {
+      const blocked = [];
+      zoneBoxes.forEach((zb) => {
+        if (!(zb.x + zb.w + 10 < u.x || u.x + u.w + 10 < zb.x)) {
+          blocked.push({ top: zb.y - 20, bottom: zb.y + zb.h + 20 });
+        }
+      });
+      nodes.forEach((other) => {
+        if (other !== u && other.y != null && other.col === u.col) {
+          blocked.push({ top: other.y - 20, bottom: other.y + other.h + 20 });
+        }
+      });
+      const isYFree = (cy) => !blocked.some((b) => !(cy + u.h <= b.top || cy >= b.bottom));
+
+      if (verticalParentOf.has(u.id)) {
+        const pNode = nodeById.get(verticalParentOf.get(u.id));
+        const pZone = pNode && pNode.zoneId ? zoneBoxes.find((zb) => zb.zone.id === pNode.zoneId) : null;
+        const pBottom = pZone ? (pZone.y + pZone.h) : (pNode ? pNode.y + pNode.h : padTop);
+        const targetY = Math.round(pBottom + 58);
+        u.y = targetY;
+
+        // 親ゾーンと縦積み子機器の間に他ゾーンが割り込んでいれば、他ゾーンを下へ押し下げて直下配置を維持
+        const overlapZones = zoneBoxes.filter((zb) =>
+          zb.zone.id !== (pNode ? pNode.zoneId : null) &&
+          !(zb.x + zb.w + 10 < u.x || u.x + u.w + 10 < zb.x) &&
+          zb.y + zb.h > (pZone ? pZone.y : pBottom) &&
+          zb.y < targetY + u.h + 24
+        );
+        if (overlapZones.length > 0) {
+          overlapZones.forEach((oz) => {
+            const delta = Math.max(0, Math.round(targetY + u.h + 26 - oz.y));
+            if (delta > 0) {
+              nodes.forEach((mn) => {
+                if (mn.zoneId === oz.zone.id && mn.y != null) mn.y += delta;
+              });
+            }
+          });
+          computeZoneBoxes();
+        }
+        return;
+      }
+
+      const neighborYs = [];
+      edges.forEach((e) => {
+        const toN = nodeById.get(e.to);
+        const fromN = nodeById.get(e.from);
+        if (e.from === u.id && toN && toN.y != null) neighborYs.push(toN.y);
+        if (e.to === u.id && fromN && fromN.y != null) neighborYs.push(fromN.y);
+      });
+
+      const idealY = neighborYs.length > 0
+        ? neighborYs.reduce((a, b) => a + b, 0) / neighborYs.length
+        : padTop;
+
+      const candidates = [...neighborYs, idealY, padTop];
+      zoneBoxes.forEach((zb) => {
+        candidates.push(zb.y - u.h - 22, zb.y + zb.h + 22);
+      });
+      nodes.forEach((other) => {
+        if (other !== u && other.y != null && other.col === u.col) {
+          candidates.push(other.y + other.h + rowGap, other.y - u.h - rowGap);
+        }
+      });
+
+      const valid = candidates.filter((cy) => cy >= padTop && isYFree(cy));
+      if (valid.length > 0) {
+        valid.sort((a, b) => {
+          const aMatch = neighborYs.some((ny) => Math.abs(ny - a) < 1) ? -24 : 0;
+          const bMatch = neighborYs.some((ny) => Math.abs(ny - b) < 1) ? -24 : 0;
+          return (Math.abs(a - idealY) + aMatch) - (Math.abs(b - idealY) + bMatch);
+        });
+        u.y = Math.round(valid[0]);
+      } else {
+        const maxBot = blocked.reduce((m, b) => Math.max(m, b.bottom), padTop);
+        u.y = Math.round(maxBot + 4);
+      }
     });
-  });
+    computeZoneBoxes();
+  }
 
   // 全体の最小X・Yを正領域へシフト（上/左にはみ出たゾーン枠も収める）
   let globalMinX = Infinity, globalMinY = Infinity, globalMaxX = -Infinity, globalMaxY = -Infinity;
@@ -851,6 +1675,38 @@ function drawNetworkSvg(rawCode, container, labelText) {
     zoneBoxes.forEach((zb) => { zb.x += shiftX; zb.y += shiftY; });
     globalMaxX += shiftX;
     globalMaxY += shiftY;
+  }
+
+  // 列跨ぎエッジで中間列ノード・ゾーン枠と交差するものを下側迂回パスとして事前計算（凡例Y確保も兼ねる）
+  const bypassInfoByEdge = new Map();
+  if (parsed.direction !== 'TD') {
+    let bypassStack = 0;
+    edges.forEach((e, idx) => {
+      const s = nodeById.get(e.from);
+      const d = nodeById.get(e.to);
+      if (!s || !d || Math.abs(d.col - s.col) <= 1) return;
+      const minC = Math.min(s.col, d.col);
+      const maxC = Math.max(s.col, d.col);
+      const obstacles = [];
+      nodes.forEach((n) => {
+        if (n.col > minC && n.col < maxC) obstacles.push({ top: n.y, bottom: n.y + n.h });
+      });
+      zoneBoxes.forEach((zb) => {
+        const hasMidMember = nodes.some((n) => n.zoneId === zb.zone.id && n.col > minC && n.col < maxC);
+        if (hasMidMember) obstacles.push({ top: zb.y, bottom: zb.y + zb.h });
+      });
+      if (obstacles.length === 0) return;
+      const obsTop = Math.min(...obstacles.map((o) => o.top));
+      const obsBot = Math.max(...obstacles.map((o) => o.bottom));
+      const yMin = Math.min(s.y + s.h / 2, d.y + d.h / 2);
+      const yMax = Math.max(s.y + s.h / 2, d.y + d.h / 2);
+      if (!(yMax < obsTop - 16 || yMin > obsBot + 16)) {
+        const bypassY = Math.round(obsBot + 32 + bypassStack * 26);
+        bypassInfoByEdge.set(idx, { bypassY });
+        bypassStack++;
+        globalMaxY = Math.max(globalMaxY, bypassY + 22);
+      }
+    });
   }
 
   const width = Math.max(760, Math.ceil(globalMaxX + 36));
@@ -884,22 +1740,73 @@ function drawNetworkSvg(rawCode, container, labelText) {
   svg.style.height = 'auto';
   svg.style.display = 'block';
 
-  // Defs（統一モノトーン矢印 + リスク強調赤/黄矢印 + シャドウ）
+  const uid = `n${++_networkSvgUidSeq}`;
+  const gradIds = {
+    ciscoTop: `${uid}-cisco-top`,
+    ciscoBody: `${uid}-cisco-body`,
+    ciscoBrick: `${uid}-cisco-brick`,
+    modScreen: `${uid}-mod-screen`,
+    modSilver: `${uid}-mod-silver`,
+    modDark: `${uid}-mod-dark`,
+    modSky: `${uid}-mod-sky`,
+    modBrick: `${uid}-mod-brick`,
+    shadow: `${uid}-shadow`,
+    arrDefault: `${uid}-arr-default`,
+    arrDanger: `${uid}-arr-danger`,
+    arrWarn: `${uid}-arr-warn`,
+    arrSafe: `${uid}-arr-safe`
+  };
+
+  // Defs（3系統アイコン用グラデーション + 矢印マーカー + シャドウ）
   const defs = document.createElementNS(svgNS, 'defs');
   defs.innerHTML = `
-    <marker id="net-arrow-default" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <linearGradient id="${gradIds.ciscoTop}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="${gradIds.ciscoBody}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0c4a6e" />
+    </linearGradient>
+    <linearGradient id="${gradIds.ciscoBrick}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dc2626" />
+      <stop offset="100%" stop-color="#991b1b" />
+    </linearGradient>
+    <linearGradient id="${gradIds.modScreen}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="55%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="${gradIds.modSilver}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="55%" stop-color="#e2e8f0" />
+      <stop offset="100%" stop-color="#94a3b8" />
+    </linearGradient>
+    <linearGradient id="${gradIds.modDark}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="${gradIds.modSky}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e0f2fe" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+    <linearGradient id="${gradIds.modBrick}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#991b1b" />
+    </linearGradient>
+    <marker id="${gradIds.arrDefault}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="${palette.line}" />
     </marker>
-    <marker id="net-arrow-danger" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="${gradIds.arrDanger}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="${palette.dangerStroke}" />
     </marker>
-    <marker id="net-arrow-warn" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="${gradIds.arrWarn}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="${palette.warnStroke}" />
     </marker>
-    <marker id="net-arrow-safe" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="${gradIds.arrSafe}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="${palette.safeStroke}" />
     </marker>
-    <filter id="net-shadow" x="-8%" y="-8%" width="116%" height="116%">
+    <filter id="${gradIds.shadow}" x="-8%" y="-8%" width="116%" height="116%">
       <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="${isDark ? '0.35' : '0.06'}" />
     </filter>
   `;
@@ -952,20 +1859,209 @@ function drawNetworkSvg(rawCode, container, labelText) {
       svg.appendChild(rect);
     }
 
-    const zLbl = document.createElementNS(svgNS, 'text');
-    zLbl.setAttribute('x', x + 12);
-    zLbl.setAttribute('y', y + 19);
-    zLbl.setAttribute('font-size', '12');
-    zLbl.setAttribute('font-weight', '700');
-    zLbl.setAttribute('fill', sc.text);
-    zLbl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-    zLbl.textContent = zone.label;
-    svg.appendChild(zLbl);
+    const hdrLines = zone._hdrLines && zone._hdrLines.length > 0 ? zone._hdrLines : [zone.label];
+    hdrLines.forEach((hLn, hIdx) => {
+      const zLbl = document.createElementNS(svgNS, 'text');
+      zLbl.setAttribute('x', x + 12);
+      zLbl.setAttribute('y', y + 18 + hIdx * 15);
+      zLbl.setAttribute('font-size', '12');
+      zLbl.setAttribute('font-weight', '700');
+      zLbl.setAttribute('fill', sc.text);
+      zLbl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+      zLbl.textContent = hLn;
+      svg.appendChild(zLbl);
+    });
   });
 
-  // 4. エッジ描画（直交バス配線＋Wi-Fi電波アイコン＋色強調）
-  const edgeG = document.createElementNS(svgNS, 'g');
-  edges.forEach((e) => {
+  // 4. エッジ描画（線レイヤー先描画 → 角丸ピルバッジ後描画 + 2D重なり回避）
+  const colHasZone = new Set(nodes.filter((n) => n.zoneId).map((n) => n.col));
+  const outEdgeCount = new Map();
+  const inEdgeCount = new Map();
+  const pairEdges = new Map();
+  edges.forEach((e, idx) => {
+    outEdgeCount.set(e.from, (outEdgeCount.get(e.from) || 0) + 1);
+    inEdgeCount.set(e.to, (inEdgeCount.get(e.to) || 0) + 1);
+    const pairKey = [e.from, e.to].sort().join('::');
+    if (!pairEdges.has(pairKey)) pairEdges.set(pairKey, []);
+    pairEdges.get(pairKey).push(idx);
+  });
+
+  // 同一列間ギャップを通る斜め・段差エッジへ個別の垂直幹レーンを割り当て（同列縦線・迂回線・分岐バスは除外）
+  const gapEdgeLanes = new Map();
+  edges.forEach((e, idx) => {
+    const s = nodeById.get(e.from);
+    const d = nodeById.get(e.to);
+    if (!s || !d || s.col === d.col || bypassInfoByEdge.has(idx) || e.busGroup != null) return;
+    if (Math.abs((s.y + s.h / 2) - (d.y + d.h / 2)) >= 2) {
+      const gapKey = `${Math.min(s.col, d.col)}-${Math.max(s.col, d.col)}`;
+      if (!gapEdgeLanes.has(gapKey)) gapEdgeLanes.set(gapKey, []);
+      gapEdgeLanes.get(gapKey).push(idx);
+    }
+  });
+  // 同一ギャップ内で上昇・下降線の垂直幹が不要に交差しないようレーン順を整列
+  gapEdgeLanes.forEach((list) => {
+    if (list.length <= 1) return;
+    list.sort((aIdx, bIdx) => {
+      const sa = nodeById.get(edges[aIdx].from);
+      const da = nodeById.get(edges[aIdx].to);
+      const sb = nodeById.get(edges[bIdx].from);
+      const db = nodeById.get(edges[bIdx].to);
+      const dyA = (da.y + da.h / 2) - (sa.y + sa.h / 2);
+      const dyB = (db.y + db.h / 2) - (sb.y + sb.h / 2);
+      if (dyA * dyB > 0) {
+        return dyA < 0 ? ((sb.y + sb.h / 2) - (sa.y + sa.h / 2)) : ((sa.y + sa.h / 2) - (sb.y + sb.h / 2));
+      }
+      return (sa.y + sa.h / 2) - (sb.y + sb.h / 2);
+    });
+  });
+
+  const edgeLineG = document.createElementNS(svgNS, 'g');
+  const edgeLabelG = document.createElementNS(svgNS, 'g');
+  const placedBadges = [];
+  const badgesOverlap = (a, b) => !(a.x + a.w + 4 <= b.x || b.x + b.w + 4 <= a.x || a.y + a.h + 4 <= b.y || b.y + b.h + 4 <= a.y);
+
+  // 分岐バス対象グループ（LR時：同一始点・全ターゲットが右列・非迂回）
+  const busGroupsMap = new Map();
+  const busSplitOffsetByGroup = new Map();
+  if (parsed.direction !== 'TD') {
+    const grouped = new Map();
+    edges.forEach((e, idx) => {
+      if (e.busGroup == null) return;
+      if (!grouped.has(e.busGroup)) grouped.set(e.busGroup, []);
+      grouped.get(e.busGroup).push(idx);
+    });
+    const byGapCol = new Map();
+    grouped.forEach((idxs, gid) => {
+      if (idxs.length <= 1) return;
+      const valid = idxs.every((idx) => {
+        const s = nodeById.get(edges[idx].from);
+        const d = nodeById.get(edges[idx].to);
+        return s && d && d.x > s.x && !bypassInfoByEdge.has(idx);
+      });
+      if (valid) {
+        busGroupsMap.set(gid, idxs);
+        const s0 = nodeById.get(edges[idxs[0]].from);
+        const minTargetCol = Math.min(...idxs.map((i) => nodeById.get(edges[i].to).col));
+        const gKey = `${s0.col}-${minTargetCol}`;
+        if (!byGapCol.has(gKey)) byGapCol.set(gKey, []);
+        const avgDistY = Math.abs(
+          idxs.reduce((acc, i) => acc + nodeById.get(edges[i].to).y + nodeById.get(edges[i].to).h / 2, 0) / idxs.length -
+          (s0.y + s0.h / 2)
+        );
+        byGapCol.get(gKey).push({ gid, avgDistY });
+      }
+    });
+    // 同列ギャップに複数分岐バスがある場合、縦距離が遠いグループほど左側の分岐Xに配置して交差を防ぐ
+    byGapCol.forEach((list) => {
+      if (list.length <= 1) return;
+      list.sort((a, b) => b.avgDistY - a.avgDistY);
+      list.forEach((item, pos) => {
+        busSplitOffsetByGroup.set(item.gid, (list.length - 1 - pos) * 14);
+      });
+    });
+  }
+
+  // ノード左右端へ集まる複数エッジの接続点Yを進入高さ順に割り当て、線同士の交差を防止
+  const leftPortOffsetByEdge = new Map();
+  const rightPortOffsetByEdge = new Map();
+  if (parsed.direction !== 'TD') {
+    const leftPortsMap = new Map();
+    const rightPortsMap = new Map();
+    const busTrunkAdded = new Set();
+    edges.forEach((e, idx) => {
+      const s = nodeById.get(e.from);
+      const d = nodeById.get(e.to);
+      if (!s || !d || s.col === d.col) return;
+      const rightHost = d.x >= s.x ? d : s;
+      const leftHost = d.x >= s.x ? s : d;
+      if (rightHost.x > leftHost.x) {
+        const bp = bypassInfoByEdge.get(idx);
+        const approachLeftY = bp ? bp.bypassY : (leftHost.y + leftHost.h / 2);
+        if (!leftPortsMap.has(rightHost.id)) leftPortsMap.set(rightHost.id, []);
+        leftPortsMap.get(rightHost.id).push({ idx, approachY: approachLeftY, otherY: leftHost.y + leftHost.h / 2, isBack: d.x < s.x });
+
+        if (e.busGroup != null && busGroupsMap.has(e.busGroup)) {
+          if (!busTrunkAdded.has(e.busGroup)) {
+            busTrunkAdded.add(e.busGroup);
+            const gIdxs = busGroupsMap.get(e.busGroup);
+            const avgY = gIdxs.reduce((acc, i) => {
+              const t = nodeById.get(edges[i].to);
+              return acc + t.y + t.h / 2;
+            }, 0) / gIdxs.length;
+            if (!rightPortsMap.has(leftHost.id)) rightPortsMap.set(leftHost.id, []);
+            rightPortsMap.get(leftHost.id).push({ idx, groupIdxs: gIdxs, approachY: avgY });
+          }
+        } else {
+          const approachRightY = bp ? bp.bypassY : (rightHost.y + rightHost.h / 2);
+          if (!rightPortsMap.has(leftHost.id)) rightPortsMap.set(leftHost.id, []);
+          rightPortsMap.get(leftHost.id).push({ idx, approachY: approachRightY });
+        }
+      }
+    });
+
+    leftPortsMap.forEach((list, hostId) => {
+      if (list.length <= 1) return;
+      const host = nodeById.get(hostId);
+      const hostCenter = host.y + host.h / 2;
+      list.sort((a, b) => (a.approachY - b.approachY) || (a.isBack ? 1 : -1) || (a.idx - b.idx));
+      const uppers = list.filter((it) => it.approachY < hostCenter - 4);
+      const sames = list.filter((it) => Math.abs(it.approachY - hostCenter) <= 4);
+      const lowers = list.filter((it) => it.approachY > hostCenter + 4);
+
+      if (sames.length === 2 && uppers.length > 0 && lowers.length === 0) {
+        const uStep = uppers.length > 1 ? 18 / (uppers.length - 1) : 0;
+        uppers.forEach((it, i) => leftPortOffsetByEdge.set(it.idx, -38 + i * uStep));
+        sames.forEach((it, i) => leftPortOffsetByEdge.set(it.idx, i === 0 ? 6 : 46));
+      } else if (sames.length === 1 && uppers.length >= 1 && lowers.length === 0) {
+        const uStep = uppers.length > 1 ? 18 / (uppers.length - 1) : 0;
+        uppers.forEach((it, i) => leftPortOffsetByEdge.set(it.idx, -36 + i * uStep));
+        leftPortOffsetByEdge.set(sames[0].idx, 0);
+      } else if (sames.length === 1 && lowers.length >= 1 && uppers.length === 0) {
+        leftPortOffsetByEdge.set(sames[0].idx, 0);
+        const lStep = lowers.length > 1 ? 18 / (lowers.length - 1) : 0;
+        lowers.forEach((it, i) => leftPortOffsetByEdge.set(it.idx, 18 + i * lStep));
+      } else if (sames.length === 1 && uppers.length > 0 && lowers.length > 0 && uppers.length !== lowers.length) {
+        const uStep = uppers.length > 1 ? 20 / (uppers.length - 1) : 0;
+        uppers.forEach((it, i) => leftPortOffsetByEdge.set(it.idx, -38 + i * uStep));
+        leftPortOffsetByEdge.set(sames[0].idx, 0);
+        const lStep = lowers.length > 1 ? 20 / (lowers.length - 1) : 0;
+        lowers.forEach((it, i) => leftPortOffsetByEdge.set(it.idx, 18 + i * lStep));
+      } else {
+        const span = Math.min(64, (list.length - 1) * 26);
+        list.forEach((it, pos) => {
+          leftPortOffsetByEdge.set(it.idx, -span / 2 + (pos * span) / (list.length - 1));
+        });
+      }
+    });
+
+    rightPortsMap.forEach((list, hostId) => {
+      if (list.length <= 1) return;
+      const host = nodeById.get(hostId);
+      const hostCenter = host.y + host.h / 2;
+      list.sort((a, b) => (a.approachY - b.approachY) || (a.idx - b.idx));
+      const setRightPort = (it, val) => {
+        if (it.groupIdxs) it.groupIdxs.forEach((gi) => rightPortOffsetByEdge.set(gi, val));
+        else rightPortOffsetByEdge.set(it.idx, val);
+      };
+      const sameItem = list.length === 2 && list.filter((it) => Math.abs(it.approachY - hostCenter) <= 4).length === 1
+        ? list.find((it) => Math.abs(it.approachY - hostCenter) <= 4) : null;
+      if (sameItem) {
+        const otherItem = list.find((it) => it !== sameItem);
+        setRightPort(sameItem, 0);
+        setRightPort(otherItem, otherItem.approachY < hostCenter ? -16 : 16);
+      } else {
+        const span = Math.min(36, (list.length - 1) * 20);
+        list.forEach((it, pos) => {
+          setRightPort(it, -span / 2 + (pos * span) / (list.length - 1));
+        });
+      }
+    });
+  }
+
+  edges.forEach((e, edgeIdx) => {
+    const busIdxs = e.busGroup != null ? busGroupsMap.get(e.busGroup) : null;
+    if (busIdxs && busIdxs[0] !== edgeIdx) return;
+
     const src = nodeById.get(e.from);
     const dst = nodeById.get(e.to);
     if (!src || !dst) return;
@@ -973,59 +2069,250 @@ function drawNetworkSvg(rawCode, container, labelText) {
     const eColor = e.style === 'danger' ? palette.dangerStroke
       : (e.style === 'warn' ? palette.warnStroke
         : (e.style === 'safe' ? palette.safeStroke : palette.line));
-    const markerId = e.style === 'danger' ? 'net-arrow-danger'
-      : (e.style === 'warn' ? 'net-arrow-warn'
-        : (e.style === 'safe' ? 'net-arrow-safe' : 'net-arrow-default'));
+    const markerId = e.style === 'danger' ? gradIds.arrDanger
+      : (e.style === 'warn' ? gradIds.arrWarn
+        : (e.style === 'safe' ? gradIds.arrSafe : gradIds.arrDefault));
 
-    let x1, y1, x2, y2, dStr;
-    if (parsed.direction === 'TD') {
-      x1 = src.x + src.w / 2;
-      y1 = src.y + src.h;
-      x2 = dst.x + dst.w / 2;
-      y2 = dst.y;
-      const midY = (y1 + y2) / 2;
-      dStr = Math.abs(x1 - x2) < 2 ? `M ${x1} ${y1} L ${x2} ${y2}` : `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
-    } else {
+    const appendEdgePath = (dVal, withStart, withEnd) => {
+      const p = document.createElementNS(svgNS, 'path');
+      p.setAttribute('d', dVal);
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', eColor);
+      p.setAttribute('stroke-width', e.style === 'danger' || e.style === 'warn' ? '2.2' : '1.8');
+      p.setAttribute('stroke-linecap', 'round');
+      p.setAttribute('stroke-linejoin', 'round');
+      if (e.dotted) p.setAttribute('stroke-dasharray', '2.5 4.5');
+      else if (e.dashed || e.wifi) p.setAttribute('stroke-dasharray', '5 4');
+      if (withEnd) p.setAttribute('marker-end', `url(#${markerId})`);
+      if (withStart) p.setAttribute('marker-start', `url(#${markerId})`);
+      edgeLineG.appendChild(p);
+    };
+
+    const pairKey = [e.from, e.to].sort().join('::');
+    const pList = pairEdges.get(pairKey) || [edgeIdx];
+    const pPos = pList.indexOf(edgeIdx);
+    const pairOffset = pList.length > 1 ? (pPos - (pList.length - 1) / 2) * 42 : 0;
+
+    const isFanOut = (outEdgeCount.get(e.from) || 0) > 1;
+    const isFanIn = (inEdgeCount.get(e.to) || 0) > 1;
+    let x1, y1, x2, y2, anchorX, anchorY;
+    let busClampRange = null;
+
+    const isSameColVertical = parsed.direction !== 'TD' && src.col === dst.col;
+
+    if (busIdxs) {
       x1 = src.x + src.w;
-      y1 = src.y + src.h / 2;
-      x2 = dst.x;
-      y2 = dst.y + dst.h / 2;
+      y1 = src.y + src.h / 2 + (rightPortOffsetByEdge.get(edgeIdx) || 0);
+      const branches = busIdxs.map((bIdx) => {
+        const tNode = nodeById.get(edges[bIdx].to);
+        const lOff = leftPortOffsetByEdge.get(bIdx) || 0;
+        return { tNode, bx: tNode.x, by: tNode.y + tNode.h / 2 + lOff };
+      });
+      const minTargetX = Math.min(...branches.map((b) => b.bx));
+      const minTargetCol = Math.min(...branches.map((b) => b.tNode.col));
+      const splitOff = (colHasZone.has(minTargetCol) ? (zonePadX + 18) : 24) + (busSplitOffsetByGroup.get(e.busGroup) || 0);
+      const splitX = Math.max(x1 + 36, Math.round(minTargetX - splitOff));
+      const spineYs = [y1, ...branches.map((b) => b.by)];
+      const spineTop = Math.min(...spineYs);
+      const spineBot = Math.max(...spineYs);
+
+      // 共有幹 → 分岐点ドット → 垂直スパイン → 各ターゲット枝線
+      appendEdgePath(`M ${x1} ${y1} L ${splitX} ${y1}`, e.arrow === 'back' || e.arrow === 'both', false);
+      if (Math.abs(spineBot - spineTop) >= 1) {
+        appendEdgePath(`M ${splitX} ${spineTop} L ${splitX} ${spineBot}`, false, false);
+      }
+      const jDot = document.createElementNS(svgNS, 'circle');
+      jDot.setAttribute('cx', splitX);
+      jDot.setAttribute('cy', y1);
+      jDot.setAttribute('r', '2.8');
+      jDot.setAttribute('fill', eColor);
+      edgeLineG.appendChild(jDot);
+
+      branches.forEach((b) => {
+        appendEdgePath(`M ${splitX} ${b.by} L ${b.bx} ${b.by}`, false, e.arrow === 'forward' || e.arrow === 'both');
+      });
+
+      x2 = minTargetX;
+      anchorX = Math.round((x1 + 18 + splitX) / 2);
+      anchorY = y1;
+      busClampRange = [x1 + 8, splitX - 8];
+    } else if (parsed.direction === 'TD' || isSameColVertical) {
+      x1 = src.x + src.w / 2 + pairOffset;
+      x2 = dst.x + dst.w / 2 + pairOffset;
+      if (dst.y < src.y) {
+        y1 = src.y;
+        y2 = dst.y + dst.h;
+      } else {
+        y1 = src.y + src.h;
+        y2 = dst.y;
+      }
+      const midY = (y1 + y2) / 2;
+      const dStr = Math.abs(x1 - x2) < 2 ? `M ${x1} ${y1} L ${x2} ${y2}` : `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+      appendEdgePath(dStr, e.arrow === 'back' || e.arrow === 'both', e.arrow === 'forward' || e.arrow === 'both');
+      anchorX = (x1 + x2) / 2;
+      if (isSameColVertical && dst.y >= src.y) {
+        const sZb = src.zoneId ? zoneBoxes.find((zb) => zb.zone.id === src.zoneId) : null;
+        const dZb = dst.zoneId ? zoneBoxes.find((zb) => zb.zone.id === dst.zoneId) : null;
+        const effTop = sZb ? (sZb.y + sZb.h) : y1;
+        const effBot = dZb ? dZb.y : y2;
+        anchorY = (effTop + effBot) / 2;
+      } else {
+        anchorY = (y1 + y2) / 2;
+      }
+    } else {
+      const rPortOff = rightPortOffsetByEdge.get(edgeIdx);
+      const lPortOff = leftPortOffsetByEdge.get(edgeIdx);
+      const isSameLevelPair = pList.length > 1 && Math.abs((src.y + src.h / 2) - (dst.y + dst.h / 2)) < 4;
       if (dst.x < src.x) {
         x1 = src.x;
+        y1 = src.y + src.h / 2 + (lPortOff != null ? lPortOff : pairOffset);
         x2 = dst.x + dst.w;
+        y2 = dst.y + dst.h / 2 + (isSameLevelPair && lPortOff != null ? lPortOff : (rPortOff != null ? rPortOff : pairOffset));
+      } else {
+        x1 = src.x + src.w;
+        y1 = src.y + src.h / 2 + (isSameLevelPair && lPortOff != null ? lPortOff : (rPortOff != null ? rPortOff : pairOffset));
+        x2 = dst.x;
+        y2 = dst.y + dst.h / 2 + (lPortOff != null ? lPortOff : pairOffset);
       }
-      const midX = Math.round((x1 + x2) / 2);
-      dStr = Math.abs(y1 - y2) < 2 ? `M ${x1} ${y1} L ${x2} ${y2}` : `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+
+      const bypass = bypassInfoByEdge.get(edgeIdx);
+      let dStr;
+      if (bypass) {
+        const leftX = Math.min(x1, x2);
+        const rightX = Math.max(x1, x2);
+        const leftN = dst.x < src.x ? dst : src;
+        const rightN = dst.x < src.x ? src : dst;
+        const lane1X = Math.round(leftX + (colHasZone.has(leftN.col) ? (zonePadX + 14) : 20));
+        const lane2X = Math.round(rightX - (colHasZone.has(rightN.col) ? (zonePadX + 28) : 26));
+        const by = bypass.bypassY;
+        const sy = dst.x < src.x ? y2 : y1;
+        const ey = dst.x < src.x ? y1 : y2;
+        dStr = `M ${leftX} ${sy} L ${lane1X} ${sy} L ${lane1X} ${by} L ${lane2X} ${by} L ${lane2X} ${ey} L ${rightX} ${ey}`;
+        anchorX = Math.round((lane1X + lane2X) / 2);
+        anchorY = by;
+      } else {
+        const gapKey = `${Math.min(src.col, dst.col)}-${Math.max(src.col, dst.col)}`;
+        const gLanes = gapEdgeLanes.get(gapKey) || [];
+        const gIdx = gLanes.indexOf(edgeIdx);
+        const gapLeft = Math.min(x1, x2);
+        const gapRight = Math.max(x1, x2);
+        const gapW = Math.max(40, gapRight - gapLeft);
+        const leftNode = dst.x < src.x ? dst : src;
+        const rightNode = dst.x < src.x ? src : dst;
+        const rightZoneOff = colHasZone.has(rightNode.col) ? (zonePadX + 18) : 16;
+        const leftZoneOff = colHasZone.has(leftNode.col) ? (zonePadX + 10) : 10;
+
+        let midX;
+        if (Math.abs(y1 - y2) < 2) {
+          midX = Math.round((x1 + x2) / 2);
+          anchorX = Math.round((gapLeft + leftZoneOff + gapRight - rightZoneOff) / 2);
+          anchorY = y1;
+        } else if (isFanOut && !isFanIn && dst.x >= src.x) {
+          midX = Math.round(gapLeft + leftZoneOff + Math.max(10, (gapW - leftZoneOff - rightZoneOff) * 0.16));
+          anchorX = (midX + gapRight - rightZoneOff) / 2;
+          anchorY = y2;
+        } else if (dst.x < src.x) {
+          const laneOff = rightZoneOff + (gLanes.length > 1 ? gIdx * 9 : 4);
+          midX = Math.round(gapRight - Math.min(gapW * 0.34, laneOff));
+          anchorX = (gapLeft + leftZoneOff + midX) / 2;
+          anchorY = y2;
+        } else if (gLanes.length > 1 && Math.abs(y1 - y2) >= 2) {
+          const laneOff = rightZoneOff + gIdx * 9;
+          midX = Math.round(gapRight - Math.min(gapW * 0.34, laneOff));
+          anchorX = (gapLeft + leftZoneOff + midX) / 2;
+          anchorY = y1;
+        } else {
+          // 単一ギャップエッジはゾーン余白内の中央を通し、両側ゾーン枠と広い隙間を確保
+          midX = Math.round((gapLeft + leftZoneOff + gapRight - rightZoneOff) / 2);
+          anchorX = midX;
+          anchorY = (y1 + y2) / 2;
+        }
+        dStr = Math.abs(y1 - y2) < 2 ? `M ${x1} ${y1} L ${x2} ${y2}` : `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+      }
+      appendEdgePath(dStr, e.arrow === 'back' || e.arrow === 'both', e.arrow === 'forward' || e.arrow === 'both');
     }
 
-    const path = document.createElementNS(svgNS, 'path');
-    path.setAttribute('d', dStr);
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', eColor);
-    path.setAttribute('stroke-width', e.style === 'danger' || e.style === 'warn' ? '2.2' : '1.8');
-    path.setAttribute('stroke-linecap', 'round');
-    path.setAttribute('stroke-linejoin', 'round');
-    if (e.dotted) path.setAttribute('stroke-dasharray', '2.5 4.5');
-    else if (e.dashed || e.wifi) path.setAttribute('stroke-dasharray', '5 4');
-    if (e.arrow === 'forward' || e.arrow === 'both') {
-      path.setAttribute('marker-end', `url(#${markerId})`);
-    }
-    if (e.arrow === 'back' || e.arrow === 'both') {
-      path.setAttribute('marker-start', `url(#${markerId})`);
-    }
-    edgeG.appendChild(path);
+    let mx = anchorX;
+    let my = anchorY;
 
-    // Wi-Fi電波ミニアイコン（中点表示）
-    const mx = (x1 + x2) / 2;
-    const my = (y1 + y2) / 2;
+    // エッジラベル（角丸ピルバッジ：左右ゾーン破線枠との隙間確保＋2D衝突回避）
+    if (e.label) {
+      const labelLines = wrapNetText(e.label, 92, 10, false);
+      const maxLW = Math.max(...labelLines.map((ln) => measureNetTextW(ln, 10, false)));
+      const badgeW = Math.max(40, Math.ceil(maxLW + 16));
+      const badgeLH = 13;
+      const badgeH = labelLines.length > 1 ? (labelLines.length * badgeLH + 8) : 19;
+      let badgeCenterY = e.wifi ? (my + 8) : my;
+
+      if (busClampRange) {
+        if (busClampRange[1] - busClampRange[0] >= badgeW) {
+          mx = Math.max(busClampRange[0] + badgeW / 2, Math.min(busClampRange[1] - badgeW / 2, mx));
+        }
+      } else if (parsed.direction !== 'TD') {
+        const gLeft = Math.min(x1, x2);
+        const gRight = Math.max(x1, x2);
+        const lNode = dst.x < src.x ? dst : src;
+        const rNode = dst.x < src.x ? src : dst;
+        const lPad = colHasZone.has(lNode.col) ? (zonePadX + 8) : 8;
+        const rPad = colHasZone.has(rNode.col) ? (zonePadX + 8) : 8;
+        if (gRight - gLeft >= badgeW + lPad + rPad) {
+          mx = Math.max(gLeft + badgeW / 2 + lPad, Math.min(gRight - badgeW / 2 - rPad, mx));
+        } else if (gRight - gLeft >= badgeW + 16) {
+          mx = Math.max(gLeft + badgeW / 2 + 8, Math.min(gRight - badgeW / 2 - 8, mx));
+        }
+      }
+
+      const candidateBox = (cy) => ({ x: mx - badgeW / 2, y: cy - badgeH / 2, w: badgeW, h: badgeH });
+      if (placedBadges.some((pb) => badgesOverlap(pb, candidateBox(badgeCenterY)))) {
+        for (let step = 16; step <= 96; step += 16) {
+          if (!placedBadges.some((pb) => badgesOverlap(pb, candidateBox(badgeCenterY - step)))) {
+            badgeCenterY -= step;
+            break;
+          }
+          if (!placedBadges.some((pb) => badgesOverlap(pb, candidateBox(badgeCenterY + step)))) {
+            badgeCenterY += step;
+            break;
+          }
+        }
+      }
+      placedBadges.push(candidateBox(badgeCenterY));
+
+      const pillRect = document.createElementNS(svgNS, 'rect');
+      pillRect.setAttribute('x', (mx - badgeW / 2).toFixed(1));
+      pillRect.setAttribute('y', (badgeCenterY - badgeH / 2).toFixed(1));
+      pillRect.setAttribute('width', String(badgeW));
+      pillRect.setAttribute('height', String(badgeH));
+      pillRect.setAttribute('rx', labelLines.length > 1 ? '6' : '9.5');
+      pillRect.setAttribute('fill', palette.cardBg);
+      pillRect.setAttribute('stroke', e.style === 'default' ? '#cbd5e1' : eColor);
+      pillRect.setAttribute('stroke-width', '1.2');
+      edgeLabelG.appendChild(pillRect);
+
+      const startY = badgeCenterY - ((labelLines.length - 1) * badgeLH) / 2 + 3.8;
+      labelLines.forEach((ln, li) => {
+        const lEl = document.createElementNS(svgNS, 'text');
+        lEl.setAttribute('x', mx);
+        lEl.setAttribute('y', (startY + li * badgeLH).toFixed(1));
+        lEl.setAttribute('text-anchor', 'middle');
+        lEl.setAttribute('font-size', '10');
+        lEl.setAttribute('font-weight', '600');
+        lEl.setAttribute('fill', e.style === 'default' ? palette.textMuted : eColor);
+        lEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+        lEl.textContent = ln;
+        edgeLabelG.appendChild(lEl);
+      });
+    }
+
+    // Wi-Fi電波ミニアイコン（ピルがある場合は線の上側へずらして非重なり）
     if (e.wifi) {
       const wg = document.createElementNS(svgNS, 'g');
-      wg.setAttribute('transform', `translate(${mx - 9}, ${my - 11})`);
+      const wifiY = e.label ? (my - 19) : (my - 11);
+      wg.setAttribute('transform', `translate(${mx - 9}, ${wifiY})`);
       const wBg = document.createElementNS(svgNS, 'rect');
       wBg.setAttribute('x', '0');
       wBg.setAttribute('y', '0');
       wBg.setAttribute('width', '18');
-      wBg.setAttribute('height', '16');
+      wBg.setAttribute('height', '15');
       wBg.setAttribute('rx', '4');
       wBg.setAttribute('fill', palette.bg);
       wg.appendChild(wBg);
@@ -1042,34 +2329,18 @@ function drawNetworkSvg(rawCode, container, labelText) {
       dot.setAttribute('r', '1.3');
       dot.setAttribute('fill', eColor);
       wg.appendChild(dot);
-      edgeG.appendChild(wg);
-    }
-
-    // エッジラベル
-    if (e.label) {
-      const labelLines = e.label.split('\n');
-      labelLines.forEach((ln, li) => {
-        const lEl = document.createElementNS(svgNS, 'text');
-        lEl.setAttribute('x', mx);
-        lEl.setAttribute('y', my - (e.wifi ? 14 : 7) - (labelLines.length - 1 - li) * 13);
-        lEl.setAttribute('text-anchor', 'middle');
-        lEl.setAttribute('font-size', '10.5');
-        lEl.setAttribute('font-weight', e.style === 'danger' || e.style === 'warn' ? '700' : '500');
-        lEl.setAttribute('fill', e.style === 'default' ? palette.textMuted : eColor);
-        lEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-        lEl.textContent = ln;
-        edgeG.appendChild(lEl);
-      });
+      edgeLabelG.appendChild(wg);
     }
   });
-  svg.appendChild(edgeG);
+  svg.appendChild(edgeLineG);
+  svg.appendChild(edgeLabelG);
 
   // 5. ノード（モノトーン機器アイコン＋リスク箇所バッジ強調）
   const nodeG = document.createElementNS(svgNS, 'g');
   nodes.forEach((n) => {
     const sc = getStyleColors(n.style);
     const cardG = document.createElementNS(svgNS, 'g');
-    cardG.setAttribute('filter', 'url(#net-shadow)');
+    cardG.setAttribute('filter', `url(#${gradIds.shadow})`);
 
     const rect = document.createElementNS(svgNS, 'rect');
     rect.setAttribute('x', n.x);
@@ -1082,18 +2353,19 @@ function drawNetworkSvg(rawCode, container, labelText) {
     rect.setAttribute('stroke-width', n.style === 'danger' || n.style === 'warn' ? '2' : '1.3');
     cardG.appendChild(rect);
 
-    // 48x48 アイコンをカード上中央へ配置
+    // 48x48 アイコンをカード上中央へ配置 (mono / cisco / modern 切替対応)
+    const iconScale = 1.28;
     const iconWrap = document.createElementNS(svgNS, 'g');
-    iconWrap.setAttribute('transform', `translate(${n.x + (n.w - 46) / 2}, ${n.y + 8}) scale(0.95)`);
-    iconWrap.appendChild(renderNetworkIconGlyph(n.type, sc.iconStroke, palette.iconFill, palette.iconAccent, svgNS));
+    iconWrap.setAttribute('transform', `translate(${(n.x + (n.w - 48 * iconScale) / 2).toFixed(1)}, ${n.y + 7}) scale(${iconScale})`);
+    iconWrap.appendChild(renderNetworkIconGlyph(n.type, parsed.iconTheme || 'mono', sc.iconStroke, palette.iconFill, palette.iconAccent, gradIds, svgNS));
     cardG.appendChild(iconWrap);
 
-    // ノード名（最大2行）
-    const lblLines = n.label.split('\n').slice(0, 2);
+    // ノード名（自動折り返し・全行表示）
+    const lblLines = n._lblLines && n._lblLines.length > 0 ? n._lblLines : n.label.split('\n');
     lblLines.forEach((ln, idx) => {
       const t = document.createElementNS(svgNS, 'text');
       t.setAttribute('x', n.x + n.w / 2);
-      t.setAttribute('y', n.y + 67 + idx * 14);
+      t.setAttribute('y', n.y + 80 + idx * 14);
       t.setAttribute('text-anchor', 'middle');
       t.setAttribute('font-size', '11.5');
       t.setAttribute('font-weight', '700');
@@ -1103,24 +2375,47 @@ function drawNetworkSvg(rawCode, container, labelText) {
       cardG.appendChild(t);
     });
 
-    // サブテキスト (IPアドレス・補記)
+    // サブテキスト (IPアドレス・補記：カード幅に応じて全行自動折り返し)
     if (n.subLabel) {
-      const subY = n.y + 67 + lblLines.length * 14;
-      const st = document.createElementNS(svgNS, 'text');
-      st.setAttribute('x', n.x + n.w / 2);
-      st.setAttribute('y', subY);
-      st.setAttribute('text-anchor', 'middle');
-      st.setAttribute('font-size', '10');
-      st.setAttribute('fill', n.style === 'warn' ? palette.warnText : (n.style === 'danger' ? palette.dangerText : palette.textMuted));
-      st.setAttribute('font-family', 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace');
-      st.textContent = n.subLabel;
-      cardG.appendChild(st);
+      const subLines = n._subLines && n._subLines.length > 0 ? n._subLines : wrapNetText(n.subLabel, n.w - 16, 9.5, false);
+      subLines.forEach((sln, sIdx) => {
+        const subY = n.y + 80 + lblLines.length * 14 + sIdx * 12;
+        const st = document.createElementNS(svgNS, 'text');
+        st.setAttribute('x', n.x + n.w / 2);
+        st.setAttribute('y', subY);
+        st.setAttribute('text-anchor', 'middle');
+        st.setAttribute('font-size', '9.5');
+        st.setAttribute('fill', n.style === 'warn' ? palette.warnText : (n.style === 'danger' ? palette.dangerText : palette.textMuted));
+        st.setAttribute('font-family', 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace');
+        st.textContent = sln;
+        cardG.appendChild(st);
+      });
     }
 
-    // リスク・ステータスバッジ（danger / warn / safe のときのみ強調）
+    // リスク・ステータスバッジ（danger / warn 時は △！ 三角マークを必ず表示）
+    const drawAlertTriangle = (parent, cx, cy, fillCol, scale = 1) => {
+      const tw = 11 * scale;
+      const thTop = 10 * scale;
+      const thBot = 9 * scale;
+      const tri = document.createElementNS(svgNS, 'polygon');
+      tri.setAttribute('points', `${cx},${cy - thTop} ${cx + tw},${cy + thBot} ${cx - tw},${cy + thBot}`);
+      tri.setAttribute('fill', fillCol);
+      tri.setAttribute('stroke', palette.bg);
+      tri.setAttribute('stroke-width', '1.5');
+      parent.appendChild(tri);
+
+      const ex = document.createElementNS(svgNS, 'text');
+      ex.setAttribute('x', cx);
+      ex.setAttribute('y', cy + 6 * scale);
+      ex.setAttribute('text-anchor', 'middle');
+      ex.setAttribute('font-size', String(11 * scale));
+      ex.setAttribute('font-weight', '800');
+      ex.setAttribute('fill', '#ffffff');
+      ex.textContent = '!';
+      parent.appendChild(ex);
+    };
+
     if (n.style === 'danger' || n.style === 'warn' || n.badge) {
-      const bx = n.x + n.w - 16;
-      const by = n.y + 4;
       const bColor = n.style === 'danger' ? palette.dangerStroke : (n.style === 'warn' ? palette.warnStroke : palette.safeStroke);
       if (n.badge) {
         const bw = Math.max(46, n.badge.length * 10 + 12);
@@ -1143,24 +2438,12 @@ function drawNetworkSvg(rawCode, container, labelText) {
         bt.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
         bt.textContent = n.badge;
         cardG.appendChild(bt);
-      } else {
-        // 三角警告マーク (!)
-        const tri = document.createElementNS(svgNS, 'polygon');
-        tri.setAttribute('points', `${bx},${by - 10} ${bx + 11},${by + 9} ${bx - 11},${by + 9}`);
-        tri.setAttribute('fill', bColor);
-        tri.setAttribute('stroke', palette.bg);
-        tri.setAttribute('stroke-width', '1.5');
-        cardG.appendChild(tri);
 
-        const ex = document.createElementNS(svgNS, 'text');
-        ex.setAttribute('x', bx);
-        ex.setAttribute('y', by + 6);
-        ex.setAttribute('text-anchor', 'middle');
-        ex.setAttribute('font-size', '11');
-        ex.setAttribute('font-weight', '800');
-        ex.setAttribute('fill', '#ffffff');
-        ex.textContent = '!';
-        cardG.appendChild(ex);
+        if (n.style === 'danger' || n.style === 'warn') {
+          drawAlertTriangle(cardG, n.x + 14, n.y + 4, bColor, 1);
+        }
+      } else {
+        drawAlertTriangle(cardG, n.x + n.w - 16, n.y + 4, bColor, 1);
       }
     } else if (n.style === 'safe') {
       // 対策済・安全チェック小バッジ
@@ -1199,15 +2482,35 @@ function drawNetworkSvg(rawCode, container, labelText) {
     legendLayout.forEach((item) => {
       const col = item.style === 'danger' ? palette.dangerStroke
         : (item.style === 'warn' ? palette.warnStroke
-          : (item.style === 'safe' ? palette.safeStroke : palette.line));
-      if (item.kind === 'box' || item.kind === 'zone') {
+          : (item.style === 'safe' ? palette.safeStroke
+            : (item.style === 'info' ? palette.infoStroke : palette.line)));
+      if (item.kind === 'alert') {
+        const ac = item.style === 'warn' ? palette.warnStroke : palette.dangerStroke;
+        const cx = item.x + 12;
+        const cy = item.y - 2;
+        const tri = document.createElementNS(svgNS, 'polygon');
+        tri.setAttribute('points', `${cx},${cy - 7} ${cx + 8},${cy + 6} ${cx - 8},${cy + 6}`);
+        tri.setAttribute('fill', ac);
+        svg.appendChild(tri);
+        const ex = document.createElementNS(svgNS, 'text');
+        ex.setAttribute('x', cx);
+        ex.setAttribute('y', cy + 4);
+        ex.setAttribute('text-anchor', 'middle');
+        ex.setAttribute('font-size', '8.5');
+        ex.setAttribute('font-weight', '800');
+        ex.setAttribute('fill', '#ffffff');
+        ex.textContent = '!';
+        svg.appendChild(ex);
+      } else if (item.kind === 'box' || item.kind === 'zone') {
         const r = document.createElementNS(svgNS, 'rect');
         r.setAttribute('x', item.x);
         r.setAttribute('y', item.y - 9);
         r.setAttribute('width', '20');
         r.setAttribute('height', '13');
         r.setAttribute('rx', '3');
-        r.setAttribute('fill', item.style === 'danger' ? palette.dangerBg : (item.style === 'warn' ? palette.warnBg : palette.safeBg));
+        r.setAttribute('fill', item.style === 'danger' ? palette.dangerBg
+          : (item.style === 'warn' ? palette.warnBg
+            : (item.style === 'info' ? palette.infoBg : palette.safeBg)));
         r.setAttribute('stroke', col);
         r.setAttribute('stroke-width', '1.5');
         if (item.kind === 'zone') r.setAttribute('stroke-dasharray', '4 2');
@@ -1223,7 +2526,7 @@ function drawNetworkSvg(rawCode, container, labelText) {
         if (item.kind === 'dotted' || item.dotted) ln.setAttribute('stroke-dasharray', '2 3');
         else if (item.kind === 'wifi' || item.dashed) ln.setAttribute('stroke-dasharray', '4 3');
         if (item.kind === 'arrow') {
-          const mk = item.style === 'danger' ? 'net-arrow-danger' : (item.style === 'warn' ? 'net-arrow-warn' : 'net-arrow-default');
+          const mk = item.style === 'danger' ? gradIds.arrDanger : (item.style === 'warn' ? gradIds.arrWarn : gradIds.arrDefault);
           ln.setAttribute('marker-end', `url(#${mk})`);
         }
         svg.appendChild(ln);

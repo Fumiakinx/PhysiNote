@@ -2916,23 +2916,77 @@ const networkLibrary = [
     name: '一般的な個人宅ネットワーク構成図 (光回線・Wi-Fiルーター)',
     category: '個人宅・ホームLAN',
     description: 'インターネットからONU・Wi-Fiルーターを経由し、有線LAN（デスクトップPC・NAS・監視カメラ）と無線Wi-Fi（ノートPC・スマホ・タブレット）を接続した標準的な宅内ネットワーク構成図。',
-    code: '\\network{\n  title: "一般的な個人宅ネットワーク構成図（光回線・宅内LAN / Wi-Fi）"\n  theme: light\n  direction: LR\n\n  zone wan: "外部回線 (インターネット)" [danger]\n  zone lan: "宅内LAN（安全なエリア）192.168.1.0/24" [safe]\n\n  inet: internet, "インターネット", "ISP / 光回線網" (in: wan)\n  onu: onu, "ONU", "光回線終端装置"\n  rt: router, "Wi-Fiルーター", "192.168.1.1" (in: lan)\n\n  pc: desktop, "デスクトップPC", "192.168.1.10" (in: lan)\n  nas: nas, "家庭用NAS", "192.168.1.20" (in: lan)\n  laptop: laptop, "ノートPC", "192.168.1.31" (in: lan)\n  phone: mobile, "スマートフォン", "192.168.1.32" (in: lan)\n  tab: tablet, "タブレット", "192.168.1.33" (in: lan)\n\n  inet -> onu : "光ファイバ"\n  onu -> rt : "WAN (有線)"\n  rt -- pc : "有線LAN"\n  rt -- nas : "有線LAN"\n  rt -(wifi)-> laptop : "Wi-Fi"\n  rt -(wifi)-> phone : "Wi-Fi"\n  rt -(wifi)-> tab : "Wi-Fi"\n\n  legend:\n    - line "有線LAN / 光配線"\n    - wifi "Wi-Fi (無線接続)"\n    - zone "安全な宅内LAN" [safe]\n    - zone "外部ネットワーク" [danger]\n}',
+    code: '\\network{\n  title: "一般的な個人宅ネットワーク構成図（光回線・宅内LAN / Wi-Fi）"\n  theme: light\n  direction: LR\n\n  zone wan: "外部回線 (インターネット)" [info]\n  zone lan: "宅内LAN（安全なエリア）192.168.1.0/24" [safe]\n\n  inet: internet, "インターネット", "ISP / 光回線網" (in: wan)\n  onu: onu, "ONU", "光回線終端装置"\n  rt: router, "Wi-Fiルーター", "192.168.1.1" (in: lan)\n\n  pc: desktop, "デスクトップPC", "192.168.1.10" (in: lan)\n  nas: nas, "家庭用NAS", "192.168.1.20" (in: lan)\n  laptop: laptop, "ノートPC", "192.168.1.31" (in: lan)\n  phone: mobile, "スマートフォン", "192.168.1.32" (in: lan)\n  tab: tablet, "タブレット", "192.168.1.33" (in: lan)\n\n  inet -> onu : "光ファイバ"\n  onu -> rt : "WAN (有線)"\n  rt -- pc : "有線LAN"\n  rt -- nas : "有線LAN"\n  rt -(wifi)-> laptop : "Wi-Fi"\n  rt -(wifi)-> phone : "Wi-Fi"\n  rt -(wifi)-> tab : "Wi-Fi"\n\n  legend:\n    - line "有線LAN / 光配線"\n    - wifi "Wi-Fi (無線接続)"\n    - zone "安全な宅内LAN" [safe]\n    - zone "外部ネットワーク" [info]\n}',
     tags: ['個人宅', 'ホームネットワーク', 'ONU', 'ルーター', 'Wi-Fi', 'NAS', '宅内LAN']
+  },
+  {
+    id: 'network-home-onu-issue',
+    name: '個人宅ネットワーク障害切り分け図 (ONU問題箇所の強調例)',
+    category: '個人宅・ホームLAN',
+    description: 'ご提示の個人宅構成図において、ONU（光回線終端装置）を問題箇所として赤色ハイライト＋△！警告マーク＋通信断経路で強調したトラブルシューティング例。',
+    code: '\\network{\n  title: "個人宅ネットワーク構成図（ONU問題箇所・障害切り分け例）"\n  theme: light\n  direction: LR\n\n  zone wan: "外部回線 (インターネット)" [info]\n  zone lan: "宅内LAN（機器側は正常稼働）192.168.1.0/24" [safe]\n\n  inet: internet, "インターネット", "ISP / 光回線網" (in: wan)\n  onu: onu, "ONU (障害検知)", "LOS赤点灯・通信断" [danger, badge: "問題箇所"]\n  rt: router, "Wi-Fiルーター", "192.168.1.1" (in: lan)\n\n  pc: desktop, "デスクトップPC", "192.168.1.10" (in: lan)\n  nas: nas, "家庭用NAS", "192.168.1.20" (in: lan)\n  laptop: laptop, "ノートPC", "192.168.1.31" (in: lan)\n  phone: mobile, "スマートフォン", "192.168.1.32" (in: lan)\n  tab: tablet, "タブレット", "192.168.1.33" (in: lan)\n\n  inet -> onu : "光ファイバ"\n  onu -> rt : "WAN通信断 (異常)" [danger]\n  rt -- pc : "有線LAN"\n  rt -- nas : "有線LAN"\n  rt -(wifi)-> laptop : "Wi-Fi"\n  rt -(wifi)-> phone : "Wi-Fi"\n  rt -(wifi)-> tab : "Wi-Fi"\n\n  legend:\n    - alert "問題・障害箇所 (色変更＋△！)" [danger]\n    - arrow "通信断・異常経路" [danger]\n    - line "有線LAN (宅内正常)"\n    - wifi "Wi-Fi (宅内正常)"\n    - zone "安全な宅内LAN" [safe]\n}',
+    tags: ['個人宅', 'ONU', '障害', '問題箇所', 'トラブルシューティング', '警告マーク', '赤強調']
   },
   {
     id: 'network-enterprise-standard',
     name: '一般的な企業ネットワーク構成図 (FW / DMZ / 社内LAN・脆弱性強調)',
     category: '企業インフラ・セキュリティ',
     description: '外部インターネットからCisco準拠ファイアウォール(UTM)で防御し、DMZセグメント（公開Web/メール）と安全な社内LAN（L2スイッチ・ラックサーバ・DB・NAS・UPS・社内端末）へ分離した構成。要パッチサーバのみ黄色/赤色で強調。',
-    code: '\\network{\n  title: "一般的な企業ネットワーク構成図（DMZ分離・脆弱性リスク可視化）"\n  theme: light\n  direction: LR\n\n  zone ext: "外部 / 危険なエリア" [danger]\n  zone dmz: "DMZ (公開セグメント) 172.16.10.0/24" [warn]\n  zone corp: "社内LAN (安全なエリア) 192.168.10.0/24" [safe]\n\n  inet: internet, "インターネット", "外部WAN" (in: ext)\n  attacker: attacker, "外部攻撃者", "脆弱性探索" [danger] (in: ext)\n  fw: firewall, "ファイアウォール", "UTM / 境界防御"\n\n  dmz_sw: switch, "DMZ スイッチ", "L2 SW" (in: dmz)\n  web: server, "公開Webサーバー", "172.16.10.10" [danger, badge: "CVE要対応"] (in: dmz)\n  mail: vm, "メールリレーVM", "172.16.10.11" [warn, badge: "更新対象"] (in: dmz)\n\n  core_sw: switch, "社内L2スイッチ", "VLAN分割" (in: corp)\n  db: db, "基幹データベース", "192.168.10.20" [safe] (in: corp)\n  rack: rack, "業務アプリサーバ", "192.168.10.21" (in: corp)\n  nas: nas, "ファイルサーバ(NAS)", "192.168.10.25" (in: corp)\n  ups: ups, "電源バックアップ", "UPS装置" (in: corp)\n  emp_pc: desktop, "社員用PC群", "192.168.10.100~" (in: corp)\n  ap: ap, "社内無線AP", "802.1X認証" (in: corp)\n\n  attacker -> inet : "攻撃試行" [danger]\n  inet -> fw : "外部通信"\n  fw -> dmz_sw : "DMZ通信"\n  fw -> core_sw : "許可通信"\n  dmz_sw -> web : "HTTP/HTTPS" [warn]\n  dmz_sw -- mail : "SMTP"\n  core_sw -- db\n  core_sw -- rack\n  core_sw -- nas\n  core_sw .. ups : "監視"\n  core_sw -- emp_pc : "有線LAN"\n  core_sw -- ap\n\n  legend:\n    - arrow "攻撃・危険経路" [danger]\n    - box "脆弱性・要対応箇所" [danger]\n    - box "アップデート推奨" [warn]\n    - zone "安全な社内LAN" [safe]\n}',
+    code: '\\network{\n  title: "一般的な企業ネットワーク構成図（DMZ分離・脆弱性リスク可視化）"\n  theme: light\n  direction: LR\n\n  zone ext: "外部ネットワーク (インターネット)" [info]\n  zone dmz: "DMZ (公開セグメント) 172.16.10.0/24" [warn]\n  zone corp: "社内LAN (安全なエリア) 192.168.10.0/24" [safe]\n\n  inet: internet, "インターネット", "外部WAN" (in: ext)\n  attacker: attacker, "外部攻撃者", "脆弱性探索" [danger] (in: ext)\n  fw: firewall, "ファイアウォール", "UTM / 境界防御"\n\n  dmz_sw: switch, "DMZ スイッチ", "L2 SW" (in: dmz)\n  web: server, "公開Webサーバー", "172.16.10.10" [danger, badge: "CVE要対応"] (in: dmz)\n  mail: vm, "メールリレーVM", "172.16.10.11" [warn, badge: "更新対象"] (in: dmz)\n\n  core_sw: switch, "社内L2スイッチ", "VLAN分割" (in: corp)\n  db: db, "基幹データベース", "192.168.10.20" [safe] (in: corp)\n  rack: rack, "業務アプリサーバ", "192.168.10.21" (in: corp)\n  nas: nas, "ファイルサーバ(NAS)", "192.168.10.25" (in: corp)\n  ups: ups, "電源バックアップ", "UPS装置" (in: corp)\n  emp_pc: desktop, "社員用PC群", "192.168.10.100~" (in: corp)\n  ap: ap, "社内無線AP", "802.1X認証" (in: corp)\n\n  attacker -> inet : "攻撃試行" [danger]\n  inet -> fw : "外部通信"\n  fw -> dmz_sw : "DMZ通信"\n  fw -> core_sw : "許可通信"\n  dmz_sw -> web : "HTTP/HTTPS" [warn]\n  dmz_sw -- mail : "SMTP"\n  core_sw -- db\n  core_sw -- rack\n  core_sw -- nas\n  core_sw .. ups : "監視"\n  core_sw -- emp_pc : "有線LAN"\n  core_sw -- ap\n\n  legend:\n    - arrow "攻撃・危険経路" [danger]\n    - box "脆弱性・要対応箇所" [danger]\n    - box "アップデート推奨" [warn]\n    - zone "安全な社内LAN" [safe]\n}',
     tags: ['企業ネットワーク', 'DMZ', 'ファイアウォール', 'UTM', 'L2スイッチ', '脆弱性', '社内LAN', 'Cisco']
   },
   {
     id: 'network-parts-catalog',
-    name: 'ネットワーク部品カタログ (Cisco準拠・モノトーン統一アイコン一覧)',
+    name: 'ネットワーク部品カタログ (モノトーン統一アイコン一覧)',
     category: '部品リファレンス',
-    description: 'ルーター（円柱＋4矢印）、スイッチ（平たい箱＋左右矢印）、ファイアウォール（レンガ壁）をはじめ、利用可能な全モノトーンシルエット部品および警告・危険強調パターンの一覧。',
-    code: '\\network{\n  title: "ネットワーク構成図 部品・状態アイコン一覧（Cisco準拠＋モノトーン統一）"\n  theme: light\n  layout: grid\n  cols: 5\n\n  p1: router, "ルーター (router)", "円柱＋4方向矢印"\n  p2: switch, "スイッチ (switch)", "平箱＋左右矢印"\n  p3: l3switch, "L3スイッチ (l3switch)", "多層ルーティング"\n  p4: firewall, "ファイアウォール", "レンガの壁 (firewall)"\n  p5: ap, "無線AP (ap)", "Wi-Fiアクセスポイント"\n\n  p6: onu, "ONU / モデム (onu)", "光回線終端装置"\n  p7: vpn, "VPN GW (vpn)", "暗号化トンネル"\n  p8: internet, "インターネット", "外部WAN (internet)"\n  p9: cloud, "クラウド (cloud)", "インフラ基盤"\n  p10: server, "サーバー (server)", "物理タワーサーバ"\n\n  p11: rack, "ラックサーバ (rack)", "ラックマウント"\n  p12: vm, "仮想サーバ (vm)", "ハイパーバイザ"\n  p13: db, "データベース (db)", "DBシリンダ"\n  p14: nas, "NAS (nas)", "共有ストレージ"\n  p15: ups, "UPS (ups)", "無停電電源装置"\n\n  p16: desktop, "デスクトップPC", "desktop / pc"\n  p17: laptop, "ノートPC (laptop)", "モバイル端末"\n  p18: tablet, "タブレット (tablet)", "業務端末"\n  p19: mobile, "スマホ (mobile)", "スマートフォン"\n  p20: camera, "監視カメラ (camera)", "IoT / CCTV"\n\n  p21: printer, "プリンター (printer)", "複合機"\n  p22: server, "脆弱性ノード", "192.168.1.50" [danger, badge: "CVE危険"]\n  p23: vm, "要更新ノード", "192.168.1.51" [warn, badge: "要更新"]\n  p24: desktop, "対策済ノード", "192.168.1.52" [safe]\n  p25: attacker, "攻撃者 (attacker)", "外部脅威" [danger]\n}',
-    tags: ['アイコン一覧', 'カタログ', 'Cisco', 'モノトーン', '脆弱性強調', 'リファレンス']
+    description: 'icons: mono 指定時のモノトーン統一アイコンおよび警告・危険強調パターンの一覧。icons: cisco / modern に書き換えて見た目を確認できます。',
+    code: '\\network{\n  title: "ネットワーク構成図 部品・状態アイコン一覧（icons: mono）"\n  theme: light\n  icons: mono\n  layout: grid\n  cols: 5\n\n  p1: router, "ルーター (router)", "円柱＋4方向矢印"\n  p2: switch, "スイッチ (switch)", "平箱＋左右矢印"\n  p3: l3switch, "L3スイッチ (l3switch)", "多層ルーティング"\n  p4: firewall, "ファイアウォール", "レンガの壁 (firewall)"\n  p5: ap, "無線AP (ap)", "Wi-Fiアクセスポイント"\n\n  p6: onu, "ONU / モデム (onu)", "光回線終端装置"\n  p7: vpn, "VPN GW (vpn)", "暗号化トンネル"\n  p8: internet, "インターネット", "外部WAN (internet)"\n  p9: cloud, "クラウド (cloud)", "インフラ基盤"\n  p10: server, "サーバー (server)", "物理タワーサーバ"\n\n  p11: rack, "ラックサーバ (rack)", "ラックマウント"\n  p12: vm, "仮想サーバ (vm)", "ハイパーバイザ"\n  p13: db, "データベース (db)", "DBシリンダ"\n  p14: nas, "NAS (nas)", "共有ストレージ"\n  p15: ups, "UPS (ups)", "無停電電源装置"\n\n  p16: desktop, "デスクトップPC", "desktop / pc"\n  p17: laptop, "ノートPC (laptop)", "モバイル端末"\n  p18: tablet, "タブレット (tablet)", "業務端末"\n  p19: mobile, "スマホ (mobile)", "スマートフォン"\n  p20: camera, "監視カメラ (camera)", "IoT / CCTV"\n\n  p21: printer, "プリンター (printer)", "複合機"\n  p22: server, "脆弱性ノード", "192.168.1.50" [danger, badge: "CVE危険"]\n  p23: vm, "要更新ノード", "192.168.1.51" [warn, badge: "要更新"]\n  p24: desktop, "対策済ノード", "192.168.1.52" [safe]\n  p25: attacker, "攻撃者 (attacker)", "外部脅威" [danger]\n}',
+    tags: ['アイコン一覧', 'カタログ', 'モノトーン', '脆弱性強調', 'リファレンス']
+  },
+  {
+    id: 'network-cisco-enterprise',
+    name: 'Cisco風 3Dブルー構成図 (企業ネットワーク設計書スタイル)',
+    category: '企業インフラ・セキュリティ',
+    description: 'icons: cisco を指定した、クラシックなCiscoトポロジ標準（3Dブルー円柱ルーター・L2/L3スイッチ・レンガFW）による企業構成図。',
+    code: '\\network{\n  title: "企業ネットワーク構成図（Cisco風 3Dブルーアイコン）"\n  theme: light\n  icons: cisco\n  direction: LR\n\n  zone wan: "外部ネットワーク (WAN)" [info]\n  zone lan: "社内基幹ネットワーク 10.10.0.0/16" [safe]\n\n  inet: internet, "インターネット", "ISP BGP" (in: wan)\n  fw: firewall, "境界FW (ASA)", "203.0.113.1"\n  core: l3switch, "コアL3スイッチ", "VLAN間ルーティング" (in: lan)\n  rt: router, "拠点VPNルーター", "IPsecトンネル" (in: lan)\n  sw1: switch, "フロアL2 SW", "10.10.1.0/24" (in: lan)\n  srv: rack, "社内基幹サーバ", "10.10.10.10" (in: lan)\n  db: db, "業務DB", "10.10.10.20" [safe] (in: lan)\n  pc1: desktop, "管理端末", "10.10.1.50" (in: lan)\n\n  inet -> fw : "外部接続"\n  fw -> core : "許可通信"\n  core -- rt : "VPN"\n  core -- sw1\n  core -- srv\n  core -- db\n  sw1 -- pc1\n}',
+    tags: ['Cisco', '3Dブルー', '企業ネットワーク', 'L3スイッチ', 'VPN', 'ルーター', 'ファイアウォール']
+  },
+  {
+    id: 'network-modern-office',
+    name: '現代風 立体グラフィック構成図 (iMac・Mac Pro・最新オフィス)',
+    category: '現代風・オフィス構成',
+    description: 'icons: modern を指定した、鮮やかな青い液晶ディスプレイとメタリック筐体の現代的・プレゼン向けオフィス＆クラウド構成図（iMac / ノートPC / タブレット / キオスク / サーバ）。',
+    code: '\\network{\n  title: "現代風オフィス・クラウド連携構成図（icons: modern）"\n  theme: light\n  icons: modern\n  direction: LR\n\n  zone cloud_z: "クラウド基盤 (SaaS / IaaS)" [info]\n  zone office_z: "モダンオフィス環境 (Wi-Fi 6E / 有線)" [safe]\n\n  inet: internet, "インターネット", "HTTPS / TLS1.3" (in: cloud_z)\n  cld: cloud, "クラウド基盤", "認証・SaaS" (in: cloud_z)\n  fw: firewall, "クラウドWAF / FW", "境界防御"\n  rt: router, "光ルーター / GW", "192.168.100.1" (in: office_z)\n  ap: ap, "無線Wi-Fi 6E", "社内無線" (in: office_z)\n\n  imac: imac, "クリエイティブ端末", "iMac (設計)" (in: office_z)\n  desk: desktop, "開発ワークステーション", "デスクトップPC" (in: office_z)\n  macbook: laptop, "ビジネスノートPC", "Wi-Fi接続" (in: office_z)\n  mini: macmini, "ビルドサーバ", "Mac mini" (in: office_z)\n  ipad: tablet, "タブレット端末", "会議室" (in: office_z)\n  kiosk: kiosk, "受付キオスク端末", "来客受付" [warn, badge: "OS更新推奨"] (in: office_z)\n\n  cld -- inet\n  inet -> fw\n  fw -> rt\n  rt -- desk : "10GbE"\n  rt -- imac : "10GbE"\n  rt -- mini : "有線LAN"\n  rt -- ap\n  ap -(wifi)-> macbook : "Wi-Fi"\n  ap -(wifi)-> ipad : "Wi-Fi"\n  ap -(wifi)-> kiosk : "Wi-Fi"\n\n  legend:\n    - line "有線LAN / 10GbE"\n    - wifi "Wi-Fi 6E 無線接続"\n    - box "OSアップデート推奨" [warn]\n}',
+    tags: ['現代風', 'modern', 'iMac', 'Mac mini', 'キオスク', 'オフィス', 'プレゼン', '立体']
+  }
+];
+
+// ==========================================
+// ソフトウェアスタック図（技術スタック図）ライブラリデータ定義
+// ==========================================
+const techstackLibrary = [
+  {
+    id: 'techstack-server-vulnerability',
+    name: 'サーバーソフトウェアスタック構成 (脆弱性・CVEマッピング)',
+    category: 'サーバー・セキュリティ',
+    description: 'ハードウェア〜OS〜システムライブラリ〜Webサーバ/言語ランタイム/DB〜CMS・アプリの階層構造を可視化し、脆弱性（CVE）が存在する層だけを赤破線とバッジで強調したセキュリティ解説図。',
+    code: '\\techstack{\n  title: "サーバーソフトウェアスタック構成（脆弱性マッピング）"\n  container: "ソフトウェアスタック（サーバー環境）"\n  theme: light\n  arrows: up\n\n  layer: app, "アプリケーション / CMS", "WordPress / Drupal / a-blog cms / 自社製アプリ"\n  row:\n    - web, "Webサーバー", "Nginx / Apache"\n    - runtime, "言語ランタイム", "PHP / Java / Ruby" [danger, badge: "脆弱性・更新対象\\n(CVEあり)"]\n    - db, "データベース", "MySQL / PostgreSQL / Redis"\n  layer: lib, "システムライブラリ・共通部品", "OpenSSL / Brotli / glibc / 各種共通ライブラリ" [danger, badge: "脆弱性・更新対象\\n(CVEあり)"]\n  layer: os, "OS / カーネル", "Linux Kernel (Rocky Linux / Ubuntu)"\n  layer: hardware, "ハードウェア / 仮想基盤", "CPU / メモリ / ストレージ / 仮想化" [base]\n\n  legend:\n    - box "通常レイヤー"\n    - box "脆弱性・要アップデート対象 (CVE検出)" [danger]\n}',
+    tags: ['技術スタック', 'ソフトウェアスタック', '脆弱性', 'CVE', 'サーバー', 'ランタイム', 'OpenSSL', 'Linux']
+  },
+  {
+    id: 'techstack-modern-saas',
+    name: 'モダンWeb / SaaS アプリケーション技術スタック図',
+    category: 'Webアプリ・クラウド',
+    description: 'フロントエンド・APIゲートウェイ・マイクロサービス・データストア・コンテナオーケストレーション（Kubernetes/クラウド）の標準的なWeb開発技術スタック構成図。',
+    code: '\\techstack{\n  title: "モダンWeb / SaaS 技術スタック構成図"\n  container: "クラウドネイティブ・アプリケーション基盤"\n  theme: light\n  arrows: up\n\n  layer: app, "フロントエンド / クライアント", "React / Next.js / TypeScript / Tailwind CSS"\n  layer: security, "エッジ / APIゲートウェイ", "Cloudflare WAF / CDN / API Gateway"\n  row:\n    - web, "API / BFF層", "Node.js / GraphQL"\n    - runtime, "バックエンド基盤", "Go / Python (FastAPI)"\n    - db, "データストア", "PostgreSQL / Redis / S3"\n  layer: container, "コンテナ / 実行環境", "Docker / Kubernetes (EKS / GKE)"\n  layer: cloud, "クラウドインフラ", "AWS / Google Cloud / Azure" [base]\n\n  legend:\n    - box "標準技術レイヤー"\n}',
+    tags: ['技術スタック', 'SaaS', 'Web開発', 'React', 'Kubernetes', 'Docker', 'クラウド']
+  },
+  {
+    id: 'techstack-endpoint-security',
+    name: '社内PC・エンドポイント構成スタック図（更新管理例）',
+    category: 'クライアント・運用管理',
+    description: '社内業務PCにおけるブラウザ・業務アプリ〜ローカルランタイム〜EDR/セキュリティ〜OS〜ハードウェアの多層構成と要アップデート箇所の可視化例。',
+    code: '\\techstack{\n  title: "社内業務PC エンドポイント技術スタック（更新管理）"\n  container: "クライアント端末スタック"\n  theme: light\n  arrows: up\n\n  row:\n    - web, "ブラウザ", "Chrome / Edge"\n    - app, "業務クライアント", "Office / Slack / 業務SaaS"\n  layer: runtime, "ローカルランタイム・ドライバ", ".NET / Node.js / VPNクライアント" [warn, badge: "更新推奨"]\n  layer: security, "エンドポイントセキュリティ", "EDR / ウイルス対策 / ディスク暗号化" [safe]\n  layer: os, "クライアントOS", "Windows 11 / macOS"\n  layer: hardware, "端末ハードウェア", "ノートPC / TPM 2.0 / SSD" [base]\n\n  legend:\n    - box "通常レイヤー"\n    - box "アップデート推奨" [warn]\n}',
+    tags: ['エンドポイント', 'クライアントPC', 'EDR', 'OS', '更新管理', 'セキュリティ']
   }
 ];

@@ -1986,6 +1986,21 @@ const diagramLibraryConfigs = {
         el.textContent = item.code;
       }
     }
+  },
+  techstack: {
+    modalTitle: 'ソフトウェアスタック図 ライブラリ (技術スタック・脆弱性マッピング)',
+    getData: () => (typeof techstackLibrary !== 'undefined' ? techstackLibrary : []),
+    cardClass: 'techstack-card',
+    tagClass: 'techstack-card-tag',
+    previewClass: 'techstack-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawTechStackSvg === 'function') {
+        drawTechStackSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
   }
 };
 
@@ -2431,7 +2446,10 @@ const DIAGRAM_MODAL_TYPE_MAP = {
   packet: 'bytefield',
   memorymap: 'bytefield',
   network: 'network',
-  netdiag: 'network'
+  netdiag: 'network',
+  techstack: 'techstack',
+  softwarestack: 'techstack',
+  stack: 'techstack'
 };
 
 // 表・図作成の項目ディスパッチ
