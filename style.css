@@ -3541,3 +3541,9 @@ body.modal-open {
   background-color: #f1f5f9;
   color: #334155;
 }
+
+/* ネットワーク構成図 (Network Topology) */
+.network-card-tag {
+  background-color: #e2e8f0;
+  color: #1e293b;
+}

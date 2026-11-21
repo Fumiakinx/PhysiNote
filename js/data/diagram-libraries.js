@@ -2610,6 +2610,14 @@ const scenarioLibrary = [
     description: 'エンドユーザーからEC事業者を経由し、外部SIer・クラウド・保険・カード会社への免責・責任追及が連鎖する多重包囲網シナリオ図。',
     code: '\\scenario{\n  title: "【免責の連鎖】利用者からECを経由した多重包囲網"\n  theme: dark\n  icon: "⚖️"\n  direction: LR\n\n  source: "【エンドユーザー（顧客）】\\n[ 商品購入・個人情報預託 ]\\n[ 事故時：損害賠償・説明責任を追及 ]" [info]\n\n  middle: "【EC事業者（矢面に立つ中間層）】\\n[ 顧客からのクレーム・売上蒸発が直撃 ]\\n[ 各方面へ責任追究・防御を試みる結節点 ]" [danger]\n\n  fork:\n    -> "【大手コンサル / SIer】\\n[ 準委任契約・賠償額上限 ]\\n└ 「結果の完全性は保証外」" [warning]\n    -> "【API / クラウド事業者】\\n[ BtoB規約による完全免責 ]\\n└ 「機能は貸すが停止は責任外」" [warning]\n    -> "【サイバー保険会社】\\n[ 不払い条項・厳格な加入要件 ]\\n└ 「条件を満たさねば金は出さない」" [warning]\n    -> "【国際カードブランド / PSP】\\n[ 加盟店規約（ペナルティ条項） ]\\n└ 「調査費用と違約金を払え」" [danger]\n}',
     tags: ['免責の連鎖', '多重包囲網', 'EC事業者', 'リスク管理', '契約', 'セキュリティ', '責任分界点']
+  },
+  {
+    id: 'scenario-platform-outage-recovery',
+    name: '基盤停止と複数サービスの再開フロー（Pokepay障害事例）',
+    category: '障害分析・プラットフォーム連携',
+    description: '不正アクセスを受けた決済基盤（縦長左列）から複数サービスへの波及影響と、各サービスの再開状況（利用者・加盟店への右列集約）および凡例を一覧化するプラットフォーム中継フロー図。',
+    code: '\\scenario{\n  title: "Pokepay 基盤の停止と5サービスの再開"\n  theme: light\n  layout: platform\n\n  top: "🕵️ 第三者" [danger] -> "不正アクセス" [danger]\n  source: "☁️ Pokepay (Enterprise)\\n運営:\\nポケットチェンジ"\n  source_note: "11/14 20:00\\n全サービス停止"\n  target: "🏪 利用者・加盟店"\n\n  flow:\n    - "決済基盤" [info] -> "💳 ふくアプリ（はぴコイン）\\nふくいのデジタル。福井県" -> "11/15 16:45 再開。\\nBankPay チャージは当面停止" [success]\n    - "決済基盤\\n(報道による)" [info, dashed] -> "💳 ほくペイ\\n東京都北区。加盟店の申込情報(代表者の生年月日、住所、電話番号、メールアドレス、振込先銀行口座情報)が第三者に取得された可能性" -> "11/15 20:00 店頭決済を再開。\\n11/16 12:00 時点でクレジット・コンビニのチャージが利用可能に。\\n銀行口座チャージは停止中" [success]\n    - "決済基盤\\n(報道による)" [info, dashed] -> "📱 ハチペイ\\nハチペイ事務局(渋谷区)" -> "11/15 20:00 一部再開。\\n11/16 11:00 全機能再開" [success]\n    - "決済基盤\\n(報道による)" [info, dashed] -> "🪙 めぶくPay\\nめぶくグラウンド(前橋市)" -> "11/16 一部再開。\\n銀行口座チャージは停止中" [success]\n    - "決済基盤\\n(報道による)" [info, dashed] -> "🎓 大学生協電子マネー\\n大学生協事業連合、各大学生協" -> "11/15 21:00 決済再開。\\n11/16 オンラインチャージ再開。\\n自動販売機と Bank Pay は停止中" [success]\n\n  legend:\n    - arrow "攻撃" [danger]\n    - arrow "決済基盤（公表で確認）" [info]\n    - arrow "決済基盤（報道による）" [info, dashed]\n    - arrow "利用者向けの再開" [success]\n    - box "攻撃側" [danger]\n}',
+    tags: ['プラットフォーム', '障害', 'インシデント', 'Pokepay', '再開フロー', '破線', '凡例', '1対N対1']
   }
 ];
 
@@ -2896,5 +2904,35 @@ const codeLibrary = [
     description: 'Apple II特有の純黒背景＆エメラルドグリーンCRT画面。6502アセンブラやコマンド実行プロンプトの再現。',
     code: '\\code{\n  theme: apple2;\n\nEditor\n:L\n\n 1 * HELLO WORLD\n 2 *\n 3 COUT  =   $FDED\n 4 *\n 5 START LDY #0\n 6 NEXT  LDA STRING,Y\n 7       BEQ END\n 8       JSR COUT\n 9       INY\n 10      JMP NEXT\n 11 END  RTS\n 12 STRING ASC "HELLO, WORLD"\n 13      DB  0\n:\n}',
     tags: ['形式3', '独自構文', 'code', 'apple2', 'レトロPC', 'アセンブラ', '6502', 'グリーンモニタ']
+  }
+];
+
+// ==========================================
+// ネットワーク構成図 (network) ライブラリデータ定義
+// ==========================================
+const networkLibrary = [
+  {
+    id: 'network-home-standard',
+    name: '一般的な個人宅ネットワーク構成図 (光回線・Wi-Fiルーター)',
+    category: '個人宅・ホームLAN',
+    description: 'インターネットからONU・Wi-Fiルーターを経由し、有線LAN（デスクトップPC・NAS・監視カメラ）と無線Wi-Fi（ノートPC・スマホ・タブレット）を接続した標準的な宅内ネットワーク構成図。',
+    code: '\\network{\n  title: "一般的な個人宅ネットワーク構成図（光回線・宅内LAN / Wi-Fi）"\n  theme: light\n  direction: LR\n\n  zone wan: "外部回線 (インターネット)" [danger]\n  zone lan: "宅内LAN（安全なエリア）192.168.1.0/24" [safe]\n\n  inet: internet, "インターネット", "ISP / 光回線網" (in: wan)\n  onu: onu, "ONU", "光回線終端装置"\n  rt: router, "Wi-Fiルーター", "192.168.1.1" (in: lan)\n\n  pc: desktop, "デスクトップPC", "192.168.1.10" (in: lan)\n  nas: nas, "家庭用NAS", "192.168.1.20" (in: lan)\n  laptop: laptop, "ノートPC", "192.168.1.31" (in: lan)\n  phone: mobile, "スマートフォン", "192.168.1.32" (in: lan)\n  tab: tablet, "タブレット", "192.168.1.33" (in: lan)\n\n  inet -> onu : "光ファイバ"\n  onu -> rt : "WAN (有線)"\n  rt -- pc : "有線LAN"\n  rt -- nas : "有線LAN"\n  rt -(wifi)-> laptop : "Wi-Fi"\n  rt -(wifi)-> phone : "Wi-Fi"\n  rt -(wifi)-> tab : "Wi-Fi"\n\n  legend:\n    - line "有線LAN / 光配線"\n    - wifi "Wi-Fi (無線接続)"\n    - zone "安全な宅内LAN" [safe]\n    - zone "外部ネットワーク" [danger]\n}',
+    tags: ['個人宅', 'ホームネットワーク', 'ONU', 'ルーター', 'Wi-Fi', 'NAS', '宅内LAN']
+  },
+  {
+    id: 'network-enterprise-standard',
+    name: '一般的な企業ネットワーク構成図 (FW / DMZ / 社内LAN・脆弱性強調)',
+    category: '企業インフラ・セキュリティ',
+    description: '外部インターネットからCisco準拠ファイアウォール(UTM)で防御し、DMZセグメント（公開Web/メール）と安全な社内LAN（L2スイッチ・ラックサーバ・DB・NAS・UPS・社内端末）へ分離した構成。要パッチサーバのみ黄色/赤色で強調。',
+    code: '\\network{\n  title: "一般的な企業ネットワーク構成図（DMZ分離・脆弱性リスク可視化）"\n  theme: light\n  direction: LR\n\n  zone ext: "外部 / 危険なエリア" [danger]\n  zone dmz: "DMZ (公開セグメント) 172.16.10.0/24" [warn]\n  zone corp: "社内LAN (安全なエリア) 192.168.10.0/24" [safe]\n\n  inet: internet, "インターネット", "外部WAN" (in: ext)\n  attacker: attacker, "外部攻撃者", "脆弱性探索" [danger] (in: ext)\n  fw: firewall, "ファイアウォール", "UTM / 境界防御"\n\n  dmz_sw: switch, "DMZ スイッチ", "L2 SW" (in: dmz)\n  web: server, "公開Webサーバー", "172.16.10.10" [danger, badge: "CVE要対応"] (in: dmz)\n  mail: vm, "メールリレーVM", "172.16.10.11" [warn, badge: "更新対象"] (in: dmz)\n\n  core_sw: switch, "社内L2スイッチ", "VLAN分割" (in: corp)\n  db: db, "基幹データベース", "192.168.10.20" [safe] (in: corp)\n  rack: rack, "業務アプリサーバ", "192.168.10.21" (in: corp)\n  nas: nas, "ファイルサーバ(NAS)", "192.168.10.25" (in: corp)\n  ups: ups, "電源バックアップ", "UPS装置" (in: corp)\n  emp_pc: desktop, "社員用PC群", "192.168.10.100~" (in: corp)\n  ap: ap, "社内無線AP", "802.1X認証" (in: corp)\n\n  attacker -> inet : "攻撃試行" [danger]\n  inet -> fw : "外部通信"\n  fw -> dmz_sw : "DMZ通信"\n  fw -> core_sw : "許可通信"\n  dmz_sw -> web : "HTTP/HTTPS" [warn]\n  dmz_sw -- mail : "SMTP"\n  core_sw -- db\n  core_sw -- rack\n  core_sw -- nas\n  core_sw .. ups : "監視"\n  core_sw -- emp_pc : "有線LAN"\n  core_sw -- ap\n\n  legend:\n    - arrow "攻撃・危険経路" [danger]\n    - box "脆弱性・要対応箇所" [danger]\n    - box "アップデート推奨" [warn]\n    - zone "安全な社内LAN" [safe]\n}',
+    tags: ['企業ネットワーク', 'DMZ', 'ファイアウォール', 'UTM', 'L2スイッチ', '脆弱性', '社内LAN', 'Cisco']
+  },
+  {
+    id: 'network-parts-catalog',
+    name: 'ネットワーク部品カタログ (Cisco準拠・モノトーン統一アイコン一覧)',
+    category: '部品リファレンス',
+    description: 'ルーター（円柱＋4矢印）、スイッチ（平たい箱＋左右矢印）、ファイアウォール（レンガ壁）をはじめ、利用可能な全モノトーンシルエット部品および警告・危険強調パターンの一覧。',
+    code: '\\network{\n  title: "ネットワーク構成図 部品・状態アイコン一覧（Cisco準拠＋モノトーン統一）"\n  theme: light\n  layout: grid\n  cols: 5\n\n  p1: router, "ルーター (router)", "円柱＋4方向矢印"\n  p2: switch, "スイッチ (switch)", "平箱＋左右矢印"\n  p3: l3switch, "L3スイッチ (l3switch)", "多層ルーティング"\n  p4: firewall, "ファイアウォール", "レンガの壁 (firewall)"\n  p5: ap, "無線AP (ap)", "Wi-Fiアクセスポイント"\n\n  p6: onu, "ONU / モデム (onu)", "光回線終端装置"\n  p7: vpn, "VPN GW (vpn)", "暗号化トンネル"\n  p8: internet, "インターネット", "外部WAN (internet)"\n  p9: cloud, "クラウド (cloud)", "インフラ基盤"\n  p10: server, "サーバー (server)", "物理タワーサーバ"\n\n  p11: rack, "ラックサーバ (rack)", "ラックマウント"\n  p12: vm, "仮想サーバ (vm)", "ハイパーバイザ"\n  p13: db, "データベース (db)", "DBシリンダ"\n  p14: nas, "NAS (nas)", "共有ストレージ"\n  p15: ups, "UPS (ups)", "無停電電源装置"\n\n  p16: desktop, "デスクトップPC", "desktop / pc"\n  p17: laptop, "ノートPC (laptop)", "モバイル端末"\n  p18: tablet, "タブレット (tablet)", "業務端末"\n  p19: mobile, "スマホ (mobile)", "スマートフォン"\n  p20: camera, "監視カメラ (camera)", "IoT / CCTV"\n\n  p21: printer, "プリンター (printer)", "複合機"\n  p22: server, "脆弱性ノード", "192.168.1.50" [danger, badge: "CVE危険"]\n  p23: vm, "要更新ノード", "192.168.1.51" [warn, badge: "要更新"]\n  p24: desktop, "対策済ノード", "192.168.1.52" [safe]\n  p25: attacker, "攻撃者 (attacker)", "外部脅威" [danger]\n}',
+    tags: ['アイコン一覧', 'カタログ', 'Cisco', 'モノトーン', '脆弱性強調', 'リファレンス']
   }
 ];

@@ -530,6 +530,19 @@ const DIAGRAM_DEFINITIONS = [
     cls: 'code-preview-container',
     label: 'レトロPC / コード枠',
     getFn: () => typeof drawCodeSvg === 'function' ? drawCodeSvg : null
+  },
+  // 40. ネットワーク構成図 (Network Topology)
+  {
+    id: 'network',
+    match: (t) => /\\(network|netdiag)\{/i.test(t),
+    badge: {
+      text: '独自書式 (ネットワーク構成図)',
+      cls: 'badge-custom',
+      desc: '\\network{ title: ...; router -> switch -> desktop; } (Cisco準拠・脆弱性強調)'
+    },
+    cls: 'network-preview-container',
+    label: 'ネットワーク構成図',
+    getFn: () => typeof drawNetworkSvg === 'function' ? drawNetworkSvg : null
   }
 ];
 

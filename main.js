@@ -1971,6 +1971,21 @@ const diagramLibraryConfigs = {
         el.textContent = item.code;
       }
     }
+  },
+  network: {
+    modalTitle: 'ネットワーク構成図 ライブラリ (宅内LAN・企業インフラ・脆弱性可視化)',
+    getData: () => (typeof networkLibrary !== 'undefined' ? networkLibrary : []),
+    cardClass: 'network-card',
+    tagClass: 'network-card-tag',
+    previewClass: 'network-card-preview',
+    columnTop: true,
+    renderPreview: (item, el) => {
+      if (typeof drawNetworkSvg === 'function') {
+        drawNetworkSvg(item.code, el, null);
+      } else {
+        el.textContent = item.code;
+      }
+    }
   }
 };
 
@@ -2414,7 +2429,9 @@ const DIAGRAM_MODAL_TYPE_MAP = {
   circular: 'cycle',
   bytefield: 'bytefield',
   packet: 'bytefield',
-  memorymap: 'bytefield'
+  memorymap: 'bytefield',
+  network: 'network',
+  netdiag: 'network'
 };
 
 // 表・図作成の項目ディスパッチ

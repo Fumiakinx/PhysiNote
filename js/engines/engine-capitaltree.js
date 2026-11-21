@@ -720,6 +720,11 @@ function buildCapitalTreeLayout(parsed) {
     depthOffsets[d + 1] = depthOffsets[d] + (depthMaxHeights[d] || 52) + nodeGapY;
   }
 
+  // 多段折り返し（wrapInfo）内の各セルが占有する横幅（子を持つ枝ノードは自身のサブツリー幅を確保）
+  function getWrapSlotWidth(c) {
+    return c.children.length > 0 ? Math.max(c.width, c.subtreeWidth || 0) : c.width;
+  }
+
   // 各サブツリーの必要幅（subtreeWidth）をボトムアップで計算
   function calcSubtreeWidth(node, seen = new Set()) {
     seen.add(node);
@@ -741,21 +746,13 @@ function buildCapitalTreeLayout(parsed) {
       node.wrapInfo.rowChildren.forEach((rowList) => {
         let rW = 0;
         rowList.forEach((c) => {
-          rW += c.width;
+          rW += getWrapSlotWidth(c);
         });
         rW += (rowList.length - 1) * gX;
         if (rW > maxRowW) maxRowW = rW;
       });
 
-      // 子ノードが持つサブツリー幅の最大値も考慮
-      let maxChildSubtreeW = 0;
-      node.children.forEach((c) => {
-        if (c.children.length > 0 && c.subtreeWidth > maxChildSubtreeW) {
-          maxChildSubtreeW = c.subtreeWidth;
-        }
-      });
-
-      node.subtreeWidth = Math.max(node.width + nodeGapX, maxRowW + gX * 2, maxChildSubtreeW);
+      node.subtreeWidth = Math.max(node.width + nodeGapX, maxRowW + gX * 2);
       return node.subtreeWidth;
     }
 
@@ -779,6 +776,56 @@ function buildCapitalTreeLayout(parsed) {
   let startX = 24;
 
   const globalSeen = new Set();
+  function layoutWrappedChildren(parentNode, slotLeft, slotWidth) {
+    const gX = parentNode.wrapInfo.gapX || 18;
+    parentNode.wrapInfo.rowChildren.forEach((rowList) => {
+      let rW = 0;
+      rowList.forEach((c) => {
+        rW += getWrapSlotWidth(c);
+      });
+      rW += (rowList.length - 1) * gX;
+
+      let curSlotX = Math.round(slotLeft + (slotWidth - rW) / 2);
+      rowList.forEach((c) => {
+        const cSlotW = getWrapSlotWidth(c);
+        globalSeen.add(c);
+        c.x = Math.round(curSlotX + (cSlotW - c.width) / 2);
+        c.y = titleH + 24 + depthOffsets[c.depth];
+
+        if (c.children.length > 0) {
+          if (c.wrapInfo) {
+            layoutWrappedChildren(c, curSlotX, cSlotW);
+          } else {
+            const unlaidChildren = c.children.filter((gc) => !globalSeen.has(gc));
+            let childrenSubW = 0;
+            unlaidChildren.forEach((gc) => {
+              childrenSubW += gc.subtreeWidth;
+            });
+            let grandCurLeft = Math.round(curSlotX + (cSlotW - childrenSubW) / 2);
+            c.children.forEach((gc) => {
+              if (!globalSeen.has(gc)) {
+                layoutNode(gc, grandCurLeft);
+                grandCurLeft += gc.subtreeWidth;
+              }
+            });
+            if (unlaidChildren.length > 0) {
+              let minCX = Infinity;
+              let maxCX = -Infinity;
+              unlaidChildren.forEach((gc) => {
+                const m = gc.x + gc.width / 2;
+                if (m < minCX) minCX = m;
+                if (m > maxCX) maxCX = m;
+              });
+              c.x = Math.round((minCX + maxCX) / 2 - c.width / 2);
+            }
+          }
+        }
+
+        curSlotX += cSlotW + gX;
+      });
+    });
+  }
+
   function layoutNode(node, leftBound) {
     globalSeen.add(node);
     const w = node.subtreeWidth;
@@ -787,61 +834,9 @@ function buildCapitalTreeLayout(parsed) {
     if (node.children.length === 0) {
       node.x = Math.round(leftBound + (w - node.width) / 2);
     } else if (node.wrapInfo) {
-      // 多段折り返しの親ノード
+      // 多段折り返しの親ノード（各枝ノードのサブツリー幅を確保して配下を中央配置）
       node.x = Math.round(leftBound + (w - node.width) / 2);
-      const gX = node.wrapInfo.gapX || 18;
-
-      node.wrapInfo.rowChildren.forEach((rowList) => {
-        let rW = 0;
-        rowList.forEach((c) => {
-          rW += c.width;
-        });
-        rW += (rowList.length - 1) * gX;
-
-        let curX = Math.round(leftBound + (w - rW) / 2);
-        rowList.forEach((c) => {
-          globalSeen.add(c);
-          c.x = curX;
-          c.y = titleH + 24 + depthOffsets[c.depth];
-
-          // 孫ノードがある場合、親カードの左端 (c.x) を起点に展開（左への飛び出し防止）
-          if (c.children.length > 0) {
-            let grandCurLeft = c.x;
-            if (c.wrapInfo) {
-              const cGX = c.wrapInfo.gapX || 18;
-              c.wrapInfo.rowChildren.forEach((gcRowList) => {
-                let curRowX = grandCurLeft;
-                gcRowList.forEach((gc) => {
-                  globalSeen.add(gc);
-                  gc.x = curRowX;
-                  gc.y = titleH + 24 + depthOffsets[gc.depth];
-
-                  // さらにひ孫ノード（LINEヤフーの子: ZOZO等）がある場合
-                  if (gc.children.length > 0) {
-                    let ggcLeft = gc.x;
-                    gc.children.forEach((ggc) => {
-                      if (!globalSeen.has(ggc)) {
-                        layoutNode(ggc, ggcLeft);
-                        ggcLeft += ggc.subtreeWidth;
-                      }
-                    });
-                  }
-                  curRowX += gc.width + cGX;
-                });
-              });
-            } else {
-              c.children.forEach((gc) => {
-                if (!globalSeen.has(gc)) {
-                  layoutNode(gc, grandCurLeft);
-                  grandCurLeft += gc.subtreeWidth;
-                }
-              });
-            }
-          }
-
-          curX += c.width + gX;
-        });
-      });
+      layoutWrappedChildren(node, leftBound, w);
     } else {
       let curLeft = leftBound;
       const laidChildren = [];

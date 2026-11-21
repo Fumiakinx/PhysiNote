@@ -3,6 +3,59 @@
 // 1対N分岐（サイバー攻撃・拡散）、N対1集約（名寄せ・プロファイリング・データ統合）、汎用業務フロー対応
 // ==========================================
 
+function splitTopLevelArrows(line) {
+  const parts = [];
+  let cur = '';
+  let quote = null;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (quote) {
+      cur += ch;
+      if (ch === quote && line[i - 1] !== '\\') quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      cur += ch;
+      continue;
+    }
+    const rest = line.slice(i);
+    const arrowMatch = rest.match(/^(?:──*>|->)/);
+    if (arrowMatch) {
+      parts.push(cur.trim());
+      cur = '';
+      i += arrowMatch[0].length - 1;
+      continue;
+    }
+    cur += ch;
+  }
+  if (cur.trim() || parts.length > 0) {
+    parts.push(cur.trim());
+  }
+  return parts;
+}
+
+function parseScenarioEdgeMeta(str) {
+  if (!str) return { text: '', lines: [], style: 'default', dashed: false };
+  let text = str.trim();
+  let style = 'default';
+  let dashed = false;
+
+  const attrMatch = text.match(/(?:["']\s*)?\[([^\]]+)\]\s*["']?$/i);
+  if (attrMatch) {
+    const tokens = attrMatch[1].split(/[\s,]+/).map((t) => t.trim().toLowerCase()).filter(Boolean);
+    tokens.forEach((tok) => {
+      if (tok === 'dashed' || tok === 'dotted' || tok === 'dash') dashed = true;
+      else if (/^(danger|warn|warning|info|success|neutral|accent)$/.test(tok)) style = tok;
+    });
+    text = text.slice(0, attrMatch.index).trim();
+  }
+
+  text = text.replace(/^["']+|["']+$/g, '').trim().replace(/\\n/g, '\n');
+  const lines = text ? text.split('\n').map((l) => l.trim()).filter(Boolean) : [];
+  return { text, lines, style, dashed };
+}
+
 function parseScenarioText(text) {
   if (!text || typeof text !== 'string') return null;
 
@@ -15,17 +68,22 @@ function parseScenarioText(text) {
   let title = '';
   let icon = '';
   let theme = 'dark'; // デフォルトはセキュリティ・IT解説で映えるダーク
-  let mode = 'auto';  // 'fork' (1対N), 'merge' (N対1)
+  let mode = 'auto';  // 'fork' (1対N), 'merge' (N対1), 'platform' (縦長中継1→N→1)
   let direction = 'TD'; // 'TD' (上から下) または 'LR' (左から右)
   let commonKey = 'メールアドレス / 携帯電話番号';
 
-  let sourceNode = null; // fork時の起点
+  let topNode = null;    // platform時の上段アクターノード
+  let topEdge = null;    // topNode -> sourceNode の矢印ラベル・属性
+  let sourceNode = null; // fork/platform時の起点
+  let sourceNote = '';   // platform時の左列上部注記
   let middleNode = null; // LR/3カラム時の中間ノード
   let noteText = '';     // 中間注記
   const branches = [];   // fork時のブランチ [ { target, result } ]
   const sources = [];    // merge時のソース一覧 [ { title, subLines, keys: [], data: [], style } ]
+  const platformFlows = []; // platform時の行 [ { leftEdge, card, rightEdge } ]
+  const legendItems = [];   // 下部凡例 [ { kind, text, style, dashed } ]
   let mergeNode = null;  // merge時の処理ノード
-  let targetNode = null; // merge時の最終統合ノード
+  let targetNode = null; // merge/platform時の最終統合ノード
 
   let currentSection = '';
 
@@ -38,7 +96,16 @@ function parseScenarioText(text) {
     // セクション指定の検出
     if (lower === 'fork' || lower === 'fork:' || lower.startsWith('fork:')) {
       currentSection = 'fork';
-      mode = 'fork';
+      if (mode !== 'platform') mode = 'fork';
+      continue;
+    }
+    if (lower === 'flow' || lower === 'flow:' || lower === 'flows' || lower === 'flows:') {
+      currentSection = 'flow';
+      mode = 'platform';
+      continue;
+    }
+    if (lower === 'legend' || lower === 'legend:' || lower === 'legends' || lower === 'legends:') {
+      currentSection = 'legend';
       continue;
     }
     if (lower === 'merge' || lower === 'merge:' || lower === 'sources' || lower === 'sources:' || lower.startsWith('merge:') || lower.startsWith('sources:')) {
@@ -47,12 +114,54 @@ function parseScenarioText(text) {
       continue;
     }
 
-    const colonIdx = line.indexOf(':');
+    if (currentSection === 'flow') {
+      const cleanFlow = line.replace(/^(?:-\s*|・\s*|->\s*)/, '').trim();
+      const parts = splitTopLevelArrows(cleanFlow);
+      if (parts.length >= 3) {
+        platformFlows.push({
+          leftEdge: parseScenarioEdgeMeta(parts[0]),
+          card: parseScenarioNode(parts[1]),
+          rightEdge: parseScenarioEdgeMeta(parts[2])
+        });
+      } else if (parts.length === 2) {
+        platformFlows.push({
+          leftEdge: parseScenarioEdgeMeta(parts[0]),
+          card: parseScenarioNode(parts[1]),
+          rightEdge: null
+        });
+      } else if (parts.length === 1 && parts[0]) {
+        platformFlows.push({
+          leftEdge: null,
+          card: parseScenarioNode(parts[0]),
+          rightEdge: null
+        });
+      }
+      continue;
+    }
+
+    if (currentSection === 'legend') {
+      const cleanLeg = line.replace(/^(?:-\s*|・\s*)/, '').trim();
+      const legMatch = cleanLeg.match(/^(arrow|line|box|card|rect)\b\s*(.*)$/i);
+      const kind = legMatch && /^(box|card|rect)$/i.test(legMatch[1]) ? 'box' : 'arrow';
+      const bodyStr = legMatch ? legMatch[2].trim() : cleanLeg;
+      const meta = parseScenarioEdgeMeta(bodyStr);
+      if (meta.text) {
+        legendItems.push({ kind, text: meta.text, style: meta.style, dashed: meta.dashed });
+      }
+      continue;
+    }
+
+    // key: value 判定（ただし引用符内のコロンや先頭引用符行は key とみなさない）
+    const startsQuoted = line.startsWith('"') || line.startsWith("'") || line.startsWith('->') || line.startsWith('<-');
+    const colonIdx = startsQuoted ? -1 : line.indexOf(':');
     let key = '';
     let val = line;
     if (colonIdx !== -1) {
-      key = line.slice(0, colonIdx).trim().toLowerCase();
-      val = line.slice(colonIdx + 1).trim();
+      const candidateKey = line.slice(0, colonIdx).trim();
+      if (/^[a-zA-Z0-9_-]+$/.test(candidateKey)) {
+        key = candidateKey.toLowerCase();
+        val = line.slice(colonIdx + 1).trim();
+      }
     }
 
     if (key === 'title') {
@@ -66,7 +175,10 @@ function parseScenarioText(text) {
     } else if (key === 'middle' || key === 'center' || key === 'hub') {
       middleNode = parseScenarioNode(val);
     } else if (key === 'mode' || key === 'layout') {
-      if (val.toLowerCase().includes('merge') || val.toLowerCase().includes('tree-merge') || val.toLowerCase().includes('aggregate')) {
+      const lowerVal = val.toLowerCase();
+      if (lowerVal.includes('platform') || lowerVal.includes('impact') || lowerVal.includes('hub')) {
+        mode = 'platform';
+      } else if (lowerVal.includes('merge') || lowerVal.includes('tree-merge') || lowerVal.includes('aggregate')) {
         mode = 'merge';
         currentSection = 'merge';
       } else {
@@ -75,20 +187,31 @@ function parseScenarioText(text) {
       }
     } else if (key === 'common_key' || key === 'key' || key === 'keys') {
       commonKey = val.replace(/^["']|["']$/g, '');
+    } else if (key === 'top' || key === 'actor' || key === 'attacker') {
+      const topParts = splitTopLevelArrows(val);
+      topNode = parseScenarioNode(topParts[0]);
+      if (topParts.length >= 2) {
+        topEdge = parseScenarioEdgeMeta(topParts[1]);
+        if (topEdge.style === 'default' && topNode && topNode.style === 'danger') {
+          topEdge.style = 'danger';
+        }
+      }
+    } else if (key === 'source_note' || key === 'top_note') {
+      sourceNote = val.replace(/^["']|["']$/g, '').replace(/\\n/g, '\n');
     } else if (key === 'source' || key === 'root') {
       sourceNode = parseScenarioNode(val);
     } else if (key === 'note' || key === 'flow' || key === 'event') {
       noteText = val.replace(/^["']|["']$/g, '').replace(/\\n/g, '\n');
     } else if (key === 'process' || (key === 'merge' && val !== '')) {
       mergeNode = parseScenarioNode(val);
-    } else if (key === 'target' || key === 'goal' || key === 'result') {
+    } else if (key === 'target' || key === 'goal' || key === 'result' || key === 'sink') {
       targetNode = parseScenarioNode(val);
     } else if (line.startsWith('<-') || (currentSection === 'merge' && (line.startsWith('-') || line.startsWith('・') || line.startsWith('【') || line.startsWith('[')))) {
       // mergeモードのソースノード
       mode = 'merge';
       const cleanLine = line.replace(/^(?:<-\s*|-\s*|・\s*)/, '');
       if (cleanLine.includes('->') || cleanLine.includes('──>')) {
-        const mparts = cleanLine.split(/\s*──*>\s*|\s*->\s*/);
+        const mparts = splitTopLevelArrows(cleanLine);
         if (mparts.length >= 2) {
           mergeNode = parseScenarioNode(mparts[0]);
           targetNode = parseScenarioNode(mparts[1]);
@@ -100,7 +223,7 @@ function parseScenarioText(text) {
       // forkモードのブランチ
       mode = 'fork';
       const cleanLine = line.replace(/^(?:->|\|->|[├└]─*>)\s*/, '');
-      const parts = cleanLine.split(/\s*──*>\s*|\s*->\s*/);
+      const parts = splitTopLevelArrows(cleanLine);
       if (parts.length >= 2) {
         branches.push({ target: parseScenarioNode(parts[0]), result: parseScenarioNode(parts[1]) });
       } else if (parts.length === 1) {
@@ -109,7 +232,7 @@ function parseScenarioText(text) {
     } else {
       // 暗黙判定
       if (line.includes('->') || line.includes('──>')) {
-        const parts = line.split(/\s*──*>\s*|\s*->\s*/);
+        const parts = splitTopLevelArrows(line);
         if (parts.length >= 2) {
           if (mode === 'merge') {
             mergeNode = parseScenarioNode(parts[0]);
@@ -125,7 +248,8 @@ function parseScenarioText(text) {
   }
 
   if (mode === 'auto') {
-    if (sources.length > 0 || mergeNode) mode = 'merge';
+    if (platformFlows.length > 0 || topNode) mode = 'platform';
+    else if (sources.length > 0 || mergeNode) mode = 'merge';
     else mode = 'fork';
   }
 
@@ -136,10 +260,15 @@ function parseScenarioText(text) {
     mode,
     direction,
     commonKey,
+    topNode,
+    topEdge,
     sourceNode,
+    sourceNote,
     middleNode,
     noteText,
     branches,
+    platformFlows,
+    legendItems,
     sources,
     mergeNode,
     targetNode
@@ -289,6 +418,14 @@ function drawScenarioSvg(text, container, label) {
         return { bg: themeColors.cardBg, text: themeColors.textMain, border: themeColors.cardBorder };
     }
   };
+
+  // ===================================================================
+  // モード0: プラットフォーム中継・影響/再開フロー (layout: platform)
+  // ===================================================================
+  if (parsed.mode === 'platform') {
+    drawPlatformFlowSvg(parsed, container, label, themeColors, isDark, getNodeColors);
+    return;
+  }
 
   // ===================================================================
   // モード1: 多対1 集約・名寄せフロー (漏洩元A〜F → 名寄せ処理 → 統合プロファイル)
@@ -996,20 +1133,522 @@ function drawNoteBox(parent, x, y, w, h, lines, themeColors, isDark) {
   parent.appendChild(g);
 }
 
-// 直線を描画
-function drawStraightLine(parent, x1, y1, x2, y2, color, hasArrow) {
+// 直線を描画（実線/破線およびカスタム矢印マーカー対応）
+function drawStraightLine(parent, x1, y1, x2, y2, color, hasArrow, dashed = false, customMarkerId = null) {
   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   line.setAttribute('x1', x1);
   line.setAttribute('y1', y1);
   line.setAttribute('x2', x2);
   line.setAttribute('y2', y2);
   line.setAttribute('stroke', color);
-  line.setAttribute('stroke-width', '2.4');
+  line.setAttribute('stroke-width', '2.2');
   line.setAttribute('stroke-linecap', 'round');
+  if (dashed) {
+    line.setAttribute('stroke-dasharray', '5 4');
+  }
   if (hasArrow) {
-    line.setAttribute('marker-end', color.includes('dc2626') || color.includes('e11d48') ? 'url(#scenario-arrow-danger)' : (color.includes('38bdf8') || color.includes('0284c7') ? 'url(#scenario-arrow-active)' : 'url(#scenario-arrow)'));
+    if (customMarkerId) {
+      line.setAttribute('marker-end', `url(#${customMarkerId})`);
+    } else {
+      line.setAttribute('marker-end', color.includes('dc2626') || color.includes('e11d48') || color.includes('991b1b')
+        ? 'url(#scenario-arrow-danger)'
+        : (color.includes('38bdf8') || color.includes('0284c7') ? 'url(#scenario-arrow-active)' : 'url(#scenario-arrow)'));
+    }
   }
   parent.appendChild(line);
+}
+
+// テキスト折り返し（プラットフォームフロー・長文ラベル用）
+function wrapScenarioText(text, maxWidthPx, fontSize) {
+  if (!text) return [];
+  const rawParagraphs = String(text).split('\n');
+  const out = [];
+  rawParagraphs.forEach((para) => {
+    const trimmed = para.trim();
+    if (!trimmed) return;
+    if (calcTextWidthPx(trimmed, fontSize) <= maxWidthPx) {
+      out.push(trimmed);
+      return;
+    }
+    let rest = trimmed;
+    while (rest.length > 0) {
+      if (calcTextWidthPx(rest, fontSize) <= maxWidthPx) {
+        out.push(rest);
+        break;
+      }
+      let fitLen = 1;
+      for (let i = 1; i <= rest.length; i++) {
+        if (calcTextWidthPx(rest.slice(0, i), fontSize) > maxWidthPx) {
+          fitLen = Math.max(1, i - 1);
+          break;
+        }
+        fitLen = i;
+      }
+      let breakIdx = fitLen;
+      const minLeft = Math.max(2, Math.floor(fitLen * 0.45));
+      for (let j = fitLen; j >= minLeft; j--) {
+        const ch = rest[j];
+        const prev = rest[j - 1];
+        if (ch === '(' || ch === '（') {
+          breakIdx = j;
+          break;
+        }
+        if (prev === '、' || prev === '。' || prev === '・' || prev === '/' || prev === ' ') {
+          breakIdx = j;
+          break;
+        }
+      }
+      const chunk = rest.slice(0, breakIdx).trimEnd();
+      if (chunk) out.push(chunk);
+      rest = rest.slice(breakIdx).trimStart();
+    }
+  });
+  return out;
+}
+
+function splitLeadingEmoji(text) {
+  const m = String(text || '').trim().match(/^([\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}][\u{FE0F}\u{200D}]*)\s*(.+)$/u);
+  if (m) return { emoji: m[1], body: m[2] };
+  return { emoji: '', body: String(text || '').trim() };
+}
+
+function drawPlatformFlowSvg(parsed, container, label, themeColors, isDark, getNodeColors) {
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const getEdgeStyle = (styleKey) => {
+    switch (styleKey) {
+      case 'danger':
+        return {
+          stroke: isDark ? '#f87171' : '#991b1b',
+          text: isDark ? '#fca5a5' : '#7f1d1d',
+          marker: 'scenario-arrow-crimson'
+        };
+      case 'success':
+        return {
+          stroke: isDark ? '#34d399' : '#4a7c59',
+          text: isDark ? '#a7f3d0' : '#334155',
+          marker: 'scenario-arrow-success'
+        };
+      case 'info':
+      case 'accent':
+        return {
+          stroke: isDark ? '#60a5fa' : '#5b829e',
+          text: isDark ? '#cbd5e1' : '#334155',
+          marker: 'scenario-arrow-steel'
+        };
+      case 'warn':
+      case 'warning':
+        return {
+          stroke: isDark ? '#fbbf24' : '#d97706',
+          text: isDark ? '#fde68a' : '#92400e',
+          marker: 'scenario-arrow-warn'
+        };
+      default:
+        return {
+          stroke: themeColors.line,
+          text: themeColors.textMuted,
+          marker: 'scenario-arrow'
+        };
+    }
+  };
+
+  const flows = parsed.platformFlows || [];
+  const srcNode = parsed.sourceNode || { title: '基盤システム', subLines: [], style: 'default' };
+  const tgtNode = parsed.targetNode;
+  const hasTarget = Boolean(tgtNode);
+
+  const padX = 34;
+  const leftW = 166;
+  const midW = 304;
+  const rightW = hasTarget ? 148 : 0;
+
+  const sourceNoteLines = parsed.sourceNote ? wrapScenarioText(parsed.sourceNote, 128, 11) : [];
+  const leftArrowGap = 128;
+  const hasAnyRightEdge = flows.some((f) => f.rightEdge && (f.rightEdge.text || f.rightEdge.style !== 'default'));
+  const rightArrowGap = hasTarget ? 210 : (hasAnyRightEdge ? 190 : 0);
+
+  const cardInnerW = midW - 32;
+  const rowGap = 16;
+  const labelLineH = 15;
+  const cardSubLineH = 17;
+
+  const preparedRows = flows.map((f, idx) => {
+    const card = f.card || { title: `サービス ${idx + 1}`, subLines: [], style: 'default' };
+    const { emoji, body } = splitLeadingEmoji(card.title);
+    const titleMaxW = emoji ? cardInnerW - 26 : cardInnerW;
+    const titleLines = wrapScenarioText(body || card.title, titleMaxW, 14);
+    const wrappedSubs = [];
+    (card.subLines || []).forEach((s) => {
+      wrappedSubs.push(...wrapScenarioText(s, cardInnerW, 11.5));
+    });
+
+    const leftLines = [];
+    if (f.leftEdge && f.leftEdge.text) {
+      leftLines.push(...wrapScenarioText(f.leftEdge.text, leftArrowGap - 18, 11.5));
+    }
+    const rightLines = [];
+    if (f.rightEdge && f.rightEdge.text) {
+      rightLines.push(...wrapScenarioText(f.rightEdge.text, Math.max(150, rightArrowGap - 22), 11.5));
+    }
+
+    const titleH = Math.max(1, titleLines.length) * 19;
+    const subH = wrappedSubs.length > 0 ? 6 + wrappedSubs.length * cardSubLineH : 0;
+    const cardTextH = 16 + titleH + subH + 14;
+    const rightNeedH = rightLines.length > 0 ? rightLines.length * labelLineH + 24 : 0;
+    const leftNeedH = leftLines.length > 0 ? leftLines.length * labelLineH + 24 : 0;
+    const rowH = Math.max(72, cardTextH, rightNeedH, leftNeedH);
+
+    return {
+      card,
+      emoji,
+      titleLines,
+      wrappedSubs,
+      leftEdge: f.leftEdge,
+      leftLines,
+      rightEdge: f.rightEdge,
+      rightLines,
+      rowH
+    };
+  });
+
+  const leftX = padX;
+  const midX = leftX + leftW + leftArrowGap;
+  const rightX = midX + midW + rightArrowGap;
+  const width = Math.max(760, (hasTarget ? rightX + rightW : midX + midW + rightArrowGap) + padX);
+
+  const titleBottomY = parsed.title ? 52 : 16;
+  const topActorNode = parsed.topNode;
+  const topActorLines = topActorNode ? wrapScenarioText(splitLeadingEmoji(topActorNode.title).body, leftW - 36, 14) : [];
+  const topActorH = topActorNode ? Math.max(54, 24 + topActorLines.length * 19) : 0;
+  const topActorY = titleBottomY + 14;
+  const topArrowGap = topActorNode ? 44 : 0;
+
+  const stackTopY = topActorNode ? (topActorY + topActorH + topArrowGap) : (titleBottomY + 18);
+  const firstRowTopOffset = sourceNoteLines.length > 0 ? (sourceNoteLines.length * 15 + 14) : 0;
+
+  let curY = stackTopY + firstRowTopOffset;
+  preparedRows.forEach((r) => {
+    r.y = curY;
+    curY += r.rowH + rowGap;
+  });
+  const stackBottomY = preparedRows.length > 0 ? (curY - rowGap) : (stackTopY + 180);
+  const tallH = Math.max(140, stackBottomY - stackTopY);
+
+  // 下部凡例の配置事前計算
+  const legendItems = parsed.legendItems || [];
+  const legendTopY = stackBottomY + 30;
+  const legendRows = [];
+  if (legendItems.length > 0) {
+    let lx = leftX;
+    let ly = legendTopY;
+    const maxLegRight = width - padX;
+    legendItems.forEach((item) => {
+      const sampleW = item.kind === 'box' ? 30 : 40;
+      const itemW = sampleW + calcTextWidthPx(item.text, 12) + 28;
+      if (lx > leftX && lx + itemW > maxLegRight) {
+        lx = leftX;
+        ly += 28;
+      }
+      legendRows.push({ ...item, x: lx, y: ly });
+      lx += itemW;
+    });
+  }
+  const legendBottomY = legendRows.length > 0 ? (legendRows[legendRows.length - 1].y + 26) : stackBottomY;
+  const height = Math.max(420, legendBottomY + 24);
+
+  container.dataset.baseWidth = width;
+
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', '100%');
+  svg.style.maxWidth = '100%';
+  svg.style.height = 'auto';
+  svg.style.display = 'block';
+
+  appendDefs(svg, themeColors, isDark);
+
+  const bg = document.createElementNS(svgNS, 'rect');
+  bg.setAttribute('width', width);
+  bg.setAttribute('height', height);
+  bg.setAttribute('rx', '12');
+  bg.setAttribute('fill', themeColors.bg);
+  svg.appendChild(bg);
+
+  if (parsed.title) {
+    const tEl = document.createElementNS(svgNS, 'text');
+    tEl.setAttribute('x', leftX);
+    tEl.setAttribute('y', '36');
+    tEl.setAttribute('font-size', '18');
+    tEl.setAttribute('font-weight', '700');
+    tEl.setAttribute('fill', themeColors.textMain);
+    tEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+    tEl.textContent = parsed.icon ? `${parsed.icon} ${parsed.title}` : parsed.title;
+    svg.appendChild(tEl);
+  }
+
+  const cardStrokeDefault = isDark ? '#475569' : '#64748b';
+  const cardBgDefault = isDark ? '#111827' : '#ffffff';
+
+  const drawCleanBox = (x, y, w, h, nodeStyle) => {
+    const rect = document.createElementNS(svgNS, 'rect');
+    rect.setAttribute('x', x);
+    rect.setAttribute('y', y);
+    rect.setAttribute('width', w);
+    rect.setAttribute('height', h);
+    rect.setAttribute('rx', '4');
+    if (nodeStyle === 'danger') {
+      rect.setAttribute('fill', isDark ? '#450a0a' : '#fbf1f1');
+      rect.setAttribute('stroke', isDark ? '#f87171' : '#8b2626');
+    } else if (nodeStyle && nodeStyle !== 'default') {
+      const nc = getNodeColors(nodeStyle);
+      rect.setAttribute('fill', nc.bg);
+      rect.setAttribute('stroke', nc.border);
+    } else {
+      rect.setAttribute('fill', cardBgDefault);
+      rect.setAttribute('stroke', cardStrokeDefault);
+    }
+    rect.setAttribute('stroke-width', '1.5');
+    svg.appendChild(rect);
+  };
+
+  // 1. 上段アクターノード + 下向き矢印
+  if (topActorNode) {
+    drawCleanBox(leftX, topActorY, leftW, topActorH, topActorNode.style || 'danger');
+    const { emoji, body } = splitLeadingEmoji(topActorNode.title);
+    const labelStr = emoji ? `${emoji} ${body}` : body;
+    const tTxt = document.createElementNS(svgNS, 'text');
+    tTxt.setAttribute('x', leftX + leftW / 2);
+    tTxt.setAttribute('y', topActorY + topActorH / 2 + 5);
+    tTxt.setAttribute('text-anchor', 'middle');
+    tTxt.setAttribute('font-size', '14.5');
+    tTxt.setAttribute('font-weight', '700');
+    tTxt.setAttribute('fill', themeColors.textMain);
+    tTxt.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+    tTxt.textContent = labelStr;
+    svg.appendChild(tTxt);
+
+    const arrowX = leftX + leftW / 2;
+    const topEdgeInfo = parsed.topEdge || { lines: [], style: 'danger', dashed: false };
+    const topEdgeStyle = getEdgeStyle(topEdgeInfo.style || 'danger');
+    drawStraightLine(svg, arrowX, topActorY + topActorH, arrowX, stackTopY - 5, topEdgeStyle.stroke, true, topEdgeInfo.dashed, topEdgeStyle.marker);
+
+    if (topEdgeInfo.lines && topEdgeInfo.lines.length > 0) {
+      topEdgeInfo.lines.forEach((ln, li) => {
+        const lTxt = document.createElementNS(svgNS, 'text');
+        lTxt.setAttribute('x', arrowX + 10);
+        lTxt.setAttribute('y', topActorY + topActorH + topArrowGap / 2 + 4 + li * 15);
+        lTxt.setAttribute('font-size', '12');
+        lTxt.setAttribute('font-weight', '500');
+        lTxt.setAttribute('fill', topEdgeStyle.text);
+        lTxt.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+        lTxt.textContent = ln;
+        svg.appendChild(lTxt);
+      });
+    }
+  }
+
+  // 2. 左側の縦長プラットフォーム枠 (source) と上部注記 (source_note)
+  const drawTallSideCard = (x, y, w, h, node) => {
+    drawCleanBox(x, y, w, h, node.style);
+    const { emoji, body } = splitLeadingEmoji(node.title);
+    const titleLines = wrapScenarioText(body || node.title, w - 24, 14.5);
+    const subLines = [];
+    (node.subLines || []).forEach((s) => {
+      subLines.push(...wrapScenarioText(s, w - 24, 11.5));
+    });
+
+    const emojiH = emoji ? 28 : 0;
+    const tH = titleLines.length * 19;
+    const sH = subLines.length > 0 ? 8 + subLines.length * 16 : 0;
+    const totalInnerH = emojiH + tH + sH;
+    let curTextY = y + Math.max(20, (h - totalInnerH) / 2);
+
+    if (emoji) {
+      const eTxt = document.createElementNS(svgNS, 'text');
+      eTxt.setAttribute('x', x + w / 2);
+      eTxt.setAttribute('y', curTextY + 18);
+      eTxt.setAttribute('text-anchor', 'middle');
+      eTxt.setAttribute('font-size', '22');
+      eTxt.textContent = emoji;
+      svg.appendChild(eTxt);
+      curTextY += emojiH;
+    }
+
+    titleLines.forEach((ln) => {
+      const lTxt = document.createElementNS(svgNS, 'text');
+      lTxt.setAttribute('x', x + w / 2);
+      lTxt.setAttribute('y', curTextY + 14);
+      lTxt.setAttribute('text-anchor', 'middle');
+      lTxt.setAttribute('font-size', '14.5');
+      lTxt.setAttribute('font-weight', '700');
+      lTxt.setAttribute('fill', themeColors.textMain);
+      lTxt.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+      lTxt.textContent = ln;
+      svg.appendChild(lTxt);
+      curTextY += 19;
+    });
+
+    if (subLines.length > 0) {
+      curTextY += 8;
+      subLines.forEach((ln) => {
+        const sTxt = document.createElementNS(svgNS, 'text');
+        sTxt.setAttribute('x', x + w / 2);
+        sTxt.setAttribute('y', curTextY + 11);
+        sTxt.setAttribute('text-anchor', 'middle');
+        sTxt.setAttribute('font-size', '11.5');
+        sTxt.setAttribute('fill', themeColors.textMuted);
+        sTxt.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+        sTxt.textContent = ln;
+        svg.appendChild(sTxt);
+        curTextY += 16;
+      });
+    }
+  };
+
+  drawTallSideCard(leftX, stackTopY, leftW, tallH, srcNode);
+
+  if (sourceNoteLines.length > 0) {
+    sourceNoteLines.forEach((ln, li) => {
+      const nTxt = document.createElementNS(svgNS, 'text');
+      nTxt.setAttribute('x', leftX + leftW + 14);
+      nTxt.setAttribute('y', stackTopY + 14 + li * 15);
+      nTxt.setAttribute('font-size', '11.5');
+      nTxt.setAttribute('font-weight', '500');
+      nTxt.setAttribute('fill', themeColors.textMain);
+      nTxt.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+      nTxt.textContent = ln;
+      svg.appendChild(nTxt);
+    });
+  }
+
+  // 3. 右側の縦長ターゲット枠 (target)
+  if (hasTarget) {
+    drawTallSideCard(rightX, stackTopY, rightW, tallH, tgtNode);
+  }
+
+  // 4. 中央カード群と左右の矢印 + ラベル
+  preparedRows.forEach((r) => {
+    drawCleanBox(midX, r.y, midW, r.rowH, r.card.style);
+
+    let textY = r.y + 24;
+    if (r.emoji) {
+      const eEl = document.createElementNS(svgNS, 'text');
+      eEl.setAttribute('x', midX + 16);
+      eEl.setAttribute('y', textY);
+      eEl.setAttribute('font-size', '16');
+      eEl.textContent = r.emoji;
+      svg.appendChild(eEl);
+    }
+
+    const titleStartX = r.emoji ? midX + 42 : midX + 16;
+    r.titleLines.forEach((tl, ti) => {
+      const tEl = document.createElementNS(svgNS, 'text');
+      tEl.setAttribute('x', titleStartX);
+      tEl.setAttribute('y', textY + ti * 19);
+      tEl.setAttribute('font-size', '14.5');
+      tEl.setAttribute('font-weight', '700');
+      tEl.setAttribute('fill', themeColors.textMain);
+      tEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+      tEl.textContent = tl;
+      svg.appendChild(tEl);
+    });
+
+    textY += r.titleLines.length * 19 + 4;
+    r.wrappedSubs.forEach((sl, si) => {
+      const sEl = document.createElementNS(svgNS, 'text');
+      sEl.setAttribute('x', midX + 16);
+      sEl.setAttribute('y', textY + si * cardSubLineH);
+      sEl.setAttribute('font-size', '11.5');
+      sEl.setAttribute('fill', themeColors.textMuted);
+      sEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+      sEl.textContent = sl;
+      svg.appendChild(sEl);
+    });
+
+    // 左列 -> 中央カード矢印
+    if (r.leftEdge) {
+      const st = getEdgeStyle(r.leftEdge.style);
+      const arrowY = r.y + Math.round(r.rowH * 0.56);
+      drawStraightLine(svg, leftX + leftW, arrowY, midX - 5, arrowY, st.stroke, true, r.leftEdge.dashed, st.marker);
+
+      if (r.leftLines.length > 0) {
+        const labelTopY = arrowY - 8 - (r.leftLines.length - 1) * labelLineH;
+        r.leftLines.forEach((ln, li) => {
+          const lEl = document.createElementNS(svgNS, 'text');
+          lEl.setAttribute('x', leftX + leftW + 14);
+          lEl.setAttribute('y', labelTopY + li * labelLineH);
+          lEl.setAttribute('font-size', '11.5');
+          lEl.setAttribute('fill', st.text);
+          lEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+          lEl.textContent = ln;
+          svg.appendChild(lEl);
+        });
+      }
+    }
+
+    // 中央カード -> 右列矢印
+    if (r.rightEdge && (hasTarget || r.rightLines.length > 0)) {
+      const st = getEdgeStyle(r.rightEdge.style || 'success');
+      const neededLabelH = r.rightLines.length * labelLineH;
+      const arrowY = Math.min(r.y + r.rowH - 12, Math.max(r.y + Math.round(r.rowH * 0.62), r.y + neededLabelH + 12));
+      const arrowEndX = hasTarget ? (rightX - 5) : (midX + midW + rightArrowGap - 10);
+      drawStraightLine(svg, midX + midW, arrowY, arrowEndX, arrowY, st.stroke, true, r.rightEdge.dashed, st.marker);
+
+      if (r.rightLines.length > 0) {
+        const labelTopY = arrowY - 8 - (r.rightLines.length - 1) * labelLineH;
+        r.rightLines.forEach((ln, li) => {
+          const lEl = document.createElementNS(svgNS, 'text');
+          lEl.setAttribute('x', midX + midW + 12);
+          lEl.setAttribute('y', labelTopY + li * labelLineH);
+          lEl.setAttribute('font-size', '11.5');
+          lEl.setAttribute('fill', st.text);
+          lEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+          lEl.textContent = ln;
+          svg.appendChild(lEl);
+        });
+      }
+    }
+  });
+
+  // 5. 下部凡例
+  if (legendRows.length > 0) {
+    const legSep = document.createElementNS(svgNS, 'line');
+    legSep.setAttribute('x1', leftX);
+    legSep.setAttribute('y1', legendTopY - 14);
+    legSep.setAttribute('x2', width - padX);
+    legSep.setAttribute('y2', legendTopY - 14);
+    legSep.setAttribute('stroke', isDark ? '#1e293b' : '#e2e8f0');
+    legSep.setAttribute('stroke-width', '1');
+    svg.appendChild(legSep);
+
+    legendRows.forEach((item) => {
+      if (item.kind === 'box') {
+        drawCleanBox(item.x, item.y + 1, 22, 14, item.style || 'danger');
+        const txt = document.createElementNS(svgNS, 'text');
+        txt.setAttribute('x', item.x + 29);
+        txt.setAttribute('y', item.y + 12);
+        txt.setAttribute('font-size', '11.5');
+        txt.setAttribute('fill', themeColors.textMuted);
+        txt.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+        txt.textContent = item.text;
+        svg.appendChild(txt);
+      } else {
+        const st = getEdgeStyle(item.style);
+        drawStraightLine(svg, item.x, item.y + 8, item.x + 28, item.y + 8, st.stroke, true, item.dashed, st.marker);
+        const txt = document.createElementNS(svgNS, 'text');
+        txt.setAttribute('x', item.x + 38);
+        txt.setAttribute('y', item.y + 12);
+        txt.setAttribute('font-size', '11.5');
+        txt.setAttribute('fill', themeColors.textMuted);
+        txt.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+        txt.textContent = item.text;
+        svg.appendChild(txt);
+      }
+    });
+  }
+
+  container.appendChild(svg);
+  appendLabel(container, label);
 }
 
 function appendDefs(svg, themeColors, isDark) {
@@ -1023,6 +1662,18 @@ function appendDefs(svg, themeColors, isDark) {
     </marker>
     <marker id="scenario-arrow-danger" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#e11d48" />
+    </marker>
+    <marker id="scenario-arrow-crimson" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="${isDark ? '#f87171' : '#991b1b'}" />
+    </marker>
+    <marker id="scenario-arrow-steel" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="${isDark ? '#60a5fa' : '#5b829e'}" />
+    </marker>
+    <marker id="scenario-arrow-success" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="${isDark ? '#34d399' : '#4a7c59'}" />
+    </marker>
+    <marker id="scenario-arrow-warn" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="${isDark ? '#fbbf24' : '#d97706'}" />
     </marker>
     <filter id="scenario-shadow" x="-10%" y="-10%" width="120%" height="120%">
       <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="${isDark ? '0.45' : '0.08'}" flood-color="#000000" />

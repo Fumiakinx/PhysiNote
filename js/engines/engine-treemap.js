@@ -610,7 +610,7 @@ function drawTreemapSvg(code, container, labelText) {
         });
 
         // 数値行の自動分割・幅フィット判定
-        const valFontSize = Math.min(Math.max(fontSize - 2, 9.0), 13);
+        let valFontSize = Math.min(Math.max(fontSize - 2, 8.5), 13);
         const valUnitStr = formatTreemapValueWithUnit(r.value, unit);
         const pctStr = `(${r.pct.toFixed(1)}%)`;
         const fullValStr = `${valUnitStr} ${pctStr}`;
@@ -629,8 +629,9 @@ function drawTreemapSvg(code, container, labelText) {
             valLines = [valUnitStr, pctStr];
           } else {
             // さらにフォントサイズを縮小して収まるか判定
-            const reducedSz = 8.5;
+            const reducedSz = 8.0;
             if (Math.max(estimateTextWidth(valUnitStr, reducedSz), estimateTextWidth(pctStr, reducedSz)) <= maxAvailW) {
+              valFontSize = reducedSz;
               valLines = [valUnitStr, pctStr];
             } else if (estimateTextWidth(pctStr, valFontSize) <= maxAvailW) {
               valLines = [pctStr]; // 比率のみ表示
@@ -638,36 +639,91 @@ function drawTreemapSvg(code, container, labelText) {
           }
         }
 
-        const labelLineH = fontSize + 3;
-        const valLineH = valFontSize + 2;
-        const changeLineH = valFontSize + 2;
-
-        const neededValH = valLines.length > 0 ? (valLines.length * valLineH + 4) : 0;
-        const showValue = valLines.length > 0 && rh >= (labelLines.length * labelLineH + neededValH + 6) && rw >= 36;
-        const actualValLines = showValue ? valLines : [];
-
-        // 変化率（showChange）判定
+        // 高さフィット判定（枠が小さい場合も段階縮小・余白圧縮で成長率を極力省略しない）
+        let labelFontSize = fontSize;
+        let actualValFontSize = valFontSize;
+        let changeFontSize = valFontSize;
+        let labelLineH = labelFontSize + 3;
+        let valLineH = actualValFontSize + 2;
+        let changeLineH = changeFontSize + 2;
+        let blockGap = 4;
+        let actualValLines = [];
+        let showValue = false;
         let showChange = false;
-        if (r.change) {
-          const chgW = estimateTextWidth(r.change, valFontSize);
-          const neededChangeH = (showValue ? actualValLines.length * valLineH + 4 : 0) + changeLineH + 6;
-          if (chgW <= maxAvailW && rh >= (labelLines.length * labelLineH + neededChangeH) && rw >= 40) {
+
+        const calcNeededH = (lFs, vFs, cFs, vLines, hasChg, tight) => {
+          const lLH = lFs + (tight ? 1.5 : 3);
+          const vLH = vFs + (tight ? 1 : 2);
+          const cLH = cFs + (tight ? 1 : 2);
+          const gap = tight ? 2 : 4;
+          const padY = tight ? 4 : 6;
+          return labelLines.length * lLH
+            + (vLines.length > 0 ? vLines.length * vLH + gap : 0)
+            + (hasChg ? cLH + gap : 0)
+            + padY;
+        };
+
+        const canFitChangeW = Boolean(r.change && rw >= 36);
+        const chgFitsAt = (fs) => canFitChangeW && estimateTextWidth(r.change, fs) <= maxAvailW;
+
+        if (r.change && canFitChangeW) {
+          // 1. 通常サイズでラベル＋数値＋成長率が収まるか
+          if (chgFitsAt(valFontSize) && calcNeededH(labelFontSize, valFontSize, valFontSize, valLines, true, false) <= rh) {
+            actualValLines = valLines;
+            showValue = valLines.length > 0;
             showChange = true;
+          } else {
+            // 2. フォント縮小・行間圧縮で全項目（ラベル＋数値＋成長率）が収まるか
+            let matched = false;
+            const tightConfigs = [
+              { lMin: 9.0, vFs: Math.min(valFontSize, 8.5), cFs: Math.min(valFontSize, 9.0), vCand: valLines },
+              { lMin: 8.0, vFs: 7.5, cFs: 8.0, vCand: valLines },
+              { lMin: 8.0, vFs: 7.5, cFs: 7.5, vCand: valLines.length > 1 ? [valUnitStr] : valLines },
+              { lMin: 8.0, vFs: 7.5, cFs: 7.5, vCand: [] }
+            ];
+            for (const cfg of tightConfigs) {
+              const tryL = Math.min(labelFontSize, Math.max(cfg.lMin, labelFontSize * 0.85));
+              if (!chgFitsAt(cfg.cFs)) continue;
+              if (calcNeededH(tryL, cfg.vFs, cfg.cFs, cfg.vCand, true, true) <= rh) {
+                labelFontSize = tryL;
+                actualValFontSize = cfg.vFs;
+                changeFontSize = cfg.cFs;
+                labelLineH = labelFontSize + 1.5;
+                valLineH = actualValFontSize + 1;
+                changeLineH = changeFontSize + 1;
+                blockGap = 2;
+                actualValLines = cfg.vCand;
+                showValue = cfg.vCand.length > 0;
+                showChange = true;
+                matched = true;
+                break;
+              }
+            }
+            if (!matched) {
+              // 成長率の最小フォントでも収まらない超極小枠のみ従来フォールバック
+              const neededValH = valLines.length > 0 ? (valLines.length * valLineH + 4) : 0;
+              showValue = valLines.length > 0 && rh >= (labelLines.length * labelLineH + neededValH + 6) && rw >= 36;
+              actualValLines = showValue ? valLines : [];
+            }
           }
+        } else {
+          const neededValH = valLines.length > 0 ? (valLines.length * valLineH + 4) : 0;
+          showValue = valLines.length > 0 && rh >= (labelLines.length * labelLineH + neededValH + 6) && rw >= 36;
+          actualValLines = showValue ? valLines : [];
         }
 
         let totalContentH = (labelLines.length - 1) * labelLineH;
-        if (showValue) totalContentH += actualValLines.length * valLineH + 4;
-        if (showChange) totalContentH += changeLineH + 4;
+        if (showValue) totalContentH += actualValLines.length * valLineH + blockGap;
+        if (showChange) totalContentH += changeLineH + blockGap;
 
-        let curY = ry + (rh - totalContentH) / 2 + fontSize * 0.35;
+        let curY = ry + (rh - totalContentH) / 2 + labelFontSize * 0.35;
 
         const labelTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         labelTxt.setAttribute('x', cx);
         labelTxt.setAttribute('y', curY);
         labelTxt.setAttribute('text-anchor', 'middle');
         labelTxt.setAttribute('font-weight', '700');
-        labelTxt.setAttribute('font-size', String(fontSize));
+        labelTxt.setAttribute('font-size', String(labelFontSize));
 
         if (labelLines.length === 1) {
           labelTxt.textContent = labelLines[0];
@@ -684,12 +740,12 @@ function drawTreemapSvg(code, container, labelText) {
         textG.appendChild(labelTxt);
 
         if (showValue && actualValLines.length > 0) {
-          curY += valLineH + 4;
+          curY += valLineH + blockGap;
           const valTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
           valTxt.setAttribute('x', cx);
           valTxt.setAttribute('y', curY);
           valTxt.setAttribute('text-anchor', 'middle');
-          valTxt.setAttribute('font-size', String(valFontSize));
+          valTxt.setAttribute('font-size', String(actualValFontSize));
           valTxt.setAttribute('font-weight', '500');
           valTxt.setAttribute('opacity', '0.95');
 
@@ -709,13 +765,13 @@ function drawTreemapSvg(code, container, labelText) {
         }
 
         if (showChange) {
-          curY += changeLineH + 4;
+          curY += changeLineH + blockGap;
           const chgG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
           const chgTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
           chgTxt.setAttribute('x', cx);
           chgTxt.setAttribute('y', curY);
           chgTxt.setAttribute('text-anchor', 'middle');
-          chgTxt.setAttribute('font-size', String(valFontSize));
+          chgTxt.setAttribute('font-size', String(changeFontSize));
           chgTxt.setAttribute('font-weight', '700');
           chgTxt.textContent = r.change;
           chgG.appendChild(chgTxt);

@@ -374,6 +374,67 @@ function splitCsvParts(str) {
   return parts;
 }
 
+// SVGテキスト概算幅計測・折り返し共通ヘルパー
+function measureChartTextW(str, fontSize, isBold) {
+  if (typeof estimateSvgTextWidth === 'function') {
+    return estimateSvgTextWidth(str, fontSize, isBold);
+  }
+  let w = 0;
+  const s = String(str || '');
+  for (let i = 0; i < s.length; i++) {
+    w += s.charCodeAt(i) > 255 ? fontSize : fontSize * 0.62;
+  }
+  return w * (isBold ? 1.06 : 1);
+}
+
+function wrapChartTextLines(str, maxWidthPx, fontSize, isBold = false) {
+  const s = String(str || '').trim();
+  if (!s) return [''];
+  if (measureChartTextW(s, fontSize, isBold) * 1.05 <= maxWidthPx) {
+    return [s];
+  }
+
+  const wrapped = [];
+  let rest = s;
+  while (rest.length > 0) {
+    if (measureChartTextW(rest, fontSize, isBold) * 1.05 <= maxWidthPx) {
+      wrapped.push(rest);
+      break;
+    }
+
+    let fitLen = 1;
+    for (let i = 1; i <= rest.length; i++) {
+      if (measureChartTextW(rest.slice(0, i), fontSize, isBold) * 1.05 > maxWidthPx) {
+        fitLen = Math.max(1, i - 1);
+        break;
+      }
+      fitLen = i;
+    }
+
+    // 区切りの良い位置（括弧の前・中黒/読点/スペースの直後）を優先して改行位置を探す
+    let breakIdx = fitLen;
+    const minLeft = Math.max(2, Math.floor(fitLen * 0.45));
+    for (let j = fitLen; j >= minLeft; j--) {
+      const ch = rest[j];
+      const prevCh = rest[j - 1];
+      if (ch === '（' || ch === '(' || ch === '[' || ch === '【') {
+        breakIdx = j;
+        break;
+      }
+      if (prevCh === '・' || prevCh === '、' || prevCh === '/' || prevCh === '／' || prevCh === ' ' || prevCh === '　') {
+        breakIdx = j;
+        break;
+      }
+    }
+
+    const line = rest.slice(0, breakIdx).trimEnd();
+    if (line) wrapped.push(line);
+    rest = rest.slice(breakIdx).trimStart();
+  }
+
+  return wrapped.length > 0 ? wrapped : [s];
+}
+
 // ==========================================
 // SVG レンダリングエンジン
 // ==========================================
@@ -423,25 +484,89 @@ function drawChartSvg(text, container, label) {
     bgRect.setAttribute('fill', colors.bg);
     svg.appendChild(bgRect);
 
-    // ヘッダー情報（タイトル・単位）
+    // ヘッダー情報（タイトル・単位：タイトル長に応じて重なり回避）
     const headerG = document.createElementNS(svgNS, 'g');
     const titleText = parsed.title || getDefaultChartTitle(parsed.type);
     const unitText = parsed.unit ? `(単位: ${parsed.unit})` : '';
 
-    headerG.innerHTML = `
-      <text x="28" y="38" font-size="20" font-weight="bold" fill="${colors.textMain}" font-family="system-ui, -apple-system, sans-serif">
-        ${titleText}
-      </text>
-      <text x="${viewBoxWidth - 28}" y="38" text-anchor="end" font-size="12" fill="${colors.textMuted}" font-family="system-ui, sans-serif">
-        ${unitText}
-      </text>
-      <rect x="28" y="48" width="80" height="3" rx="1.5" fill="#0284c7" />
-    `;
+    const headerPadX = 28;
+    const fullHeaderW = viewBoxWidth - headerPadX * 2;
+    const unitW = unitText ? measureChartTextW(unitText, 12, false) * 1.08 : 0;
+    const sameLineMaxTitleW = unitText ? (fullHeaderW - unitW - 18) : fullHeaderW;
+
+    let titleFontSize = 20;
+    const rawTitleW20 = measureChartTextW(titleText, 20, true) * 1.05;
+    const collidesSameLine = Boolean(unitText && rawTitleW20 > sameLineMaxTitleW);
+
+    let titleLines = [titleText];
+    if (rawTitleW20 > fullHeaderW) {
+      const rawTitleW18 = measureChartTextW(titleText, 18, true) * 1.05;
+      if (rawTitleW18 <= fullHeaderW) {
+        titleFontSize = 18;
+      } else {
+        titleFontSize = 18;
+        titleLines = wrapChartTextLines(titleText, fullHeaderW, titleFontSize, true);
+      }
+    }
+
+    const titleLineStep = 24;
+    const titleStartY = titleLines.length > 1 ? 32 : 38;
+    const lastTitleY = titleStartY + (titleLines.length - 1) * titleLineStep;
+
+    const titleEl = document.createElementNS(svgNS, 'text');
+    titleEl.setAttribute('x', String(headerPadX));
+    titleEl.setAttribute('y', String(titleStartY));
+    titleEl.setAttribute('font-size', String(titleFontSize));
+    titleEl.setAttribute('font-weight', 'bold');
+    titleEl.setAttribute('fill', colors.textMain);
+    titleEl.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+    titleLines.forEach((ln, idx) => {
+      const tspan = document.createElementNS(svgNS, 'tspan');
+      tspan.setAttribute('x', String(headerPadX));
+      if (idx > 0) tspan.setAttribute('dy', String(titleLineStep));
+      tspan.textContent = ln;
+      titleEl.appendChild(tspan);
+    });
+    headerG.appendChild(titleEl);
+
+    const barY = lastTitleY + 10;
+    const barEl = document.createElementNS(svgNS, 'rect');
+    barEl.setAttribute('x', String(headerPadX));
+    barEl.setAttribute('y', String(barY));
+    barEl.setAttribute('width', '80');
+    barEl.setAttribute('height', '3');
+    barEl.setAttribute('rx', '1.5');
+    barEl.setAttribute('fill', '#0284c7');
+    headerG.appendChild(barEl);
+
+    const dropUnitBelow = collidesSameLine || titleLines.length > 1;
+    let contentOffsetY = barY + 12;
+
+    if (unitText) {
+      const unitY = dropUnitBelow ? (barY + 14) : titleStartY;
+      const unitEl = document.createElementNS(svgNS, 'text');
+      unitEl.setAttribute('x', String(viewBoxWidth - headerPadX));
+      unitEl.setAttribute('y', String(unitY));
+      unitEl.setAttribute('text-anchor', 'end');
+      unitEl.setAttribute('font-size', '12');
+      unitEl.setAttribute('fill', colors.textMuted);
+      unitEl.setAttribute('font-family', 'system-ui, sans-serif');
+      unitEl.textContent = unitText;
+      headerG.appendChild(unitEl);
+
+      if (dropUnitBelow) {
+        contentOffsetY = Math.max(contentOffsetY, unitY + 12);
+      }
+    }
+
     svg.appendChild(headerG);
+
+    const extraHeaderY = Math.max(0, contentOffsetY - 60);
+    viewBoxHeight += extraHeaderY;
 
     // コンテンツ描画グループ
     const contentG = document.createElementNS(svgNS, 'g');
-    contentG.setAttribute('transform', 'translate(0, 60)');
+    contentG.setAttribute('transform', `translate(0, ${contentOffsetY})`);
     svg.appendChild(contentG);
 
     let summaryData = null;
@@ -453,6 +578,10 @@ function drawChartSvg(text, container, label) {
     } else {
       // 縦棒・折れ線・複合・エリア・積み上げ
       summaryData = renderCartesianChart(contentG, parsed, colors, svgNS);
+    }
+
+    if (summaryData && summaryData.requiredHeight && (summaryData.requiredHeight + extraHeaderY) > viewBoxHeight) {
+      viewBoxHeight = summaryData.requiredHeight + extraHeaderY;
     }
 
     // 下部サマリーカード
@@ -1028,31 +1157,81 @@ function renderPieOrDonutChart(g, parsed, colors, svgNS) {
     g.appendChild(centerG);
   }
 
-  // 右側凡例リスト（幅拡張 ＆ 上下中央整列）
+  // 右側凡例リスト（長文の自動折り返し ＆ 行高動的調整 ＆ 上下中央整列）
   const legendG = document.createElementNS(svgNS, 'g');
   const legX = 430;
   const valX = 805;
-  const itemH = items.length > 7 ? Math.max(26, Math.floor(270 / items.length)) : 34;
-  const legY = Math.max(30, Math.round(cy - (items.length * itemH) / 2));
+  const labelX = legX + 26;
+  const labelFontSize = 13;
+  const lineStep = 16;
+  const baseItemH = items.length > 7 ? Math.max(26, Math.floor(270 / items.length)) : 34;
 
-  items.forEach((item, idx) => {
-    const y = legY + idx * itemH;
+  const preparedRows = items.map((item, idx) => {
     const color = item.color || colors.palette[idx % colors.palette.length];
     const val = item.value || 0;
     const pct = ((val / total) * 100).toFixed(1);
+    const valText = `${val.toLocaleString()} (${pct}%)`;
+    const valW = measureChartTextW(valText, labelFontSize, true);
+    const maxLabelW = Math.max(90, valX - labelX - valW - 20);
+    const nameLines = wrapChartTextLines(item.name, maxLabelW, labelFontSize, false);
+    const rowH = nameLines.length > 1 ? baseItemH + (nameLines.length - 1) * lineStep : baseItemH;
+    return { color, valText, nameLines, rowH };
+  });
+
+  const totalLegendH = preparedRows.reduce((acc, r) => acc + r.rowH, 0);
+  let curY = Math.max(20, Math.round(cy - totalLegendH / 2));
+
+  preparedRows.forEach((info) => {
+    const y = curY;
+    curY += info.rowH;
 
     const row = document.createElementNS(svgNS, 'g');
-    row.innerHTML = `
-      <rect x="${legX}" y="${y}" width="16" height="16" rx="4" fill="${color}" />
-      <text x="${legX + 26}" y="${y + 13}" font-size="13" font-weight="500" fill="${colors.textMain}">${item.name}</text>
-      <text x="${valX}" y="${y + 13}" text-anchor="end" font-size="13" font-weight="bold" fill="${color}">${val.toLocaleString()} (${pct}%)</text>
-    `;
+
+    const rect = document.createElementNS(svgNS, 'rect');
+    rect.setAttribute('x', legX);
+    rect.setAttribute('y', y);
+    rect.setAttribute('width', '16');
+    rect.setAttribute('height', '16');
+    rect.setAttribute('rx', '4');
+    rect.setAttribute('fill', info.color);
+    row.appendChild(rect);
+
+    const nameEl = document.createElementNS(svgNS, 'text');
+    nameEl.setAttribute('x', labelX);
+    nameEl.setAttribute('y', y + 13);
+    nameEl.setAttribute('font-size', String(labelFontSize));
+    nameEl.setAttribute('font-weight', '500');
+    nameEl.setAttribute('fill', colors.textMain);
+    info.nameLines.forEach((lineText, lineIdx) => {
+      const tspan = document.createElementNS(svgNS, 'tspan');
+      tspan.setAttribute('x', labelX);
+      if (lineIdx > 0) {
+        tspan.setAttribute('dy', String(lineStep));
+      }
+      tspan.textContent = lineText;
+      nameEl.appendChild(tspan);
+    });
+    row.appendChild(nameEl);
+
+    const valEl = document.createElementNS(svgNS, 'text');
+    valEl.setAttribute('x', valX);
+    valEl.setAttribute('y', y + 13);
+    valEl.setAttribute('text-anchor', 'end');
+    valEl.setAttribute('font-size', String(labelFontSize));
+    valEl.setAttribute('font-weight', 'bold');
+    valEl.setAttribute('fill', info.color);
+    valEl.textContent = info.valText;
+    row.appendChild(valEl);
+
     legendG.appendChild(row);
   });
   g.appendChild(legendG);
 
+  const requiredHeight = Math.max(520, curY + 148);
+
   return {
-    line1: `• 合計値: ${total.toLocaleString()} ${parsed.unit} ｜ スライス構成数: ${items.length} 区分 ｜ 最大構成比: ${items[0]?.name || ''}`
+    line1: `• 合計値: ${total.toLocaleString()} ${parsed.unit} ｜ スライス構成数: ${items.length} 区分 ｜ 最大構成比: ${items[0]?.name || ''}`,
+    requiredHeight
   };
 }
 

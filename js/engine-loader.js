@@ -54,7 +54,9 @@ const EngineLoader = (() => {
     chem: 'engine-chem.js',
     'chem-struct': 'engine-chem.js',
     code: 'engine-code.js',
-    terminal: 'engine-code.js'
+    terminal: 'engine-code.js',
+    network: 'engine-network.js',
+    netdiag: 'engine-network.js'
   };
 
   /**
