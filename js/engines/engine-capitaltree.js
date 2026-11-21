@@ -3,74 +3,11 @@
 // ==========================================
 
 function getApproxTextWidth(str) {
-  if (typeof estimateSvgTextWidth === 'function') {
-    return estimateSvgTextWidth(str, 12.5, false);
-  }
-  if (!str) return 0;
-  let w = 0;
-  for (let i = 0; i < str.length; i++) {
-    const code = str.charCodeAt(i);
-    if (code > 255) {
-      w += 12.5;
-    } else if (code >= 65 && code <= 90) {
-      w += 8.8;
-    } else {
-      w += 6.8;
-    }
-  }
-  return w;
+  return estimateSvgTextWidth(str, 12.5, false);
 }
 
 function wrapNodeLineByWidth(seg, maxLineW = 172) {
-  if (!seg) return [];
-  if (getApproxTextWidth(seg) <= maxLineW) return [seg];
-
-  const result = [];
-  let rest = seg.trim();
-  while (rest && getApproxTextWidth(rest) > maxLineW) {
-    let limit = 0;
-    let accW = 0;
-    for (let i = 0; i < rest.length; i++) {
-      const cw = getApproxTextWidth(rest[i]);
-      if (accW + cw > maxLineW && i > 0) break;
-      accW += cw;
-      limit = i + 1;
-    }
-
-    // 収容幅の後半側でスペース・中黒・括弧などの自然な区切りを探索
-    let splitIdx = -1;
-    const minBreak = Math.max(2, Math.floor(limit * 0.4));
-    for (let i = limit; i >= minBreak; i--) {
-      const prevCh = rest[i - 1];
-      const curCh = rest[i] || '';
-      if (prevCh === ' ' || prevCh === '　' || prevCh === '・' || prevCh === ')' || prevCh === '）') {
-        splitIdx = i;
-        break;
-      }
-      if (curCh === '(' || curCh === '（') {
-        splitIdx = i;
-        break;
-      }
-    }
-
-    // 法人格（「株式会社」「有限会社」等）の直前での改行を探索
-    if (splitIdx === -1) {
-      for (const suffix of ['株式会社', '有限会社']) {
-        const idx = rest.lastIndexOf(suffix, limit);
-        if (idx >= minBreak && idx <= limit) {
-          splitIdx = idx;
-          break;
-        }
-      }
-    }
-    if (splitIdx <= 0) splitIdx = limit;
-
-    const head = rest.slice(0, splitIdx).trim();
-    if (head) result.push(head);
-    rest = rest.slice(splitIdx).trim();
-  }
-  if (rest) result.push(rest);
-  return result;
+  return wrapSvgTextLines(seg, maxLineW, 12.5, { beforeKeywords: ['株式会社', '有限会社'] });
 }
 
 function splitNodeText(name) {
@@ -242,7 +179,7 @@ function parseNodeMeta(name, metaStr) {
   let subTag = '';
 
   if (metaStr) {
-    const parts = metaStr.split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((p) => p.trim()).filter(Boolean);
+    const parts = splitCsvRespectQuotes(metaStr);
     parts.forEach((rawP) => {
       let p = rawP.replace(/^["']|["']$/g, '').trim();
       const tagMatch = p.match(/^(?:tag|sub|badge)\s*[:=]\s*(.+)$/i);
@@ -275,7 +212,7 @@ function parseEdgeMeta(attrStr) {
 
   if (attrStr) {
     // クォート内のカンマで分割しないよう分割
-    const parts = attrStr.split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((p) => p.trim()).filter(Boolean);
+    const parts = splitCsvRespectQuotes(attrStr);
     parts.forEach((rawP) => {
       let p = rawP.replace(/^["']|["']$/g, '').trim();
 
@@ -1139,12 +1076,7 @@ function drawCapitalTreeSvg(code, container, labelText) {
     const busY0 = pY + 28;
 
     // 親から1段目バス線への垂直幹
-    const rootPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    rootPath.setAttribute('d', `M ${pX} ${pY} L ${pX} ${busY0}`);
-    rootPath.setAttribute('fill', 'none');
-    rootPath.setAttribute('stroke', '#94a3b8');
-    rootPath.setAttribute('stroke-width', '1.5');
-    edgeG.appendChild(rootPath);
+    drawSvgConnector(edgeG, `M ${pX} ${pY} L ${pX} ${busY0}`, { stroke: '#94a3b8', strokeWidth: '1.5' });
 
     const busYList = [];
 
@@ -1178,23 +1110,13 @@ function drawCapitalTreeSvg(code, container, labelText) {
           }
         }
         // 前段バス線から今段バス線への垂直トランク（隙間を通過）
-        const trunkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        trunkPath.setAttribute('d', `M ${trunkX} ${busYList[r - 1]} L ${trunkX} ${busY}`);
-        trunkPath.setAttribute('fill', 'none');
-        trunkPath.setAttribute('stroke', '#94a3b8');
-        trunkPath.setAttribute('stroke-width', '1.5');
-        edgeG.appendChild(trunkPath);
+        drawSvgConnector(edgeG, `M ${trunkX} ${busYList[r - 1]} L ${trunkX} ${busY}`, { stroke: '#94a3b8', strokeWidth: '1.5' });
       }
 
       // 水平バス線
       const busMinX = Math.min(firstX, trunkX);
       const busMaxX = Math.max(lastX, trunkX);
-      const hBusPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      hBusPath.setAttribute('d', `M ${busMinX} ${busY} L ${busMaxX} ${busY}`);
-      hBusPath.setAttribute('fill', 'none');
-      hBusPath.setAttribute('stroke', '#94a3b8');
-      hBusPath.setAttribute('stroke-width', '1.5');
-      edgeG.appendChild(hBusPath);
+      drawSvgConnector(edgeG, `M ${busMinX} ${busY} L ${busMaxX} ${busY}`, { stroke: '#94a3b8', strokeWidth: '1.5' });
 
       // 各子ノードへのドロップ線 & バッジ
       rowList.forEach((childNode) => {
@@ -1205,15 +1127,11 @@ function drawCapitalTreeSvg(code, container, labelText) {
         const isAlertEdge = Boolean(e && e.color && /red|danger|#e|#f4|#dc/i.test(e.color));
         const edgeStroke = (e && e.color) || '#94a3b8';
 
-        const dropPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        dropPath.setAttribute('d', `M ${cX} ${busY} L ${cX} ${cY}`);
-        dropPath.setAttribute('fill', 'none');
-        dropPath.setAttribute('stroke', edgeStroke);
-        dropPath.setAttribute('stroke-width', isAlertEdge ? '2.2' : (e && e.color ? '2' : '1.5'));
-        if (isAlertEdge) {
-          dropPath.setAttribute('stroke-dasharray', '5,3');
-        }
-        edgeG.appendChild(dropPath);
+        drawSvgConnector(edgeG, `M ${cX} ${busY} L ${cX} ${cY}`, {
+          stroke: edgeStroke,
+          strokeWidth: isAlertEdge ? '2.2' : (e && e.color ? '2' : '1.5'),
+          dasharray: isAlertEdge ? '5,3' : null
+        });
 
         // 比率・注釈バッジ
         if (e && (e.labelText || e.ratio || e.type)) {
@@ -1332,16 +1250,11 @@ function drawCapitalTreeSvg(code, container, labelText) {
       d += ` L ${cX} ${midY} L ${cX} ${cY}`;
     }
 
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', d);
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', edgeStroke);
-    path.setAttribute('stroke-width', isAlertEdge ? '2.2' : (e.color ? '2' : '1.5'));
-    if (isAlertEdge) {
-      path.setAttribute('stroke-dasharray', '5,3');
-    }
-    path.setAttribute('stroke-linejoin', 'round');
-    edgeG.appendChild(path);
+    drawSvgConnector(edgeG, d, {
+      stroke: edgeStroke,
+      strokeWidth: isAlertEdge ? '2.2' : (e.color ? '2' : '1.5'),
+      dasharray: isAlertEdge ? '5,3' : null
+    });
 
     // 比率・注釈バッジ
     if (e.labelText || e.ratio || e.type) {
@@ -1560,13 +1473,6 @@ function drawCapitalTreeSvg(code, container, labelText) {
   svg.appendChild(nodeG);
   container.appendChild(svg);
 
-  if (typeof appendDiagramLabel === 'function') {
-    appendDiagramLabel(container, labelText);
-  } else if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 

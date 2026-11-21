@@ -3,12 +3,7 @@
 // ==========================================
 
 function getOrgTextWidth(str) {
-  if (!str) return 0;
-  let w = 0;
-  for (let i = 0; i < str.length; i++) {
-    w += str.charCodeAt(i) > 255 ? 13 : 7.5;
-  }
-  return w;
+  return estimateSvgTextWidth(str, 13, false);
 }
 
 function escapeOrgHtml(str) {
@@ -744,10 +739,5 @@ function drawOrgChartSvg(code, container, labelText) {
   svg.appendChild(nodeG);
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

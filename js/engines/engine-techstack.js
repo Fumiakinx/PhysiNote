@@ -40,25 +40,7 @@ function parseTechStackText(rawText) {
     }
 
     // CSV分割（引用符考慮）
-    const parts = [];
-    let cur = '';
-    let q = null;
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      if (q) {
-        cur += ch;
-        if (ch === q && text[i - 1] !== '\\') q = null;
-      } else if (ch === '"' || ch === "'") {
-        q = ch;
-        cur += ch;
-      } else if (ch === ',') {
-        parts.push(cur.trim());
-        cur = '';
-      } else {
-        cur += ch;
-      }
-    }
-    if (cur.trim()) parts.push(cur.trim());
+    const parts = splitCsvRespectQuotes(text);
 
     const clean = (s) => (s || '').replace(/^["']|["']$/g, '').replace(/\\n/g, '\n').trim();
     if (parts.length >= 3) {
@@ -147,70 +129,11 @@ function parseTechStackText(rawText) {
 }
 
 function measureStackTextW(str, fontSize) {
-  if (typeof estimateSvgTextWidth === 'function') {
-    return estimateSvgTextWidth(str, fontSize, false);
-  }
-  let w = 0;
-  const s = String(str || '');
-  for (let i = 0; i < s.length; i++) {
-    w += s.charCodeAt(i) > 255 ? fontSize : fontSize * 0.58;
-  }
-  return w;
+  return estimateSvgTextWidth(str, fontSize, false);
 }
 
 function wrapStackLines(str, maxW, fontSize) {
-  if (!str) return [];
-  const out = [];
-  String(str).split('\n').forEach((para) => {
-    const t = para.trim();
-    if (!t) return;
-    if (measureStackTextW(t, fontSize) <= maxW) {
-      out.push(t);
-      return;
-    }
-    let rest = t;
-    while (rest.length > 0) {
-      if (measureStackTextW(rest, fontSize) <= maxW) {
-        out.push(rest);
-        break;
-      }
-      let fitLen = 1;
-      for (let i = 1; i <= rest.length; i++) {
-        if (measureStackTextW(rest.slice(0, i), fontSize) > maxW) {
-          fitLen = Math.max(1, i - 1);
-          break;
-        }
-        fitLen = i;
-      }
-      let brk = fitLen;
-      let foundBreak = false;
-      const minL = Math.max(2, Math.floor(fitLen * 0.4));
-      for (let j = fitLen; j >= minL; j--) {
-        const prev = rest[j - 1];
-        const cur = rest[j];
-        if (
-          prev === '/' || prev === '／' || prev === '、' || prev === '・' || prev === ' ' ||
-          cur === '（' || cur === '(' || cur === '【' || cur === '「'
-        ) {
-          brk = j;
-          foundBreak = true;
-          break;
-        }
-      }
-      if (!foundBreak) {
-        while (brk > minL && /^[）)】」」、。.,]/.test(rest[brk] || '')) {
-          brk--;
-        }
-        if (rest.length - brk === 1 && brk > minL) {
-          brk--;
-        }
-      }
-      const chunk = rest.slice(0, brk).trimEnd();
-      if (chunk) out.push(chunk);
-      rest = rest.slice(brk).trimStart();
-    }
-  });
-  return out;
+  return wrapSvgTextLines(str, maxW, fontSize);
 }
 
 // 統一モノトーン ベクターアイコン（48x48 基準）
@@ -420,7 +343,8 @@ function drawTechStackSvg(rawCode, container, labelText) {
     return { items: preparedItems, h: tierH };
   });
 
-  const titleSpace = parsed.title ? 52 : 18;
+  const titleLayout = parsed.title ? layoutSvgTitleLines(parsed.title, width - 48, 21, 14.5) : { lines: [], fontSize: 21 };
+  const titleSpace = titleLayout.lines.length > 1 ? 68 : (titleLayout.lines.length === 1 ? 52 : 18);
   const containerHeaderH = parsed.containerTitle ? 40 : 18;
   let curY = titleSpace + containerHeaderH;
 
@@ -457,11 +381,9 @@ function drawTechStackSvg(rawCode, container, labelText) {
   svg.style.display = 'block';
 
   const defs = document.createElementNS(svgNS, 'defs');
-  defs.innerHTML = `
-    <marker id="${uid}-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M 1 1.5 L 8.5 5 L 1 8.5 L 3 5 Z" fill="${palette.arrow}" />
-    </marker>
-  `;
+  createSvgArrowMarker(defs, `${uid}-arrow`, palette.arrow, {
+    refX: 6, width: 6.5, height: 6.5, d: 'M 1 1.5 L 8.5 5 L 1 8.5 L 3 5 Z'
+  });
   svg.appendChild(defs);
 
   // 背景
@@ -473,17 +395,19 @@ function drawTechStackSvg(rawCode, container, labelText) {
   svg.appendChild(bg);
 
   // タイトル
-  if (parsed.title) {
-    const tEl = document.createElementNS(svgNS, 'text');
-    tEl.setAttribute('x', width / 2);
-    tEl.setAttribute('y', '34');
-    tEl.setAttribute('text-anchor', 'middle');
-    tEl.setAttribute('font-size', '21');
-    tEl.setAttribute('font-weight', '800');
-    tEl.setAttribute('fill', palette.textMain);
-    tEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-    tEl.textContent = parsed.title;
-    svg.appendChild(tEl);
+  if (titleLayout.lines.length > 0) {
+    titleLayout.lines.forEach((ln, idx) => {
+      const tEl = document.createElementNS(svgNS, 'text');
+      tEl.setAttribute('x', width / 2);
+      tEl.setAttribute('y', String(titleLayout.lines.length > 1 ? (27 + idx * 23) : 34));
+      tEl.setAttribute('text-anchor', 'middle');
+      tEl.setAttribute('font-size', String(titleLayout.fontSize));
+      tEl.setAttribute('font-weight', '800');
+      tEl.setAttribute('fill', palette.textMain);
+      tEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+      tEl.textContent = ln;
+      svg.appendChild(tEl);
+    });
   }
 
   // 外枠コンテナ
@@ -527,22 +451,17 @@ function drawTechStackSvg(rawCode, container, labelText) {
       }
 
       colCenters.forEach((cx) => {
-        const ln = document.createElementNS(svgNS, 'line');
-        if (parsed.arrows === 'down') {
-          ln.setAttribute('x1', cx);
-          ln.setAttribute('y1', yTop + 3);
-          ln.setAttribute('x2', cx);
-          ln.setAttribute('y2', yBot - 5);
-        } else {
-          ln.setAttribute('x1', cx);
-          ln.setAttribute('y1', yBot - 3);
-          ln.setAttribute('x2', cx);
-          ln.setAttribute('y2', yTop + 5);
-        }
-        ln.setAttribute('stroke', palette.arrow);
-        ln.setAttribute('stroke-width', '1.5');
-        ln.setAttribute('marker-end', `url(#${uid}-arrow)`);
-        svg.appendChild(ln);
+        const isDown = parsed.arrows === 'down';
+        drawSvgConnector(svg, {
+          x1: cx,
+          y1: isDown ? (yTop + 3) : (yBot - 3),
+          x2: cx,
+          y2: isDown ? (yBot - 5) : (yTop + 5)
+        }, {
+          stroke: palette.arrow,
+          strokeWidth: '1.5',
+          markerEnd: `${uid}-arrow`
+        });
       });
     }
   }
@@ -709,10 +628,5 @@ function drawTechStackSvg(rawCode, container, labelText) {
 
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

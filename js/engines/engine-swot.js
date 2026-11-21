@@ -100,7 +100,7 @@ function parseSwot(rawText) {
       const rest = headerM[2].trim();
       if (rest) {
         // 同一行にアイテムが並んでいる場合（カンマ区切り等）
-        const tokens = rest.split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+        const tokens = splitCsvRespectQuotes(rest);
         tokens.forEach(tk => {
           const item = parseItemString(tk);
           if (item && currentQuad) quadrants[currentQuad].items.push(item);
@@ -112,7 +112,7 @@ function parseSwot(rawText) {
     // 現在の象限にアイテムを追加（リスト形式: - "テキスト" や "テキスト", など）
     if (currentQuad) {
       let cleanLine = line.replace(/^[-*•]\s*/, '').trim();
-      const tokens = cleanLine.split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+      const tokens = splitCsvRespectQuotes(cleanLine);
       tokens.forEach(tk => {
         const item = parseItemString(tk);
         if (item) quadrants[currentQuad].items.push(item);
@@ -271,9 +271,12 @@ function drawSwotSvg(text, container, labelText) {
   const cardGap = 16;
 
   const originX = 36 + axisLabelW + 12;
-  const originY = (title ? (subtitle ? 92 : 72) : 40) + axisHeaderH + 10;
+  const estTotalW = originX + cardW * 2 + cardGap + 36;
+  const titleLayout = title ? layoutSvgTitleLines(title, estTotalW - 48, 19, 13.5) : { lines: [], fontSize: 19 };
+  const extraTitleH = titleLayout.lines.length > 1 ? 20 : 0;
+  const originY = (title ? (subtitle ? 92 : 72) + extraTitleH : 40) + axisHeaderH + 10;
 
-  const totalW = originX + cardW * 2 + cardGap + 36;
+  const totalW = estTotalW;
   const totalH = originY + topRowH + cardGap + btmRowH + 36;
 
   const svgNS = 'http://www.w3.org/2000/svg';
@@ -296,22 +299,21 @@ function drawSwotSvg(text, container, labelText) {
   svg.appendChild(defs);
 
   // タイトル
-  if (title) {
-    const titleEl = document.createElementNS(svgNS, 'text');
-    titleEl.setAttribute('x', (totalW / 2).toString());
-    titleEl.setAttribute('y', '36');
-    titleEl.setAttribute('text-anchor', 'middle');
-    titleEl.setAttribute('font-family', "'Outfit', 'Inter', 'Noto Sans JP', sans-serif");
-    titleEl.setAttribute('font-size', '19');
-    titleEl.setAttribute('font-weight', '700');
-    titleEl.setAttribute('fill', '#0f172a');
-    titleEl.textContent = title;
-    svg.appendChild(titleEl);
+  if (titleLayout.lines.length > 0) {
+    renderAutoFitSvgTitle(svg, title, totalW - 48, {
+      layout: titleLayout,
+      x: totalW / 2,
+      singleY: 36,
+      multiY: 27,
+      lineGap: 21,
+      fill: '#0f172a',
+      fontFamily: "'Outfit', 'Inter', 'Noto Sans JP', sans-serif"
+    });
 
     if (subtitle) {
       const subEl = document.createElementNS(svgNS, 'text');
       subEl.setAttribute('x', (totalW / 2).toString());
-      subEl.setAttribute('y', '58');
+      subEl.setAttribute('y', String(58 + extraTitleH));
       subEl.setAttribute('text-anchor', 'middle');
       subEl.setAttribute('font-family', "'Outfit', 'Inter', 'Noto Sans JP', sans-serif");
       subEl.setAttribute('font-size', '13');

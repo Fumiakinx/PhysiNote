@@ -15,37 +15,18 @@
       return;
     }
 
-    // テキストから適切なファイル名を推測・サニタイズ生成
+    // 画像保存と同じルールでファイル名を推測・サニタイズ生成
     function generateFileName(text) {
+      const previewEl = document.getElementById('formula-preview');
+      if (typeof window.resolvePhysiNoteBaseFileName === 'function') {
+        const sharedBase = window.resolvePhysiNoteBaseFileName(text, previewEl);
+        if (sharedBase) return `${sharedBase}.pnt`;
+      }
+
       const now = new Date();
       const pad = (n) => String(n).padStart(2, '0');
       const timeStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
-
-      let baseName = '';
-      const lines = text.split('\n');
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-        // タイトルやコメントの抽出
-        const titleMatch = trimmed.match(/^(?:#|\/\/|title:|タイトル[:：])\s*(.+)$/i);
-        if (titleMatch && titleMatch[1].trim()) {
-          baseName = titleMatch[1].trim();
-          break;
-        }
-      }
-
-      if (baseName) {
-        // 末尾セミコロン・引用符・末尾余白を除去
-        baseName = baseName.replace(/;+\s*$/, '').trim().replace(/^["']|["']$/g, '').trim();
-        // 使用禁止文字をアンダースコアに置換
-        baseName = baseName.replace(/[\/\\:*?"<>|]/g, '_').substring(0, 50).trim();
-      }
-
-      if (!baseName) {
-        baseName = `diagram_${timeStr}`;
-      }
-
-      return `${baseName}.pnt`;
+      return `diagram_${timeStr}.pnt`;
     }
 
     // 構文テキストをエディタに反映してプレビューを再描画

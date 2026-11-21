@@ -6,12 +6,7 @@
  * 文字列幅の概算計算（全角・半角判定）
  */
 function calcFishboneTextWidth(str, isBold = false) {
-  if (!str) return 0;
-  let w = 0;
-  for (let i = 0; i < str.length; i++) {
-    w += str.charCodeAt(i) > 255 ? (isBold ? 13.5 : 12.5) : (isBold ? 8 : 7.2);
-  }
-  return w;
+  return estimateSvgTextWidth(str, 12.5, isBold);
 }
 
 /**
@@ -283,16 +278,14 @@ function renderClassicFishbone(parsed, container, svgNS) {
 
   const defs = document.createElementNS(svgNS, 'defs');
   defs.innerHTML = `
-    <marker id="fishbone-spine-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#334155" />
-    </marker>
-    <marker id="fishbone-bone-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#64748b" />
-    </marker>
     <filter id="fishbone-shadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.08" />
     </filter>
   `;
+  registerSvgArrowMarkers(defs, [
+    { id: 'fishbone-spine-arrow', color: '#334155', refX: 7, width: 6, height: 6 },
+    { id: 'fishbone-bone-arrow', color: '#64748b', refX: 7, width: 5, height: 5 }
+  ]);
   svg.appendChild(defs);
 
   renderTitle(svg, svgNS, title, subtitle, width);

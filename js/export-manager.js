@@ -3,6 +3,58 @@
 // （出力モーダル制御、解像度倍率、PNG/SVG保存、クリップボードコピー処理）
 // ==========================================
 
+/** 構文テキストおよびプレビューDOMから画像・構文ファイル共通の拡張子なしファイル名を決定する */
+window.resolvePhysiNoteBaseFileName = function resolvePhysiNoteBaseFileName(text, previewEl) {
+  const src = String(text || '');
+  let title = '';
+
+  const mTitle = src.match(/(?:^|[\n\r;])\s*(?:title|タイトル)\s*:\s*(?:"([^"\n\r]+)"|'([^'\n\r]+)'|([^;\n\r]+))/i);
+  if (mTitle) title = (mTitle[1] || mTitle[2] || mTitle[3] || '').trim();
+
+  if (!title) {
+    const mComp = src.match(/(?:^|[\n\r;])\s*(?:company|企業名)\s*:\s*(?:"([^"\n\r]+)"|'([^'\n\r]+)'|([^;\n\r]+))/i);
+    const mPeriod = src.match(/(?:^|[\n\r;])\s*(?:period|決算期)\s*:\s*(?:"([^"\n\r]+)"|'([^'\n\r]+)'|([^;\n\r]+))/i);
+    if (mComp) {
+      const compStr = (mComp[1] || mComp[2] || mComp[3] || '').trim();
+      const periodStr = mPeriod ? (mPeriod[1] || mPeriod[2] || mPeriod[3] || '').trim() : '';
+      title = periodStr ? `${compStr}_${periodStr}` : compStr;
+    }
+  }
+
+  if (!title) {
+    const mMacro = src.match(/\\(?:title|caption|section)\s*\{([^}]+)\}/i);
+    if (mMacro && mMacro[1].trim()) title = mMacro[1].trim();
+  }
+
+  if (!title) {
+    const lines = src.split(/[\r\n]+/);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const mComm = trimmed.match(/^(?:#|\/\/)\s*(?:(?:タイトル[:：]\s*)?(.+))$/);
+      if (mComm && mComm[1] && !mComm[1].startsWith('==') && !mComm[1].startsWith('--') && !mComm[1].startsWith('1.') && !mComm[1].startsWith('2.')) {
+        title = mComm[1].trim();
+        break;
+      }
+    }
+  }
+
+  if (!title && previewEl) {
+    const titleEl = previewEl.querySelector('.chart-title, .diagram-title, .table-title, .bs-header-title, .pl-header-title, [class*="-title"]');
+    if (titleEl && titleEl.textContent && titleEl.textContent.trim()) {
+      title = titleEl.textContent.trim();
+    }
+  }
+
+  if (title) {
+    let safeName = title.replace(/[\/\\:*?"<>|]/g, '_').replace(/[\r\n\t]+/g, ' ').trim();
+    if (safeName.length > 60) safeName = safeName.substring(0, 60).trim();
+    if (safeName) return safeName;
+  }
+
+  return '';
+};
+
 (function initExportManager() {
   const exportModal = document.getElementById('export-modal');
   const openExportBtn = document.getElementById('open-export-btn');
@@ -467,56 +519,15 @@
           });
         }
 
-        // ファイル名自動決定
+        // ファイル名自動決定（構文保存と共通ロジック）
         const getExportImageFileName = () => {
           const inputEl = getInputArea();
           const text = (inputEl && inputEl.value) ? inputEl.value : '';
-          let title = '';
-
-          const mTitle = text.match(/(?:^|[\n\r;])\s*(?:title|タイトル)\s*:\s*(?:"([^"\n\r]+)"|'([^'\n\r]+)'|([^;\n\r]+))/i);
-          if (mTitle) title = (mTitle[1] || mTitle[2] || mTitle[3] || '').trim();
-
-          if (!title) {
-            const mComp = text.match(/(?:^|[\n\r;])\s*(?:company|企業名)\s*:\s*(?:"([^"\n\r]+)"|'([^'\n\r]+)'|([^;\n\r]+))/i);
-            const mPeriod = text.match(/(?:^|[\n\r;])\s*(?:period|決算期)\s*:\s*(?:"([^"\n\r]+)"|'([^'\n\r]+)'|([^;\n\r]+))/i);
-            if (mComp) {
-              const compStr = (mComp[1] || mComp[2] || mComp[3] || '').trim();
-              const periodStr = mPeriod ? (mPeriod[1] || mPeriod[2] || mPeriod[3] || '').trim() : '';
-              title = periodStr ? `${compStr}_${periodStr}` : compStr;
-            }
-          }
-
-          if (!title) {
-            const mMacro = text.match(/\\(?:title|caption|section)\s*\{([^}]+)\}/i);
-            if (mMacro && mMacro[1].trim()) title = mMacro[1].trim();
-          }
-
-          if (!title) {
-            const lines = text.split(/[\r\n]+/);
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed) continue;
-              const mComm = trimmed.match(/^(?:#|\/\/)\s*(?:(?:タイトル[:：]\s*)?(.+))$/);
-              if (mComm && mComm[1] && !mComm[1].startsWith('==') && !mComm[1].startsWith('--') && !mComm[1].startsWith('1.') && !mComm[1].startsWith('2.')) {
-                title = mComm[1].trim();
-                break;
-              }
-            }
-          }
-
-          if (!title && typeof exportTarget !== 'undefined' && exportTarget) {
-            const titleEl = exportTarget.querySelector('.chart-title, .diagram-title, .table-title, .bs-header-title, .pl-header-title, [class*="-title"]');
-            if (titleEl && titleEl.textContent && titleEl.textContent.trim()) {
-              title = titleEl.textContent.trim();
-            }
-          }
-
-          if (title) {
-            let safeName = title.replace(/[\/\\:*?"<>|]/g, '_').replace(/[\r\n\t]+/g, ' ').trim();
-            if (safeName.length > 60) safeName = safeName.substring(0, 60).trim();
-            if (safeName) return `${safeName}.png`;
-          }
-
+          const safeName = window.resolvePhysiNoteBaseFileName(
+            text,
+            typeof exportTarget !== 'undefined' ? exportTarget : null
+          );
+          if (safeName) return `${safeName}.png`;
           return `physinote_formula_${Date.now()}.png`;
         };
 

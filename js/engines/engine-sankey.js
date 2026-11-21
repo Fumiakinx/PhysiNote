@@ -260,16 +260,9 @@ function drawEnergySankeySvg(data, container, labelText) {
 
   // タイトル
   if (title) {
-    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tEl.setAttribute('x', width / 2);
-    tEl.setAttribute('y', 34);
-    tEl.setAttribute('text-anchor', 'middle');
-    tEl.setAttribute('font-size', '17');
-    tEl.setAttribute('font-weight', '700');
-    tEl.setAttribute('fill', '#1e293b');
-    tEl.setAttribute('font-family', 'sans-serif');
-    tEl.textContent = title;
-    svg.appendChild(tEl);
+    renderAutoFitSvgTitle(svg, title, width - 48, {
+      x: width / 2, singleY: 34, multiY: 24, lineGap: 18, fontSize: 17, minFontSize: 12.0, fill: '#1e293b'
+    });
   }
 
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -584,12 +577,7 @@ function drawEnergySankeySvg(data, container, labelText) {
 
   container.innerHTML = '';
   container.appendChild(svg);
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 // ==========================================
@@ -650,16 +638,9 @@ function drawBreakoutSankeySvg(data, container, labelText) {
 
   // タイトル
   if (title) {
-    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tEl.setAttribute('x', width / 2);
-    tEl.setAttribute('y', 28);
-    tEl.setAttribute('text-anchor', 'middle');
-    tEl.setAttribute('font-size', '16');
-    tEl.setAttribute('font-weight', '700');
-    tEl.setAttribute('fill', '#1e293b');
-    tEl.setAttribute('font-family', 'sans-serif');
-    tEl.textContent = title;
-    svg.appendChild(tEl);
+    renderAutoFitSvgTitle(svg, title, width - 48, {
+      x: width / 2, singleY: 28, multiY: 20, lineGap: 17, fontSize: 16, minFontSize: 11.5, fill: '#1e293b'
+    });
   }
 
   // 起点ボックス (左下)
@@ -784,12 +765,7 @@ function drawBreakoutSankeySvg(data, container, labelText) {
 
   container.innerHTML = '';
   container.appendChild(svg);
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 // ==========================================
@@ -837,16 +813,9 @@ function drawFunnelSankeySvg(data, container, labelText) {
 
   // タイトル
   if (title) {
-    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tEl.setAttribute('x', width / 2);
-    tEl.setAttribute('y', 28);
-    tEl.setAttribute('text-anchor', 'middle');
-    tEl.setAttribute('font-size', '16');
-    tEl.setAttribute('font-weight', '700');
-    tEl.setAttribute('fill', '#1e293b');
-    tEl.setAttribute('font-family', 'sans-serif');
-    tEl.textContent = title;
-    svg.appendChild(tEl);
+    renderAutoFitSvgTitle(svg, title, width - 48, {
+      x: width / 2, singleY: 28, multiY: 20, lineGap: 17, fontSize: 16, minFontSize: 11.5, fill: '#1e293b'
+    });
   }
 
   // カラム境界＆ヘッダー
@@ -960,21 +929,11 @@ function drawFunnelSankeySvg(data, container, labelText) {
 
   container.innerHTML = '';
   container.appendChild(svg);
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 function getApproxSankeyTextWidth(str) {
-  if (!str) return 0;
-  let w = 0;
-  for (let i = 0; i < str.length; i++) {
-    w += str.charCodeAt(i) > 255 ? 12 : 7.2;
-  }
-  return w;
+  return estimateSvgTextWidth(str, 12, false);
 }
 
 function formatSankeyNodeLabel(n, nodeDisplayValue, nodeMeta) {
@@ -1170,16 +1129,9 @@ function drawStandardSankeySvg(data, container, labelText) {
 
   // タイトル
   if (title) {
-    const titleEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    titleEl.setAttribute('x', (svgWidth / 2).toFixed(1));
-    titleEl.setAttribute('y', '26');
-    titleEl.setAttribute('text-anchor', 'middle');
-    titleEl.setAttribute('font-size', '15');
-    titleEl.setAttribute('font-weight', '700');
-    titleEl.setAttribute('fill', '#1e293b');
-    titleEl.setAttribute('font-family', 'sans-serif');
-    titleEl.textContent = title;
-    svg.appendChild(titleEl);
+    renderAutoFitSvgTitle(svg, title, svgWidth - 48, {
+      x: svgWidth / 2, singleY: 26, multiY: 19, lineGap: 16, fontSize: 15, minFontSize: 11.5, fill: '#1e293b'
+    });
   }
 
   // ステージ列ヘッダー（Alluvial型ピル見出し）
@@ -1310,12 +1262,7 @@ function drawStandardSankeySvg(data, container, labelText) {
 
   container.innerHTML = '';
   container.appendChild(svg);
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 // メイン描画エントリーポイント

@@ -719,10 +719,5 @@ function drawPotentialDiagramSvg(rawText, container, labelText) {
 
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

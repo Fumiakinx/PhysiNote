@@ -826,12 +826,5 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
 
   container.appendChild(svg);
 
-  if (typeof appendDiagramLabel === 'function') {
-    appendDiagramLabel(container, labelText);
-  } else if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

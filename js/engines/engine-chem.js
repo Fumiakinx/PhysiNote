@@ -183,24 +183,14 @@ function drawSmilesToElement(smiles, container, labelText) {
   // 1. 水分子特化
   if (smiles === 'WATER') {
     container.appendChild(createWaterMoleculeSvg());
-    if (labelText) {
-      const lbl = document.createElement('div');
-      lbl.className = 'chem-structure-label';
-      lbl.textContent = labelText;
-      container.appendChild(lbl);
-    }
+    appendDiagramLabel(container, labelText);
     return;
   }
 
   // 2. ベンゼン環特化（SmilesDrawerが遅延している場合も確実に綺麗に表示）
   if (smiles === 'c1ccccc1' && typeof SmilesDrawer === 'undefined') {
     container.appendChild(createBenzeneSvg());
-    if (labelText) {
-      const lbl = document.createElement('div');
-      lbl.className = 'chem-structure-label';
-      lbl.textContent = labelText;
-      container.appendChild(lbl);
-    }
+    appendDiagramLabel(container, labelText);
     return;
   }
 
@@ -243,10 +233,5 @@ function drawSmilesToElement(smiles, container, labelText) {
     }
   }
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

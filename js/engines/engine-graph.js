@@ -262,20 +262,15 @@ function drawGraphSvg(text, container, labelText) {
   // マーカー・フィルタの定義
   const defs = document.createElementNS(svgNS, 'defs');
   defs.innerHTML = `
-    <!-- 通常矢印マーカー -->
-    <marker id="graph-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#64748b" />
-    </marker>
-    <!-- ハイライト矢印マーカー -->
-    <marker id="graph-arrow-highlight" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#6366f1" />
-    </marker>
-
     <!-- ノード用ドロップシャドウ -->
     <filter id="graph-node-shadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.08" />
     </filter>
   `;
+  registerSvgArrowMarkers(defs, [
+    { id: 'graph-arrow', color: '#64748b', refX: 8, d: 'M 0 1.5 L 9 5 L 0 8.5 z' },
+    { id: 'graph-arrow-highlight', color: '#6366f1', refX: 8, width: 7, height: 7, d: 'M 0 1.5 L 9 5 L 0 8.5 z' }
+  ]);
   svg.appendChild(defs);
 
   // タイトル & サブタイトルの描画

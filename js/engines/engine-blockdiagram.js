@@ -402,13 +402,13 @@ function drawBlockDiagramSvg(code, container, labelText) {
   // 矢印マーカーとシャドウの定義
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
   defs.innerHTML = `
-    <marker id="bd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#0f172a" />
-    </marker>
     <filter id="bd-shadow" x="-10%" y="-15%" width="120%" height="140%">
       <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.08" />
     </filter>
   `;
+  createSvgArrowMarker(defs, 'bd-arrow', '#0f172a', {
+    refX: 9, width: 6.5, height: 6.5, d: 'M 0 1.5 L 10 5 L 0 8.5 z'
+  });
   svg.appendChild(defs);
 
   // タイトル描画
@@ -818,10 +818,5 @@ function drawBlockDiagramSvg(code, container, labelText) {
   svg.appendChild(labelG);
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

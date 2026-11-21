@@ -84,28 +84,7 @@ function parseNetworkText(rawText) {
     return nodeMap.get(clean);
   };
 
-  const splitCsvRespectQuotes = (str) => {
-    const res = [];
-    let cur = '';
-    let q = null;
-    for (let i = 0; i < str.length; i++) {
-      const ch = str[i];
-      if (q) {
-        cur += ch;
-        if (ch === q && str[i - 1] !== '\\') q = null;
-      } else if (ch === '"' || ch === "'") {
-        q = ch;
-        cur += ch;
-      } else if (ch === ',') {
-        res.push(cur.trim());
-        cur = '';
-      } else {
-        cur += ch;
-      }
-    }
-    if (cur.trim()) res.push(cur.trim());
-    return res;
-  };
+  // CSV分割は svg-utils.js の共通 splitCsvRespectQuotes を使用
 
   for (let rawLine of lines) {
     let line = rawLine.trim();
@@ -1159,66 +1138,9 @@ function drawNetworkSvg(rawCode, container, labelText) {
   const zonePadBottom = 14;
   const zoneBandGap = 28;
 
-  const measureNetTextW = (s, fs = 10, isBold = false) => {
-    let w = 0;
-    const str = String(s || '');
-    const jpFactor = isBold ? 1.08 : 1.04;
-    const asciiFactor = isBold ? 0.66 : 0.62;
-    for (let i = 0; i < str.length; i++) {
-      w += str.charCodeAt(i) > 255 ? fs * jpFactor : fs * asciiFactor;
-    }
-    return w;
-  };
-  const wrapNetText = (text, maxW = 92, fs = 10, isBold = false) => {
-    const out = [];
-    String(text || '').split('\n').forEach((para) => {
-      const t = para.trim();
-      if (!t) return;
-      if (measureNetTextW(t, fs, isBold) <= maxW) {
-        out.push(t);
-        return;
-      }
-      let rest = t;
-      while (rest.length > 0) {
-        if (measureNetTextW(rest, fs, isBold) <= maxW) {
-          out.push(rest);
-          break;
-        }
-        let fit = 1;
-        for (let i = 1; i <= rest.length; i++) {
-          if (measureNetTextW(rest.slice(0, i), fs, isBold) > maxW) {
-            fit = Math.max(1, i - 1);
-            break;
-          }
-          fit = i;
-        }
-        let brk = fit;
-        let foundBreak = false;
-        const minL = Math.max(2, Math.floor(fit * 0.4));
-        for (let j = fit; j >= minL; j--) {
-          const prev = rest[j - 1];
-          const cur = rest[j];
-          if (
-            prev === '/' || prev === '／' || prev === '、' || prev === '・' || prev === ' ' ||
-            prev === 'の' || prev === '時' ||
-            cur === '（' || cur === '(' || cur === '【' || cur === '「'
-          ) {
-            brk = j;
-            foundBreak = true;
-            break;
-          }
-        }
-        if (!foundBreak) {
-          while (brk > minL && /^[）)】」」、。.,]/.test(rest[brk] || '')) brk--;
-          if (rest.length - brk === 1 && brk > minL) brk--;
-        }
-        const chunk = rest.slice(0, brk).trimEnd();
-        if (chunk) out.push(chunk);
-        rest = rest.slice(brk).trimStart();
-      }
-    });
-    return out;
-  };
+  const measureNetTextW = (s, fs = 10, isBold = false) => estimateSvgTextWidth(s, fs, isBold) * 1.03;
+  const wrapNetText = (text, maxW = 92, fs = 10, isBold = false) =>
+    wrapSvgTextLines(text, maxW, fs, { isBold, safety: 1.03, extraPrevChars: 'の時' });
 
   // 各ノードのタイトル・サブテキストを事前折り返しし、切れずに収まる高さを算出
   let effectiveNodeH = nodeH;
@@ -1485,8 +1407,11 @@ function drawNetworkSvg(rawCode, container, labelText) {
   });
 
   // 2. ピクセル座標変換（LR: col->X, row->Y / TD: row->X, col->Y）
+  const estMaxCol = nodes.length ? Math.max(...nodes.map((n) => n.col || 0)) : 0;
+  const estMinSvgW = Math.max(760, 40 + (estMaxCol + 1) * (nodeW + colGap) - colGap + 72);
+  const titleLayout = parsed.title ? layoutSvgTitleLines(parsed.title, estMinSvgW - 64, 18, 12.5) : { lines: [], fontSize: 18 };
   const padLeft = 40;
-  const padTop = parsed.title ? 66 : 30;
+  const padTop = titleLayout.lines.length > 1 ? 84 : (titleLayout.lines.length === 1 ? 66 : 30);
   const stepX = nodeW + colGap;
   const stepY = effectiveNodeH + rowGap;
 
@@ -1794,22 +1719,16 @@ function drawNetworkSvg(rawCode, container, labelText) {
       <stop offset="0%" stop-color="#ef4444" />
       <stop offset="100%" stop-color="#991b1b" />
     </linearGradient>
-    <marker id="${gradIds.arrDefault}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="${palette.line}" />
-    </marker>
-    <marker id="${gradIds.arrDanger}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="${palette.dangerStroke}" />
-    </marker>
-    <marker id="${gradIds.arrWarn}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="${palette.warnStroke}" />
-    </marker>
-    <marker id="${gradIds.arrSafe}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="${palette.safeStroke}" />
-    </marker>
     <filter id="${gradIds.shadow}" x="-8%" y="-8%" width="116%" height="116%">
       <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="${isDark ? '0.35' : '0.06'}" />
     </filter>
   `;
+  registerSvgArrowMarkers(defs, [
+    { id: gradIds.arrDefault, color: palette.line, refX: 8, d: 'M 0 1.5 L 8.5 5 L 0 8.5 z' },
+    { id: gradIds.arrDanger, color: palette.dangerStroke, refX: 8, d: 'M 0 1.5 L 8.5 5 L 0 8.5 z' },
+    { id: gradIds.arrWarn, color: palette.warnStroke, refX: 8, d: 'M 0 1.5 L 8.5 5 L 0 8.5 z' },
+    { id: gradIds.arrSafe, color: palette.safeStroke, refX: 8, d: 'M 0 1.5 L 8.5 5 L 0 8.5 z' }
+  ]);
   svg.appendChild(defs);
 
   // 背景
@@ -1821,16 +1740,18 @@ function drawNetworkSvg(rawCode, container, labelText) {
   svg.appendChild(bg);
 
   // タイトル
-  if (parsed.title) {
-    const tEl = document.createElementNS(svgNS, 'text');
-    tEl.setAttribute('x', '32');
-    tEl.setAttribute('y', '34');
-    tEl.setAttribute('font-size', '18');
-    tEl.setAttribute('font-weight', '700');
-    tEl.setAttribute('fill', palette.textMain);
-    tEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-    tEl.textContent = parsed.title;
-    svg.appendChild(tEl);
+  if (titleLayout.lines.length > 0) {
+    titleLayout.lines.forEach((ln, idx) => {
+      const tEl = document.createElementNS(svgNS, 'text');
+      tEl.setAttribute('x', '32');
+      tEl.setAttribute('y', String(titleLayout.lines.length > 1 ? (26 + idx * 21) : 34));
+      tEl.setAttribute('font-size', String(titleLayout.fontSize));
+      tEl.setAttribute('font-weight', '700');
+      tEl.setAttribute('fill', palette.textMain);
+      tEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
+      tEl.textContent = ln;
+      svg.appendChild(tEl);
+    });
   }
 
   // 3. ゾーン枠描画
@@ -2074,18 +1995,13 @@ function drawNetworkSvg(rawCode, container, labelText) {
         : (e.style === 'safe' ? gradIds.arrSafe : gradIds.arrDefault));
 
     const appendEdgePath = (dVal, withStart, withEnd) => {
-      const p = document.createElementNS(svgNS, 'path');
-      p.setAttribute('d', dVal);
-      p.setAttribute('fill', 'none');
-      p.setAttribute('stroke', eColor);
-      p.setAttribute('stroke-width', e.style === 'danger' || e.style === 'warn' ? '2.2' : '1.8');
-      p.setAttribute('stroke-linecap', 'round');
-      p.setAttribute('stroke-linejoin', 'round');
-      if (e.dotted) p.setAttribute('stroke-dasharray', '2.5 4.5');
-      else if (e.dashed || e.wifi) p.setAttribute('stroke-dasharray', '5 4');
-      if (withEnd) p.setAttribute('marker-end', `url(#${markerId})`);
-      if (withStart) p.setAttribute('marker-start', `url(#${markerId})`);
-      edgeLineG.appendChild(p);
+      drawSvgConnector(edgeLineG, dVal, {
+        stroke: eColor,
+        strokeWidth: e.style === 'danger' || e.style === 'warn' ? '2.2' : '1.8',
+        dasharray: e.dotted ? '2.5 4.5' : ((e.dashed || e.wifi) ? '5 4' : null),
+        markerStart: withStart ? markerId : null,
+        markerEnd: withEnd ? markerId : null
+      });
     };
 
     const pairKey = [e.from, e.to].sort().join('::');
@@ -2545,10 +2461,5 @@ function drawNetworkSvg(rawCode, container, labelText) {
 
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

@@ -764,12 +764,7 @@ function drawEnergyLevelDiagramSvg(rawText, container, labelText) {
 
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 /**
@@ -926,12 +921,7 @@ function renderPnJunctionSvg(codeText, container, labelText) {
   `;
 
   container.appendChild(svg);
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 // ==========================================
@@ -1071,12 +1061,7 @@ function renderPnBiasComparisonSvg(codeText, container, labelText) {
   `;
 
   container.appendChild(svg);
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 // ==========================================
@@ -1192,12 +1177,7 @@ function renderDosDiagramSvg(codeText, container, labelText) {
   `;
 
   container.appendChild(svg);
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 /**
@@ -1476,12 +1456,7 @@ function renderBandFormationSvg(codeText, container, labelText) {
   `;
 
   container.appendChild(svg);
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 /**
@@ -1620,12 +1595,7 @@ function renderBohrExcitationSvg(codeText, container, labelText) {
   `;
 
   container.appendChild(svg);
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 

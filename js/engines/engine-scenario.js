@@ -328,17 +328,7 @@ function parseScenarioNode(str, defaultCommonKey) {
 // テキスト概算幅・高さ計算ヘルパー（可変カード幅・高さ用）
 // -------------------------------------------------------------------
 function calcTextWidthPx(str, fontSize) {
-  if (!str) return 0;
-  let len = 0;
-  for (let i = 0; i < str.length; i++) {
-    const code = str.charCodeAt(i);
-    if ((code >= 0x20 && code <= 0x7e) || (code >= 0xff61 && code <= 0xff9f)) {
-      len += 0.58;
-    } else {
-      len += 1.05;
-    }
-  }
-  return len * fontSize;
+  return estimateSvgTextWidth(str, fontSize, false);
 }
 
 function calcScenarioNodeWidth(node, defaultIcon, minW) {
@@ -1135,75 +1125,25 @@ function drawNoteBox(parent, x, y, w, h, lines, themeColors, isDark) {
 
 // 直線を描画（実線/破線およびカスタム矢印マーカー対応）
 function drawStraightLine(parent, x1, y1, x2, y2, color, hasArrow, dashed = false, customMarkerId = null) {
-  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  line.setAttribute('x1', x1);
-  line.setAttribute('y1', y1);
-  line.setAttribute('x2', x2);
-  line.setAttribute('y2', y2);
-  line.setAttribute('stroke', color);
-  line.setAttribute('stroke-width', '2.2');
-  line.setAttribute('stroke-linecap', 'round');
-  if (dashed) {
-    line.setAttribute('stroke-dasharray', '5 4');
-  }
+  let markerEnd = null;
   if (hasArrow) {
-    if (customMarkerId) {
-      line.setAttribute('marker-end', `url(#${customMarkerId})`);
-    } else {
-      line.setAttribute('marker-end', color.includes('dc2626') || color.includes('e11d48') || color.includes('991b1b')
-        ? 'url(#scenario-arrow-danger)'
-        : (color.includes('38bdf8') || color.includes('0284c7') ? 'url(#scenario-arrow-active)' : 'url(#scenario-arrow)'));
-    }
+    markerEnd = customMarkerId || (
+      color.includes('dc2626') || color.includes('e11d48') || color.includes('991b1b')
+        ? 'scenario-arrow-danger'
+        : (color.includes('38bdf8') || color.includes('0284c7') ? 'scenario-arrow-active' : 'scenario-arrow')
+    );
   }
-  parent.appendChild(line);
+  drawSvgConnector(parent, { x1, y1, x2, y2 }, {
+    stroke: color,
+    strokeWidth: '2.2',
+    dasharray: dashed ? '5 4' : null,
+    markerEnd
+  });
 }
 
 // テキスト折り返し（プラットフォームフロー・長文ラベル用）
 function wrapScenarioText(text, maxWidthPx, fontSize) {
-  if (!text) return [];
-  const rawParagraphs = String(text).split('\n');
-  const out = [];
-  rawParagraphs.forEach((para) => {
-    const trimmed = para.trim();
-    if (!trimmed) return;
-    if (calcTextWidthPx(trimmed, fontSize) <= maxWidthPx) {
-      out.push(trimmed);
-      return;
-    }
-    let rest = trimmed;
-    while (rest.length > 0) {
-      if (calcTextWidthPx(rest, fontSize) <= maxWidthPx) {
-        out.push(rest);
-        break;
-      }
-      let fitLen = 1;
-      for (let i = 1; i <= rest.length; i++) {
-        if (calcTextWidthPx(rest.slice(0, i), fontSize) > maxWidthPx) {
-          fitLen = Math.max(1, i - 1);
-          break;
-        }
-        fitLen = i;
-      }
-      let breakIdx = fitLen;
-      const minLeft = Math.max(2, Math.floor(fitLen * 0.45));
-      for (let j = fitLen; j >= minLeft; j--) {
-        const ch = rest[j];
-        const prev = rest[j - 1];
-        if (ch === '(' || ch === '（') {
-          breakIdx = j;
-          break;
-        }
-        if (prev === '、' || prev === '。' || prev === '・' || prev === '/' || prev === ' ') {
-          breakIdx = j;
-          break;
-        }
-      }
-      const chunk = rest.slice(0, breakIdx).trimEnd();
-      if (chunk) out.push(chunk);
-      rest = rest.slice(breakIdx).trimStart();
-    }
-  });
-  return out;
+  return wrapSvgTextLines(text, maxWidthPx, fontSize);
 }
 
 function splitLeadingEmoji(text) {
@@ -1654,31 +1594,20 @@ function drawPlatformFlowSvg(parsed, container, label, themeColors, isDark, getN
 function appendDefs(svg, themeColors, isDark) {
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
   defs.innerHTML = `
-    <marker id="scenario-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="${themeColors.line}" />
-    </marker>
-    <marker id="scenario-arrow-active" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="${themeColors.lineActive}" />
-    </marker>
-    <marker id="scenario-arrow-danger" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#e11d48" />
-    </marker>
-    <marker id="scenario-arrow-crimson" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="${isDark ? '#f87171' : '#991b1b'}" />
-    </marker>
-    <marker id="scenario-arrow-steel" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="${isDark ? '#60a5fa' : '#5b829e'}" />
-    </marker>
-    <marker id="scenario-arrow-success" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="${isDark ? '#34d399' : '#4a7c59'}" />
-    </marker>
-    <marker id="scenario-arrow-warn" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="${isDark ? '#fbbf24' : '#d97706'}" />
-    </marker>
     <filter id="scenario-shadow" x="-10%" y="-10%" width="120%" height="120%">
       <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="${isDark ? '0.45' : '0.08'}" flood-color="#000000" />
     </filter>
   `;
+  const arrPath = 'M 0 1.5 L 8 5 L 0 8.5 z';
+  registerSvgArrowMarkers(defs, [
+    { id: 'scenario-arrow', color: themeColors.line, d: arrPath },
+    { id: 'scenario-arrow-active', color: themeColors.lineActive, d: arrPath },
+    { id: 'scenario-arrow-danger', color: '#e11d48', d: arrPath },
+    { id: 'scenario-arrow-crimson', color: isDark ? '#f87171' : '#991b1b', d: arrPath },
+    { id: 'scenario-arrow-steel', color: isDark ? '#60a5fa' : '#5b829e', d: arrPath },
+    { id: 'scenario-arrow-success', color: isDark ? '#34d399' : '#4a7c59', d: arrPath },
+    { id: 'scenario-arrow-warn', color: isDark ? '#fbbf24' : '#d97706', d: arrPath }
+  ]);
   svg.appendChild(defs);
 }
 
@@ -1693,10 +1622,5 @@ function appendTitle(svg, icon, title, textColor, leftMargin = 36) {
 }
 
 function appendLabel(container, label) {
-  if (label) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = label;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, label);
 }

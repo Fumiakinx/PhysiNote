@@ -230,9 +230,12 @@ function drawRadarSvg(code, container, labelText) {
   const N = axes.length;
 
   const width = 760;
-  const height = title ? 500 : 470;
+  const maxTitleW = legendPos === 'top-left' ? (width - 90) : (width - 48);
+  const titleLayout = title ? layoutSvgTitleLines(title, maxTitleW, 17, 13.0) : { lines: [], fontSize: 17 };
+  const extraTitleH = titleLayout.lines.length > 1 ? 18 : 0;
+  const height = (title ? 500 : 470) + extraTitleH;
   const cx = legendPos === 'right' ? (width / 2 - 35) : (width / 2);
-  const cy = title ? (legendPos === 'bottom' ? 245 : 260) : 230;
+  const cy = (title ? (legendPos === 'bottom' ? 245 : 260) : 230) + extraTitleH;
   const R = 145;
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -252,17 +255,16 @@ function drawRadarSvg(code, container, labelText) {
   svg.appendChild(bg);
 
   // タイトル
-  if (title) {
-    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tEl.setAttribute('x', legendPos === 'top-left' ? 45 : cx);
-    tEl.setAttribute('y', 32);
-    tEl.setAttribute('text-anchor', legendPos === 'top-left' ? 'start' : 'middle');
-    tEl.setAttribute('font-size', '17');
-    tEl.setAttribute('font-weight', '700');
-    tEl.setAttribute('fill', '#0f172a');
-    tEl.setAttribute('font-family', 'sans-serif');
-    tEl.textContent = title;
-    svg.appendChild(tEl);
+  if (titleLayout.lines.length > 0) {
+    renderAutoFitSvgTitle(svg, title, maxTitleW, {
+      layout: titleLayout,
+      x: legendPos === 'top-left' ? 45 : cx,
+      anchor: legendPos === 'top-left' ? 'start' : 'middle',
+      singleY: 32,
+      multiY: 25,
+      lineGap: 19,
+      fill: '#0f172a'
+    });
   }
 
   const angleStep = (2 * Math.PI) / N;
@@ -566,10 +568,5 @@ function drawRadarSvg(code, container, labelText) {
 
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

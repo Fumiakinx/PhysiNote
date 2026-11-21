@@ -106,9 +106,9 @@ function parseChartText(text) {
     } else if (key === 'horizontal') {
       horizontal = val.toLowerCase() !== 'false' && val !== '0';
     } else if (key === 'x' || key === 'categories' || key === 'labels') {
-      categories = splitCsvParts(val).map((s) => s.replace(/^["']|["']$/g, ''));
+      categories = splitCsvRespectQuotes(val, true);
     } else if (key === 'series' || key === 'line' || key === 'bar' || key === 'area') {
-      const parts = splitCsvParts(val);
+      const parts = splitCsvRespectQuotes(val);
       if (parts.length >= 2) {
         let name = parts[0].replace(/^["']|["']$/g, '');
         let color = '';
@@ -135,7 +135,7 @@ function parseChartText(text) {
         series.push({ name, data: vals, color, type: sType });
       }
     } else if (key === 'data' || key === 'item' || key === 'slice') {
-      const parts = splitCsvParts(val);
+      const parts = splitCsvRespectQuotes(val);
       if (parts.length >= 2) {
         const name = parts[0].replace(/^["']|["']$/g, '');
         const num = parseFloat(parts[1]) || 0;
@@ -354,85 +354,13 @@ function parsePgfplotsChart(text) {
   };
 }
 
-function splitCsvParts(str) {
-  const parts = [];
-  let cur = '';
-  let inQuote = false;
-  for (let i = 0; i < str.length; i++) {
-    const c = str[i];
-    if (c === '"' || c === "'") {
-      inQuote = !inQuote;
-      cur += c;
-    } else if (c === ',' && !inQuote) {
-      parts.push(cur.trim());
-      cur = '';
-    } else {
-      cur += c;
-    }
-  }
-  if (cur.trim()) parts.push(cur.trim());
-  return parts;
-}
-
 // SVGテキスト概算幅計測・折り返し共通ヘルパー
 function measureChartTextW(str, fontSize, isBold) {
-  if (typeof estimateSvgTextWidth === 'function') {
-    return estimateSvgTextWidth(str, fontSize, isBold);
-  }
-  let w = 0;
-  const s = String(str || '');
-  for (let i = 0; i < s.length; i++) {
-    w += s.charCodeAt(i) > 255 ? fontSize : fontSize * 0.62;
-  }
-  return w * (isBold ? 1.06 : 1);
+  return estimateSvgTextWidth(str, fontSize, isBold);
 }
 
 function wrapChartTextLines(str, maxWidthPx, fontSize, isBold = false) {
-  const s = String(str || '').trim();
-  if (!s) return [''];
-  if (measureChartTextW(s, fontSize, isBold) * 1.05 <= maxWidthPx) {
-    return [s];
-  }
-
-  const wrapped = [];
-  let rest = s;
-  while (rest.length > 0) {
-    if (measureChartTextW(rest, fontSize, isBold) * 1.05 <= maxWidthPx) {
-      wrapped.push(rest);
-      break;
-    }
-
-    let fitLen = 1;
-    for (let i = 1; i <= rest.length; i++) {
-      if (measureChartTextW(rest.slice(0, i), fontSize, isBold) * 1.05 > maxWidthPx) {
-        fitLen = Math.max(1, i - 1);
-        break;
-      }
-      fitLen = i;
-    }
-
-    // 区切りの良い位置（括弧の前・中黒/読点/スペースの直後）を優先して改行位置を探す
-    let breakIdx = fitLen;
-    const minLeft = Math.max(2, Math.floor(fitLen * 0.45));
-    for (let j = fitLen; j >= minLeft; j--) {
-      const ch = rest[j];
-      const prevCh = rest[j - 1];
-      if (ch === '（' || ch === '(' || ch === '[' || ch === '【') {
-        breakIdx = j;
-        break;
-      }
-      if (prevCh === '・' || prevCh === '、' || prevCh === '/' || prevCh === '／' || prevCh === ' ' || prevCh === '　') {
-        breakIdx = j;
-        break;
-      }
-    }
-
-    const line = rest.slice(0, breakIdx).trimEnd();
-    if (line) wrapped.push(line);
-    rest = rest.slice(breakIdx).trimStart();
-  }
-
-  return wrapped.length > 0 ? wrapped : [s];
+  return wrapSvgTextLines(str, maxWidthPx, fontSize, { isBold, safety: 1.05, emptyLine: true });
 }
 
 // ==========================================

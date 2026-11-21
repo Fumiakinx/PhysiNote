@@ -634,12 +634,7 @@ function drawCrystalSvg(text, container, label) {
     });
 
     container.appendChild(svg);
-    if (label) {
-      const lbl = document.createElement('div');
-      lbl.className = 'chem-structure-label';
-      lbl.textContent = label;
-      container.appendChild(lbl);
-    }
+    appendDiagramLabel(container, label);
     return;
   }
 
@@ -869,12 +864,7 @@ function drawCrystalSvg(text, container, label) {
 
   container.appendChild(svg);
 
-  if (label) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = label;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, label);
 }
 
 // ==========================================
@@ -1584,10 +1574,5 @@ function renderCrystalSliceModel(container, parsed, label) {
   svg.appendChild(summarySub);
 
   container.appendChild(svg);
-  if (label) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = label;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, label);
 }

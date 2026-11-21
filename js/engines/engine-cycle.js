@@ -7,35 +7,14 @@
  * テキスト自動折り返しヘルパー
  */
 function wrapCycleText(str, maxChars = 14) {
-  if (!str) return [];
-  if (str.includes('\\n') || str.includes('\n')) {
-    return str.split(/\\n|\n/).map(s => s.trim()).filter(Boolean);
-  }
-  const lines = [];
-  let cur = '';
-  for (let i = 0; i < str.length; i++) {
-    const ch = str[i];
-    cur += ch;
-    const len = cur.replace(/[^\x00-\xff]/g, 'aa').length;
-    if (len >= maxChars * 2 && i < str.length - 1) {
-      lines.push(cur.trim());
-      cur = '';
-    }
-  }
-  if (cur.trim()) lines.push(cur.trim());
-  return lines;
+  return wrapSvgTextLines(str, maxChars * 12, 12);
 }
 
 /**
  * テキストの推定ピクセル幅計算ヘルパー
  */
 function getApproxCycleTextWidth(str) {
-  if (!str) return 0;
-  let len = 0;
-  for (let i = 0; i < str.length; i++) {
-    len += str.charCodeAt(i) > 255 ? 12 : 7;
-  }
-  return len;
+  return estimateSvgTextWidth(str, 12, false);
 }
 
 /**

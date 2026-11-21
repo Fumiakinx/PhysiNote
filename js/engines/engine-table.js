@@ -1008,10 +1008,7 @@ function renderTableElement(tableData, container, labelText) {
     container.appendChild(afterDiv);
   }
 
-  if (labelText && !tableData.title) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
+  if (!tableData.title) {
+    appendDiagramLabel(container, labelText);
   }
 }

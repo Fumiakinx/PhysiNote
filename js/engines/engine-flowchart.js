@@ -234,19 +234,7 @@ function drawFlowchartSvg(flowText, container, labelText) {
   svg.style.overflow = 'visible';
 
   const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-  marker.setAttribute('id', 'flowchart-arrow');
-  marker.setAttribute('viewBox', '0 0 10 10');
-  marker.setAttribute('refX', '7');
-  marker.setAttribute('refY', '5');
-  marker.setAttribute('markerWidth', '6');
-  marker.setAttribute('markerHeight', '6');
-  marker.setAttribute('orient', 'auto-start-reverse');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', 'M 0 1.5 L 8 5 L 0 8.5 z');
-  path.setAttribute('fill', '#475569');
-  marker.appendChild(path);
-  defs.appendChild(marker);
+  createSvgArrowMarker(defs, 'flowchart-arrow', '#475569', { d: 'M 0 1.5 L 8 5 L 0 8.5 z' });
   svg.appendChild(defs);
 
   const pts = [];

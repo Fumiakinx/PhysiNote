@@ -6,41 +6,14 @@
  * テキストの推定ピクセル幅計算ヘルパー
  */
 function getApproxRoadmapTextWidth(str) {
-  if (!str) return 0;
-  let w = 0;
-  for (let i = 0; i < str.length; i++) {
-    w += str.charCodeAt(i) > 255 ? 12 : 7;
-  }
-  return w;
+  return estimateSvgTextWidth(str, 12, false);
 }
 
 /**
- * テキスト自動折り返しヘルパー
+ * テキスト自動折り返しヘルパー（区切り記号・括弧・禁則対応）
  */
 function wrapRoadmapText(str, maxCharUnits = 24) {
-  if (!str) return [];
-  if (str.includes('\\n') || str.includes('\n')) {
-    return str.split(/\\n|\n/).map((s) => s.trim()).filter(Boolean);
-  }
-
-  const lines = [];
-  let curLine = '';
-  let curUnits = 0;
-
-  for (let i = 0; i < str.length; i++) {
-    const ch = str[i];
-    const unit = ch.charCodeAt(0) > 255 ? 2 : 1;
-    if (curUnits + unit > maxCharUnits && curLine.length > 0) {
-      lines.push(curLine.trim());
-      curLine = ch;
-      curUnits = unit;
-    } else {
-      curLine += ch;
-      curUnits += unit;
-    }
-  }
-  if (curLine.trim()) lines.push(curLine.trim());
-  return lines;
+  return wrapSvgTextLines(str, maxCharUnits * 6.8, 12);
 }
 
 /**
@@ -325,7 +298,7 @@ function parseRoadmap(rawText) {
       }
 
       // カンマでフェーズ名とサブタイトルを分割
-      const tokens = phStr.split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((t) => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+      const tokens = splitCsvRespectQuotes(phStr, true).filter(Boolean);
       const phaseNum = tokens[0] || `フェーズ${phases.length + 1}`;
       const phaseTitle = tokens[1] || '';
 
@@ -439,7 +412,7 @@ function parseRoadmap(rawText) {
       date = cleanLine.substring(0, colonIdx).trim().replace(/^["']|["']$/g, '');
       itemTitle = cleanLine.substring(colonIdx + 1).trim().replace(/^["']|["']$/g, '');
     } else {
-      const tokens = cleanLine.split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/).map((t) => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+      const tokens = splitCsvRespectQuotes(cleanLine, true).filter(Boolean);
       if (tokens.length >= 1) date = tokens[0];
       if (tokens.length >= 2) itemTitle = tokens[1];
     }
@@ -542,10 +515,8 @@ function renderRoadmapTimelineSvg(data, svg) {
     <filter id="rm-card-shadow" x="-8%" y="-8%" width="116%" height="120%">
       <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.08" />
     </filter>
-    <marker id="rm-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#0284c7" />
-    </marker>
   `;
+  createSvgArrowMarker(defs, 'rm-arrow', '#0284c7', { d: 'M 0 1.5 L 8 5 L 0 8.5 z' });
   svg.appendChild(defs);
 
   // タイトル部

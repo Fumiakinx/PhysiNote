@@ -333,14 +333,10 @@ function cfEstimateTextWidth(str, fontSize = 13) {
 
   // defs (矢印マーカー等)
   const defs = document.createElementNS(svgNS, 'defs');
-  defs.innerHTML = `
-    <marker id="cf-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#94a3b8" />
-    </marker>
-    <marker id="cf-arrow-accent" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#6366f1" />
-    </marker>
-  `;
+  registerSvgArrowMarkers(defs, [
+    { id: 'cf-arrow', color: '#94a3b8', d: 'M 0 1.5 L 8 5 L 0 8.5 z' },
+    { id: 'cf-arrow-accent', color: '#6366f1', d: 'M 0 1.5 L 8 5 L 0 8.5 z' }
+  ]);
   svg.appendChild(defs);
 
   // 背景パネル

@@ -121,22 +121,24 @@ function drawWingPyramidSvg(data, container, labelText) {
   svg.style.height = 'auto';
 
   // タイトル
+  let extraTitleH = 0;
   if (data.title) {
-    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tEl.setAttribute('x', svgW / 2);
-    tEl.setAttribute('y', 26);
-    tEl.setAttribute('text-anchor', 'middle');
-    tEl.setAttribute('font-size', '16');
-    tEl.setAttribute('font-weight', '700');
-    tEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-    tEl.setAttribute('fill', '#0f172a');
-    tEl.textContent = data.title;
-    svg.appendChild(tEl);
+    const tl = renderAutoFitSvgTitle(svg, data.title, svgW - 44, {
+      x: svgW / 2,
+      singleY: 26,
+      multiY: 20,
+      lineGap: 18,
+      fontSize: 16,
+      minFontSize: 12.5,
+      fill: '#0f172a',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    });
+    if (tl.lines.length > 1) extraTitleH = 16;
   }
 
   // 幾何パラメータ
   const N = data.layers.length;
-  const pyrTopY = data.title ? 45 : 30;
+  const pyrTopY = (data.title ? 45 : 30) + extraTitleH;
   const pyrBottomY = 410;
   const totalH = pyrBottomY - pyrTopY;
   const pyrCenterX = 180;
@@ -242,12 +244,7 @@ function drawWingPyramidSvg(data, container, labelText) {
   svg.appendChild(textG);
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 // ==========================================
@@ -264,7 +261,8 @@ function drawStandardPyramidSvg(data, container, labelText) {
   svg.style.height = 'auto';
 
   const pyrCenterX = 210;
-  const topY = data.title ? 60 : 40;
+  const titleLayout = data.title ? layoutSvgTitleLines(data.title, svgW - 44, 16, 12.5) : { lines: [], fontSize: 16 };
+  const topY = (data.title ? 60 : 40) + (titleLayout.lines.length > 1 ? 14 : 0);
   const bottomY = 405;
   const totalH = bottomY - topY;
   const baseW = 280;
@@ -282,17 +280,16 @@ function drawStandardPyramidSvg(data, container, labelText) {
     '#64748b'
   ];
 
-  if (data.title) {
-    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tEl.setAttribute('x', svgW / 2);
-    tEl.setAttribute('y', 32);
-    tEl.setAttribute('text-anchor', 'middle');
-    tEl.setAttribute('font-size', '16');
-    tEl.setAttribute('font-weight', '700');
-    tEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-    tEl.setAttribute('fill', '#0f172a');
-    tEl.textContent = data.title;
-    svg.appendChild(tEl);
+  if (titleLayout.lines.length > 0) {
+    renderAutoFitSvgTitle(svg, data.title, svgW - 44, {
+      layout: titleLayout,
+      x: svgW / 2,
+      singleY: 32,
+      multiY: 24,
+      lineGap: 18,
+      fill: '#0f172a',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    });
   }
 
   const layersG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -407,10 +404,5 @@ function drawStandardPyramidSvg(data, container, labelText) {
   svg.appendChild(labelsG);
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

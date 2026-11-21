@@ -302,22 +302,7 @@ function drawTreemapSvg(code, container, labelText) {
   const isHierarchical = groups && groups.length > 0;
 
   // テキスト幅の簡易推定ヘルパー（共通ユーティリティ利用）
-  const estimateTextWidth = (str, sz) => {
-    if (typeof estimateSvgTextWidth === 'function') {
-      return estimateSvgTextWidth(str, sz, false);
-    }
-    if (!str) return 0;
-    let w = 0;
-    for (let i = 0; i < str.length; i++) {
-      const code = str.charCodeAt(i);
-      if (code <= 0x7e || (code >= 0xff61 && code <= 0xff9f)) {
-        w += sz * 0.58;
-      } else {
-        w += sz * 0.95;
-      }
-    }
-    return w;
-  };
+  const estimateTextWidth = (str, sz) => estimateSvgTextWidth(str, sz, false);
 
   // 単位連動フォーマッター（10,000倍時の単位繰り上げ: 億円 -> 兆円、百万円 -> 億円等）
   const formatTreemapValueWithUnit = (val, u) => {
@@ -375,7 +360,9 @@ function drawTreemapSvg(code, container, labelText) {
   };
 
   const width = 800;
-  const titleH = title ? 46 : 14;
+  const fullTitle = title ? (title + (unit ? `（単位: ${unit}）` : '')) : '';
+  const { lines: titleLines, fontSize: titleFontSize } = layoutSvgTitleLines(fullTitle, width - 48, 16.5, 13.0);
+  const titleH = titleLines.length > 1 ? 62 : (titleLines.length === 1 ? 46 : 14);
   const margin = 10;
   const plotX = margin;
   const plotY = titleH;
@@ -400,18 +387,20 @@ function drawTreemapSvg(code, container, labelText) {
   svg.appendChild(bg);
 
   // タイトル
-  if (title) {
+  if (titleLines.length > 0) {
     const titleG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tEl.setAttribute('x', width / 2);
-    tEl.setAttribute('y', 28);
-    tEl.setAttribute('text-anchor', 'middle');
-    tEl.setAttribute('font-size', '16.5');
-    tEl.setAttribute('font-weight', '700');
-    tEl.setAttribute('fill', '#1e293b');
-    tEl.setAttribute('font-family', 'sans-serif');
-    tEl.textContent = title + (unit ? `（単位: ${unit}）` : '');
-    titleG.appendChild(tEl);
+    titleLines.forEach((ln, idx) => {
+      const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      tEl.setAttribute('x', width / 2);
+      tEl.setAttribute('y', titleLines.length > 1 ? (24 + idx * 20) : 28);
+      tEl.setAttribute('text-anchor', 'middle');
+      tEl.setAttribute('font-size', String(titleFontSize));
+      tEl.setAttribute('font-weight', '700');
+      tEl.setAttribute('fill', '#1e293b');
+      tEl.setAttribute('font-family', 'sans-serif');
+      tEl.textContent = ln;
+      titleG.appendChild(tEl);
+    });
     svg.appendChild(titleG);
   }
 
@@ -977,10 +966,5 @@ function drawTreemapSvg(code, container, labelText) {
     });
   }
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

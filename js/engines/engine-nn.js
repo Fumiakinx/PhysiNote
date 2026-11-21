@@ -78,10 +78,7 @@ function parseNeuralNetwork(rawText) {
     const labelsMatch = line.match(/^labels?\s*:\s*(?:\[(.*?)\]|(.*))$/i);
     if (labelsMatch) {
       const listStr = (labelsMatch[1] || labelsMatch[2] || '').trim();
-      labels = listStr
-        .split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/) // カンマ区切り（クォート考慮）
-        .map(s => s.trim().replace(/^["']|["']$/g, ''))
-        .filter(Boolean);
+      labels = splitCsvRespectQuotes(listStr, true).filter(Boolean);
       return;
     }
 
@@ -89,10 +86,7 @@ function parseNeuralNetwork(rawText) {
     const actMatch = line.match(/^activations?\s*:\s*(?:\[(.*?)\]|(.*))$/i);
     if (actMatch) {
       const listStr = (actMatch[1] || actMatch[2] || '').trim();
-      activations = listStr
-        .split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/)
-        .map(s => s.trim().replace(/^["']|["']$/g, ''))
-        .filter(Boolean);
+      activations = splitCsvRespectQuotes(listStr, true).filter(Boolean);
       return;
     }
 
@@ -124,10 +118,7 @@ function parseNeuralNetwork(rawText) {
     if (nodeIdxMatch) {
       const lIdx = parseInt(nodeIdxMatch[1] || nodeIdxMatch[2], 10);
       const listStr = (nodeIdxMatch[3] || nodeIdxMatch[4] || '').trim();
-      const nLabels = listStr
-        .split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/)
-        .map(s => s.trim().replace(/^["']|["']$/g, ''))
-        .filter(Boolean);
+      const nLabels = splitCsvRespectQuotes(listStr, true).filter(Boolean);
       nodeLabels[lIdx] = nLabels;
       return;
     }

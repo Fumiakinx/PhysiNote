@@ -387,15 +387,16 @@ function drawStandardMatrixSvg(data, container, labelText) {
   labelG.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
 
   if (data.title) {
-    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tEl.setAttribute('x', originX);
-    tEl.setAttribute('y', 26);
-    tEl.setAttribute('text-anchor', 'middle');
-    tEl.setAttribute('font-size', '15.5');
-    tEl.setAttribute('font-weight', '700');
-    tEl.setAttribute('fill', '#0f172a');
-    tEl.textContent = data.title;
-    labelG.appendChild(tEl);
+    renderAutoFitSvgTitle(labelG, data.title, 700, {
+      x: originX,
+      singleY: 26,
+      multiY: 18,
+      lineGap: 16,
+      fontSize: 15.5,
+      minFontSize: 11.5,
+      fill: '#0f172a',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    });
   }
 
   if (data.axisX.left) {
@@ -541,12 +542,7 @@ function drawStandardMatrixSvg(data, container, labelText) {
   svg.appendChild(plotG);
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 // ==========================================
@@ -788,12 +784,7 @@ function drawHeatmapMatrixSvg(data, container, labelText) {
   svg.appendChild(cardsG);
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
 
 // ==========================================
@@ -920,10 +911,5 @@ function drawMatrixTableHtml(dataOrText, container, labelText) {
   wrapper.appendChild(table);
   container.appendChild(wrapper);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

@@ -658,10 +658,5 @@ function drawRadialTreeSvg(code, container, labelText) {
   svg.appendChild(nodeG);
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

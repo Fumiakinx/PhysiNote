@@ -1056,10 +1056,5 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
   container.innerHTML = '';
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

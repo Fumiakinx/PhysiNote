@@ -215,17 +215,7 @@ function drawWaterfallSvg(code, container, labelText) {
   const isBlock = style === 'block';
 
   // 文字列幅推定・X軸ラベル多段改行レイアウト事前算出
-  const estimateStrW = (str, sz, isBold = false) => {
-    if (typeof estimateSvgTextWidth === 'function') {
-      return estimateSvgTextWidth(str, sz, isBold);
-    }
-    let w = 0;
-    for (let i = 0; i < str.length; i++) {
-      const c = str.charCodeAt(i);
-      w += (c <= 0x7e || (c >= 0xff61 && c <= 0xff9f)) ? sz * 0.58 : sz * 0.98;
-    }
-    return w;
-  };
+  const estimateStrW = (str, sz, isBold = false) => estimateSvgTextWidth(str, sz, isBold);
 
   const fullTitleStr = title ? (title + (unit ? `（単位: ${unit}）` : '')) : '';
   const estTitleW = estimateStrW(fullTitleStr, 16.5, true);
@@ -587,10 +577,5 @@ function drawWaterfallSvg(code, container, labelText) {
 
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }

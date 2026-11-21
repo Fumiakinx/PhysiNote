@@ -155,10 +155,7 @@ function parseVenn(rawText) {
     const setsListMatch = line.match(/^sets\s*:\s*(?:\[(.*?)\]|(.*))$/i);
     if (setsListMatch) {
       const listStr = (setsListMatch[1] || setsListMatch[2] || '').trim();
-      const names = listStr
-        .split(/,\s*(?=(?:[^"]*"[^"]*")*[^"]*$)/)
-        .map(s => s.trim().replace(/^["']|["']$/g, ''))
-        .filter(Boolean);
+      const names = splitCsvRespectQuotes(listStr, true).filter(Boolean);
       names.forEach((name, idx) => {
         const id = String.fromCharCode(65 + idx); // A, B, C...
         sets.push({
@@ -272,7 +269,9 @@ function drawVennSvg(text, container, labelText) {
   const svg = document.createElementNS(svgNS, 'svg');
 
   const width = 800;
-  const height = title ? 540 : 490;
+  const titleLayout = title ? layoutSvgTitleLines(title, width - 48, 17, 13.0) : { lines: [], fontSize: 17 };
+  const extraTitleH = titleLayout.lines.length > 1 ? 18 : 0;
+  const height = (title ? 540 : 490) + extraTitleH;
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.setAttribute('width', '100%');
   svg.setAttribute('height', '100%');
@@ -291,22 +290,21 @@ function drawVennSvg(text, container, labelText) {
   svg.appendChild(defs);
 
   // タイトル & サブタイトルの描画
-  if (title) {
-    const titleEl = document.createElementNS(svgNS, 'text');
-    titleEl.setAttribute('x', (width / 2).toString());
-    titleEl.setAttribute('y', '32');
-    titleEl.setAttribute('text-anchor', 'middle');
-    titleEl.setAttribute('font-family', "'Outfit', 'Inter', 'Noto Sans JP', sans-serif");
-    titleEl.setAttribute('font-size', '17');
-    titleEl.setAttribute('font-weight', '700');
-    titleEl.setAttribute('fill', '#0f172a');
-    titleEl.textContent = title;
-    svg.appendChild(titleEl);
+  if (titleLayout.lines.length > 0) {
+    renderAutoFitSvgTitle(svg, title, width - 48, {
+      layout: titleLayout,
+      x: width / 2,
+      singleY: 32,
+      multiY: 24,
+      lineGap: 20,
+      fill: '#0f172a',
+      fontFamily: "'Outfit', 'Inter', 'Noto Sans JP', sans-serif"
+    });
 
     if (subtitle) {
       const subEl = document.createElementNS(svgNS, 'text');
       subEl.setAttribute('x', (width / 2).toString());
-      subEl.setAttribute('y', '52');
+      subEl.setAttribute('y', String(52 + extraTitleH));
       subEl.setAttribute('text-anchor', 'middle');
       subEl.setAttribute('font-family', "'Outfit', 'Inter', 'Noto Sans JP', sans-serif");
       subEl.setAttribute('font-size', '12.5');
@@ -319,7 +317,8 @@ function drawVennSvg(text, container, labelText) {
 
   // 右側に引き出し線カードを収容するため、中心を少し左にオフセット
   const centerX = (numSets === 3) ? (width / 2 - 25) : (width / 2);
-  const centerY = (title ? 70 : 35) + (height - (title ? 70 : 35)) / 2 - 10;
+  const topSpace = title ? (70 + extraTitleH) : 35;
+  const centerY = topSpace + (height - topSpace) / 2 - 10;
 
   // 幾何学定義と中心計算
   const circleRadius = (numSets === 2) ? 135 : 130;

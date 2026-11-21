@@ -392,15 +392,22 @@ function drawGanttSvg(code, container, labelText) {
   const valRange = maxVal - minVal || 1;
 
   // レイアウト寸法
-  // タスク名・マイルストーン名の最大幅を動的計算（全角1文字=約12px、半角1文字=約6.8px）
+  // タスク名・マイルストーン名の最大幅を動的計算
+  const truncateGanttLabel = (name, maxAllowablePx, baseOffset = 0) => {
+    const raw = String(name || '');
+    if (baseOffset + estimateSvgTextWidth(raw, 12, false) <= maxAllowablePx) return raw;
+    let cutIdx = 0;
+    for (let i = 1; i <= raw.length; i++) {
+      if (baseOffset + estimateSvgTextWidth(raw.slice(0, i), 12, false) + 12 > maxAllowablePx) break;
+      cutIdx = i;
+    }
+    return raw.slice(0, cutIdx) + '…';
+  };
+
   let maxLabelWidth = 0;
   items.forEach((it) => {
     if (it.type === 'task' || it.type === 'milestone') {
-      const name = it.name || '';
-      let w = it.type === 'milestone' ? 18 : 0;
-      for (let i = 0; i < name.length; i++) {
-        w += name.charCodeAt(i) > 255 ? 12 : 6.8;
-      }
+      const w = (it.type === 'milestone' ? 18 : 0) + estimateSvgTextWidth(it.name || '', 12, false);
       if (w > maxLabelWidth) maxLabelWidth = w;
     }
   });
@@ -418,7 +425,8 @@ function drawGanttSvg(code, container, labelText) {
     totalContentH += it.type === 'section' ? secH : rowH;
   });
 
-  const titleH = title ? 42 : 12;
+  const titleLayout = title ? layoutSvgTitleLines(title, totalW - 40, 16.5, 13.0) : { lines: [], fontSize: 16.5 };
+  const titleH = titleLayout.lines.length > 1 ? 58 : (titleLayout.lines.length === 1 ? 42 : 12);
   const totalH = titleH + headerH + totalContentH + 20;
 
   const timeToX = (val) => labelColW + ((val - minVal) / valRange) * chartW;
@@ -440,17 +448,10 @@ function drawGanttSvg(code, container, labelText) {
   svg.appendChild(bg);
 
   // タイトル
-  if (title) {
-    const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tEl.setAttribute('x', totalW / 2);
-    tEl.setAttribute('y', 26);
-    tEl.setAttribute('text-anchor', 'middle');
-    tEl.setAttribute('font-size', '16.5');
-    tEl.setAttribute('font-weight', '700');
-    tEl.setAttribute('fill', '#1e293b');
-    tEl.setAttribute('font-family', 'sans-serif');
-    tEl.textContent = title;
-    svg.appendChild(tEl);
+  if (titleLayout.lines.length > 0) {
+    renderAutoFitSvgTitle(svg, title, totalW - 40, {
+      layout: titleLayout, x: totalW / 2, singleY: 26, multiY: 22, lineGap: 19, fill: '#1e293b'
+    });
   }
 
   const startY = titleH;
@@ -606,23 +607,7 @@ function drawGanttSvg(code, container, labelText) {
 
       // 枠幅を超える極端な長文のみ安全に省略、通常は全文表示
       const maxAllowablePx = labelColW - 32;
-      let dispName = it.name;
-      let textPx = 0;
-      for (let i = 0; i < dispName.length; i++) {
-        textPx += dispName.charCodeAt(i) > 255 ? 12 : 6.8;
-      }
-      if (textPx > maxAllowablePx) {
-        let curPx = 0;
-        let cutIdx = 0;
-        for (let i = 0; i < dispName.length; i++) {
-          const charW = dispName.charCodeAt(i) > 255 ? 12 : 6.8;
-          if (curPx + charW + 12 > maxAllowablePx) break;
-          curPx += charW;
-          cutIdx = i + 1;
-        }
-        dispName = dispName.slice(0, cutIdx) + '…';
-      }
-      labelTxt.textContent = dispName;
+      labelTxt.textContent = truncateGanttLabel(it.name, maxAllowablePx, 0);
       rowG.appendChild(labelTxt);
 
       // タスクバー
@@ -698,23 +683,7 @@ function drawGanttSvg(code, container, labelText) {
 
       // 枠幅を超える極端な長文のみ安全に省略、通常は全文表示
       const maxAllowablePx = labelColW - 32;
-      let dispName = it.name;
-      let textPx = 18;
-      for (let i = 0; i < dispName.length; i++) {
-        textPx += dispName.charCodeAt(i) > 255 ? 12 : 6.8;
-      }
-      if (textPx > maxAllowablePx) {
-        let curPx = 18;
-        let cutIdx = 0;
-        for (let i = 0; i < dispName.length; i++) {
-          const charW = dispName.charCodeAt(i) > 255 ? 12 : 6.8;
-          if (curPx + charW + 12 > maxAllowablePx) break;
-          curPx += charW;
-          cutIdx = i + 1;
-        }
-        dispName = dispName.slice(0, cutIdx) + '…';
-      }
-      labelTxt.textContent = `◇ ${dispName}`;
+      labelTxt.textContent = `◇ ${truncateGanttLabel(it.name, maxAllowablePx, 18)}`;
       rowG.appendChild(labelTxt);
 
       // ダイヤマーク（◇）
@@ -808,10 +777,5 @@ function drawGanttSvg(code, container, labelText) {
 
   container.appendChild(svg);
 
-  if (labelText) {
-    const lbl = document.createElement('div');
-    lbl.className = 'chem-structure-label';
-    lbl.textContent = labelText;
-    container.appendChild(lbl);
-  }
+  appendDiagramLabel(container, labelText);
 }
