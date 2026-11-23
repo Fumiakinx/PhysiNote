@@ -459,13 +459,11 @@ function drawBlockDiagramSvg(code, container, labelText) {
       const endX = p2.x + p2.w / 2;
       const endY = p2.y;
 
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', `M ${startX} ${startY} L ${endX} ${endY}`);
-      path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', '#0f172a');
-      path.setAttribute('stroke-width', '1.8');
-      path.setAttribute('marker-end', 'url(#bd-arrow)');
-      edgeG.appendChild(path);
+      drawSvgConnector(edgeG, `M ${startX} ${startY} L ${endX} ${endY}`, {
+        stroke: '#0f172a',
+        strokeWidth: '1.8',
+        markerEnd: 'bd-arrow'
+      });
 
       // 符号（+または-）の描画
       if (e.sign) {
@@ -482,49 +480,24 @@ function drawBlockDiagramSvg(code, container, labelText) {
 
       // 外乱ラインのラベル（縦線右横）
       if (e.label) {
-        const lines = splitBlockLines(e.label);
-        if (lines.length > 0) {
-          const midY = (startY + endY) / 2;
-          const lineH = 15;
-          const th = lines.length * lineH + 6;
-          const tw = getBlockTextWidth(e.label) + 14;
-          const lx = startX + 10;
-          const bgTopY = midY - th / 2;
-
-          const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-          bg.setAttribute('x', lx);
-          bg.setAttribute('y', bgTopY.toFixed(1));
-          bg.setAttribute('width', tw.toFixed(1));
-          bg.setAttribute('height', th.toFixed(1));
-          bg.setAttribute('rx', '4');
-          bg.setAttribute('fill', '#ffffff');
-          bg.setAttribute('fill-opacity', '0.94');
-          bg.setAttribute('stroke', '#e0f2fe');
-          bg.setAttribute('stroke-width', '1');
-          labelG.appendChild(bg);
-
-          const labelTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          labelTxt.setAttribute('x', (lx + tw / 2).toFixed(1));
-          labelTxt.setAttribute('y', (bgTopY + lineH - 1).toFixed(1));
-          labelTxt.setAttribute('text-anchor', 'middle');
-          labelTxt.setAttribute('font-size', '11.5');
-          labelTxt.setAttribute('font-weight', '700');
-          labelTxt.setAttribute('fill', '#0284c7');
-          labelTxt.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
-
-          lines.forEach((lineStr, lineIdx) => {
-            if (lineIdx === 0) {
-              labelTxt.textContent = lineStr;
-            } else {
-              const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-              tspan.setAttribute('x', (lx + tw / 2).toFixed(1));
-              tspan.setAttribute('dy', lineH.toFixed(1));
-              tspan.textContent = lineStr;
-              labelTxt.appendChild(tspan);
-            }
-          });
-          labelG.appendChild(labelTxt);
-        }
+        drawSvgEdgeBadge(labelG, startX + 10, (startY + endY) / 2, splitBlockLines(e.label), {
+          alignX: 'left',
+          fontSize: 11.5,
+          isBold: true,
+          fontWeight: '700',
+          fontFamily: 'system-ui, -apple-system, sans-serif',
+          fill: '#0284c7',
+          bgOpacity: 0.94,
+          stroke: '#e0f2fe',
+          strokeWidth: '1',
+          lineHeight: 15,
+          padX: 16,
+          multiPadY: 6,
+          singleHeight: 21,
+          rx: 4,
+          rxMulti: 4,
+          textDy: 4
+        });
       }
       return;
     }
@@ -568,13 +541,11 @@ function drawBlockDiagramSvg(code, container, labelText) {
         d = `M ${startX} ${startY} L ${startX} ${loopY} L ${endX} ${loopY} L ${endX} ${endY}`;
       }
 
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', d);
-      path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', '#0f172a');
-      path.setAttribute('stroke-width', '1.8');
-      path.setAttribute('marker-end', 'url(#bd-arrow)');
-      edgeG.appendChild(path);
+      drawSvgConnector(edgeG, d, {
+        stroke: '#0f172a',
+        strokeWidth: '1.8',
+        markerEnd: 'bd-arrow'
+      });
 
       // 加算器の下側の符号
       if (e.sign && p2.type === 'sum') {
@@ -597,13 +568,11 @@ function drawBlockDiagramSvg(code, container, labelText) {
     const endX = p2.x;
     const endY = p2.y + p2.h / 2;
 
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', `M ${startX} ${startY} L ${endX} ${endY}`);
-    path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', '#0f172a');
-    path.setAttribute('stroke-width', '1.8');
-    path.setAttribute('marker-end', 'url(#bd-arrow)');
-    edgeG.appendChild(path);
+    drawSvgConnector(edgeG, `M ${startX} ${startY} L ${endX} ${endY}`, {
+      stroke: '#0f172a',
+      strokeWidth: '1.8',
+      markerEnd: 'bd-arrow'
+    });
 
     // 加算器の左側に入る符号（+または-）
     if (e.sign && p2.type === 'sum') {
@@ -620,53 +589,27 @@ function drawBlockDiagramSvg(code, container, labelText) {
 
     // 信号線ラベル（矢印の上部に配置）
     if (e.label) {
-      const lines = splitBlockLines(e.label);
-      if (lines.length > 0) {
-        const midX = (startX + endX) / 2;
-        const midY = (startY + endY) / 2;
-        const lineH = 15;
-        const th = lines.length * lineH + 6;
-        const tw = getBlockTextWidth(e.label) + 14;
-
-        // 四角の枠（subLabelありでbaseLineY - 29）に絶対に接触しないよう、座布団の下端を上空（baseLineY - 34）に配置
-        const baseLineY = Math.abs(startY - endY) < 5 ? startY : midY;
-        const bgBottomY = baseLineY - 34;
-        const bgTopY = bgBottomY - th;
-
-        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        bg.setAttribute('x', (midX - tw / 2).toFixed(1));
-        bg.setAttribute('y', bgTopY.toFixed(1));
-        bg.setAttribute('width', tw.toFixed(1));
-        bg.setAttribute('height', th.toFixed(1));
-        bg.setAttribute('rx', '4');
-        bg.setAttribute('fill', '#ffffff');
-        bg.setAttribute('fill-opacity', '0.94');
-        bg.setAttribute('stroke', '#e0f2fe');
-        bg.setAttribute('stroke-width', '1');
-        labelG.appendChild(bg);
-
-        const labelTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        labelTxt.setAttribute('x', midX.toFixed(1));
-        labelTxt.setAttribute('y', (bgTopY + lineH - 1).toFixed(1));
-        labelTxt.setAttribute('text-anchor', 'middle');
-        labelTxt.setAttribute('font-size', '11.5');
-        labelTxt.setAttribute('font-weight', '700');
-        labelTxt.setAttribute('fill', '#0284c7');
-        labelTxt.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
-
-        lines.forEach((lineStr, lineIdx) => {
-          if (lineIdx === 0) {
-            labelTxt.textContent = lineStr;
-          } else {
-            const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-            tspan.setAttribute('x', midX.toFixed(1));
-            tspan.setAttribute('dy', lineH.toFixed(1));
-            tspan.textContent = lineStr;
-            labelTxt.appendChild(tspan);
-          }
-        });
-        labelG.appendChild(labelTxt);
-      }
+      const midX = (startX + endX) / 2;
+      const midY = (startY + endY) / 2;
+      const baseLineY = Math.abs(startY - endY) < 5 ? startY : midY;
+      drawSvgEdgeBadge(labelG, midX, baseLineY - 34, splitBlockLines(e.label), {
+        alignY: 'bottom',
+        fontSize: 11.5,
+        isBold: true,
+        fontWeight: '700',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fill: '#0284c7',
+        bgOpacity: 0.94,
+        stroke: '#e0f2fe',
+        strokeWidth: '1',
+        lineHeight: 15,
+        padX: 16,
+        multiPadY: 6,
+        singleHeight: 21,
+        rx: 4,
+        rxMulti: 4,
+        textDy: 4
+      });
     }
   });
 

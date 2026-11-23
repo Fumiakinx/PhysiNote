@@ -6,78 +6,26 @@ function parseBalanceSheet(text) {
   const links = [];
   const nodeNamesSet = new Set();
   const nodeMeta = {};
-  let company = null;
-  let code = null;
-  let period = null;
-  let unit = '百万円';
-  let consolidated = true;
-  let title = null;
-  let subtitle = null;
-  let note = null;
-
-  const extractBracketProps = (bracketStr) => {
-    if (!bracketStr) return { value: null, percent: null, color: null, side: null, highlight: false };
-    const parts = bracketStr.split(',').map((p) => p.trim()).filter(Boolean);
-    let value = null;
-    let percent = null;
-    let color = null;
-    let side = null;
-    let highlight = false;
-
-    parts.forEach((p) => {
-      if (/^(highlight|強調)$/i.test(p)) {
-        highlight = true;
-      } else if (/^-?[\d,]+(?:\.\d+)?%$/.test(p)) {
-        percent = p;
-      } else if (/^-?[\d,]+(?:\.\d+)?$/.test(p)) {
-        value = parseFloat(p.replace(/,/g, ''));
-      } else if (/^(above|below|left|right)$/i.test(p)) {
-        side = p.toLowerCase();
-      } else if (/^#[0-9a-fA-F]{3,8}$/.test(p) || /^[a-zA-Z]+$/.test(p)) {
-        color = p;
-      }
-    });
-    if (highlight && !color) {
-      color = '#ef4444';
-    }
-    return { value, percent, color, side, highlight };
+  const meta = {
+    company: null,
+    code: null,
+    period: null,
+    unit: '百万円',
+    consolidated: true,
+    title: null,
+    subtitle: null,
+    note: null
   };
 
   lines.forEach((line) => {
-    const mComp = line.match(/^(?:company|企業名)\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mComp) { company = (mComp[1] || mComp[2] || mComp[3] || '').trim(); return; }
-
-    const mCode = line.match(/^(?:code|証券番号|証券コード)\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mCode) { code = (mCode[1] || mCode[2] || mCode[3] || '').trim(); return; }
-
-    const mPeriod = line.match(/^(?:period|決算期)\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mPeriod) { period = (mPeriod[1] || mPeriod[2] || mPeriod[3] || '').trim(); return; }
-
-    const mUnit = line.match(/^(?:unit|単位)\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mUnit) { unit = (mUnit[1] || mUnit[2] || mUnit[3] || '').trim(); return; }
-
-    const mCons = line.match(/^(?:consolidated|連結)\s*:\s*(true|false|1|0|有|無|単体)?/i);
-    if (mCons) {
-      const val = (mCons[1] || '').toLowerCase();
-      consolidated = !(val === 'false' || val === '0' || val === '無' || val === '単体');
-      return;
-    }
-
-    const mTitle = line.match(/^title\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mTitle) { title = (mTitle[1] || mTitle[2] || mTitle[3] || '').trim(); return; }
-
-    const mSub = line.match(/^subtitle\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mSub) { subtitle = (mSub[1] || mSub[2] || mSub[3] || '').trim(); return; }
-
-    const mNote = line.match(/^note\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mNote) { note = (mNote[1] || mNote[2] || mNote[3] || '').trim(); return; }
+    if (parseFinancialMetaLine(line, meta)) return;
 
     const mNode = line.match(/^node\s*:\s*([^\[]+)(?:\[(.*?)\])?$/i);
     if (mNode) {
       const name = mNode[1].replace(/^["']|["']$/g, '').trim();
       if (name) {
         nodeNamesSet.add(name);
-        const props = extractBracketProps(mNode[2]);
+        const props = parseSankeyBracketProps(mNode[2], { supportHighlight: true });
         nodeMeta[name] = Object.assign(nodeMeta[name] || {}, props, { isExplicit: true });
       }
       return;
@@ -88,19 +36,17 @@ function parseBalanceSheet(text) {
       let leftPart = line.substring(0, arrowIdx).trim();
       let rightPart = line.substring(arrowIdx + 2).trim();
 
-      let srcProps = { value: null, percent: null, color: null, side: null };
       const mLeftBracket = leftPart.match(/\[(.*?)\]$/);
       if (mLeftBracket) {
-        srcProps = extractBracketProps(mLeftBracket[1]);
         leftPart = leftPart.substring(0, mLeftBracket.index).trim();
       }
+      const srcProps = parseSankeyBracketProps(mLeftBracket ? mLeftBracket[1] : null, { supportHighlight: true });
 
-      let tgtProps = { value: null, percent: null, color: null, side: null };
       const mRightBracket = rightPart.match(/\[(.*?)\]$/);
       if (mRightBracket) {
-        tgtProps = extractBracketProps(mRightBracket[1]);
         rightPart = rightPart.substring(0, mRightBracket.index).trim();
       }
+      const tgtProps = parseSankeyBracketProps(mRightBracket ? mRightBracket[1] : null, { supportHighlight: true });
 
       let trailingColor = null;
       const colorMatch = rightPart.match(/\s+(#[a-fA-F0-9]{3,8})$/);
@@ -144,7 +90,7 @@ function parseBalanceSheet(text) {
     }
   });
 
-  return { company, code, period, unit, consolidated, title, subtitle, note, links, nodes: Array.from(nodeNamesSet), nodeMeta };
+  return { ...meta, links, nodes: Array.from(nodeNamesSet), nodeMeta };
 }
 
 function drawBalanceSheetSvg(bsText, container, labelText) {
@@ -337,7 +283,6 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
   };
 
   // 5. 幾何レイアウト・座標計算
-  const padTop = 90;
   const padBottom = 50;
 
   // 左右端のラベル最大行長を計測し、余白を動的確保（はみ出し切れを完全防止）
@@ -359,6 +304,15 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
   }
   const padRight = Math.max(145, maxRightLabelLen * 13 + 32);
   const svgWidth = Math.max(960, (maxStage > 0 ? (maxStage + 1) * 220 : 600) + padLeft + padRight - 280);
+  const headerLayout = layoutDualSideSvgHeader(svgWidth, {
+    leftText: headerLeftMain,
+    rightText: headerRightMain,
+    rightSubText: headerRightSub,
+    leftSize: 17,
+    rightSize: 14,
+    rightSubSize: 11
+  });
+  const padTop = Math.max(90, headerLayout.headerBottom + 12);
   const nodeWidth = 10;
 
   const baseAssetHeight = 220;
@@ -606,40 +560,8 @@ function drawBalanceSheetSvg(bsText, container, labelText) {
   svg.style.height = 'auto';
   svg.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif';
 
-  // 7. ヘッダー描画
-  const headerG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  headerG.setAttribute('class', 'bs-header');
-
-  const titleEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  titleEl.setAttribute('x', '24');
-  titleEl.setAttribute('y', '38');
-  titleEl.setAttribute('font-size', '17');
-  titleEl.setAttribute('font-weight', '800');
-  titleEl.setAttribute('fill', '#0f172a');
-  titleEl.textContent = headerLeftMain;
-  headerG.appendChild(titleEl);
-
-  const subEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  subEl.setAttribute('x', (svgWidth - 24).toFixed(1));
-  subEl.setAttribute('y', '32');
-  subEl.setAttribute('text-anchor', 'end');
-  subEl.setAttribute('font-size', '14');
-  subEl.setAttribute('font-weight', '700');
-  subEl.setAttribute('fill', '#334155');
-  subEl.textContent = headerRightMain;
-  headerG.appendChild(subEl);
-
-  const subEnEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  subEnEl.setAttribute('x', (svgWidth - 24).toFixed(1));
-  subEnEl.setAttribute('y', '48');
-  subEnEl.setAttribute('text-anchor', 'end');
-  subEnEl.setAttribute('font-size', '11');
-  subEnEl.setAttribute('font-weight', '600');
-  subEnEl.setAttribute('fill', '#94a3b8');
-  subEnEl.textContent = headerRightSub;
-  headerG.appendChild(subEnEl);
-
-  svg.appendChild(headerG);
+  // 7. ヘッダー描画（重なり自動回避）
+  renderDualSideSvgHeader(svg, headerLayout, { className: 'bs-header' });
 
   // 8. リンク（帯）描画
   const sourceOffsets = {};

@@ -40,7 +40,7 @@ window.resolvePhysiNoteBaseFileName = function resolvePhysiNoteBaseFileName(text
   }
 
   if (!title && previewEl) {
-    const titleEl = previewEl.querySelector('.chart-title, .diagram-title, .table-title, .bs-header-title, .pl-header-title, [class*="-title"]');
+    const titleEl = previewEl.querySelector('[class*="-title"]');
     if (titleEl && titleEl.textContent && titleEl.textContent.trim()) {
       title = titleEl.textContent.trim();
     }
@@ -52,7 +52,14 @@ window.resolvePhysiNoteBaseFileName = function resolvePhysiNoteBaseFileName(text
     if (safeName) return safeName;
   }
 
-  return '';
+  return `physinote_formula_${Date.now()}`;
+};
+
+/** 構文テキストおよびプレビューDOMから指定拡張子付きの保存ファイル名を決定する */
+window.resolvePhysiNoteFileName = function resolvePhysiNoteFileName(extension, text, previewEl) {
+  const ext = String(extension || '').replace(/^\./, '');
+  const baseName = window.resolvePhysiNoteBaseFileName(text, previewEl);
+  return ext ? `${baseName}.${ext}` : baseName;
 };
 
 (function initExportManager() {
@@ -146,14 +153,11 @@ window.resolvePhysiNoteBaseFileName = function resolvePhysiNoteBaseFileName(text
       defaultThemeRadio.checked = true;
     }
 
-    // 表専用オプションの表示/非表示（エクスポート対象に表または日程表が含まれる場合のみ表示）
-    const hasTable = exportTarget.querySelector('.physi-table, .matrix-schedule-table') !== null;
-    if (exportTableOptions) {
-      exportTableOptions.style.display = hasTable ? 'block' : 'none';
-    }
-
-    // 表の初期基準幅を退避（エディタ画面の表示幅をそのまま初期値とする）
+    // 表専用オプションの表示/非表示および初期基準幅の退避
     const targetTable = exportTarget.querySelector('.physi-table, .matrix-schedule-table');
+    if (exportTableOptions) {
+      exportTableOptions.style.display = targetTable ? 'block' : 'none';
+    }
     if (targetTable && previewArea) {
       const origTable = previewArea.querySelector('.physi-table, .matrix-schedule-table');
       const origContainer = previewArea.querySelector('.table-preview-container, .matrix-preview-container');
@@ -451,11 +455,6 @@ window.resolvePhysiNoteBaseFileName = function resolvePhysiNoteBaseFileName(text
   // PNG画像の生成とダウンロード実行
   if (exportDownloadBtn) {
     exportDownloadBtn.addEventListener('click', async () => {
-      if (typeof html2canvas === 'undefined') {
-        alert('画像化ライブラリの読み込みに失敗しました。ページを再読み込みしてください。');
-        return;
-      }
-
       const scaleVal = parseFloat(document.querySelector('input[name="export-scale"]:checked')?.value || '2');
       const selectedBg = document.querySelector('input[name="export-bg"]:checked')?.value || 'white';
       const bgColor = selectedBg === 'transparent' ? null : '#ffffff';
@@ -511,6 +510,10 @@ window.resolvePhysiNoteBaseFileName = function resolvePhysiNoteBaseFileName(text
             ctx.drawImage(img, relX, relY, svgRect.width, svgRect.height);
           }
         } else {
+          if (typeof html2canvas === 'undefined') {
+            alert('画像化ライブラリの読み込みに失敗しました。ページを再読み込みしてください。');
+            return;
+          }
           canvas = await html2canvas(exportTarget, {
             scale: scaleVal,
             backgroundColor: bgColor,
@@ -520,24 +523,15 @@ window.resolvePhysiNoteBaseFileName = function resolvePhysiNoteBaseFileName(text
         }
 
         // ファイル名自動決定（構文保存と共通ロジック）
-        const getExportImageFileName = () => {
-          const inputEl = getInputArea();
-          const text = (inputEl && inputEl.value) ? inputEl.value : '';
-          const safeName = window.resolvePhysiNoteBaseFileName(
-            text,
-            typeof exportTarget !== 'undefined' ? exportTarget : null
-          );
-          if (safeName) return `${safeName}.png`;
-          return `physinote_formula_${Date.now()}.png`;
-        };
+        const inputEl = getInputArea();
+        const text = (inputEl && inputEl.value) ? inputEl.value : '';
+        const exportFileName = window.resolvePhysiNoteFileName(
+          'png',
+          text,
+          typeof exportTarget !== 'undefined' ? exportTarget : null
+        );
 
-        const dataUrl = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = getExportImageFileName();
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        triggerFileDownload(canvas.toDataURL('image/png'), exportFileName);
 
         closeExportModal();
       } catch (err) {

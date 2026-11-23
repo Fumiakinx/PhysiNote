@@ -1128,19 +1128,39 @@ function drawNetworkSvg(rawCode, container, labelText) {
   const edges = parsed.edges;
   const zones = parsed.zones;
 
+  const measureNetTextW = (s, fs = 10, isBold = false) => estimateSvgTextWidth(s, fs, isBold) * 1.03;
+  const wrapNetText = (text, maxW = 92, fs = 10, isBold = false) =>
+    wrapSvgTextLines(text, maxW, fs, { isBold, safety: 1.03, extraPrevChars: 'の時' });
+
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const nodeW = 152;
   const nodeH = 114;
-  const colGap = 198;
   const rowGap = 26;
   const zonePadX = 18;
   const zonePadTop = 30;
   const zonePadBottom = 14;
   const zoneBandGap = 28;
 
-  const measureNetTextW = (s, fs = 10, isBold = false) => estimateSvgTextWidth(s, fs, isBold) * 1.03;
-  const wrapNetText = (text, maxW = 92, fs = 10, isBold = false) =>
-    wrapSvgTextLines(text, maxW, fs, { isBold, safety: 1.03, extraPrevChars: 'の時' });
+  // 列間ラベル幅・分岐数に応じて列間余白 colGap を動的確保（分岐線とラベルの窮屈な近接を防止）
+  let colGap = 198;
+  if (parsed.direction !== 'GRID' && parsed.direction !== 'TD') {
+    const outDegTemp = new Map();
+    let maxBadgeW = 0;
+    edges.forEach((e) => {
+      outDegTemp.set(e.from, (outDegTemp.get(e.from) || 0) + 1);
+      if (e.label) {
+        const lns = wrapNetText(e.label, 92, 10, false);
+        const w = lns.length > 0 ? Math.max(...lns.map((ln) => measureNetTextW(ln, 10, false))) + 16 : 0;
+        if (w > maxBadgeW) maxBadgeW = w;
+      }
+    });
+    const maxOutDeg = outDegTemp.size > 0 ? Math.max(...outDegTemp.values()) : 1;
+    if (maxBadgeW > 0) {
+      const laneReserve = maxOutDeg > 1 ? (maxOutDeg * 16 + 52) : 44;
+      const neededGap = zonePadX * 2 + Math.ceil(maxBadgeW) + laneReserve;
+      colGap = Math.max(198, Math.min(268, neededGap));
+    }
+  }
 
   // 各ノードのタイトル・サブテキストを事前折り返しし、切れずに収まる高さを算出
   let effectiveNodeH = nodeH;
@@ -1809,6 +1829,7 @@ function drawNetworkSvg(rawCode, container, labelText) {
 
   // 同一列間ギャップを通る斜め・段差エッジへ個別の垂直幹レーンを割り当て（同列縦線・迂回線・分岐バスは除外）
   const gapEdgeLanes = new Map();
+  const fanOutGapLanes = new Map();
   edges.forEach((e, idx) => {
     const s = nodeById.get(e.from);
     const d = nodeById.get(e.to);
@@ -1817,29 +1838,29 @@ function drawNetworkSvg(rawCode, container, labelText) {
       const gapKey = `${Math.min(s.col, d.col)}-${Math.max(s.col, d.col)}`;
       if (!gapEdgeLanes.has(gapKey)) gapEdgeLanes.set(gapKey, []);
       gapEdgeLanes.get(gapKey).push(idx);
+      if ((outEdgeCount.get(e.from) || 0) > 1 && (inEdgeCount.get(e.to) || 0) <= 1 && d.x >= s.x) {
+        const foKey = `${e.from}::${gapKey}`;
+        if (!fanOutGapLanes.has(foKey)) fanOutGapLanes.set(foKey, []);
+        fanOutGapLanes.get(foKey).push(idx);
+      }
     }
   });
   // 同一ギャップ内で上昇・下降線の垂直幹が不要に交差しないようレーン順を整列
+  const getEdgeCenterYs = (idx) => {
+    const s = nodeById.get(edges[idx].from);
+    const d = nodeById.get(edges[idx].to);
+    return { sy: s.y + s.h / 2, ty: d.y + d.h / 2 };
+  };
   gapEdgeLanes.forEach((list) => {
-    if (list.length <= 1) return;
-    list.sort((aIdx, bIdx) => {
-      const sa = nodeById.get(edges[aIdx].from);
-      const da = nodeById.get(edges[aIdx].to);
-      const sb = nodeById.get(edges[bIdx].from);
-      const db = nodeById.get(edges[bIdx].to);
-      const dyA = (da.y + da.h / 2) - (sa.y + sa.h / 2);
-      const dyB = (db.y + db.h / 2) - (sb.y + sb.h / 2);
-      if (dyA * dyB > 0) {
-        return dyA < 0 ? ((sb.y + sb.h / 2) - (sa.y + sa.h / 2)) : ((sa.y + sa.h / 2) - (sb.y + sb.h / 2));
-      }
-      return (sa.y + sa.h / 2) - (sb.y + sb.h / 2);
-    });
+    sortOrthogonalGapLaneIndices(list, getEdgeCenterYs);
+  });
+  fanOutGapLanes.forEach((list) => {
+    sortOrthogonalGapLaneIndices(list, getEdgeCenterYs);
   });
 
   const edgeLineG = document.createElementNS(svgNS, 'g');
   const edgeLabelG = document.createElementNS(svgNS, 'g');
   const placedBadges = [];
-  const badgesOverlap = (a, b) => !(a.x + a.w + 4 <= b.x || b.x + b.w + 4 <= a.x || a.y + a.h + 4 <= b.y || b.y + b.h + 4 <= a.y);
 
   // 分岐バス対象グループ（LR時：同一始点・全ターゲットが右列・非迂回）
   const busGroupsMap = new Map();
@@ -1921,61 +1942,27 @@ function drawNetworkSvg(rawCode, container, labelText) {
     });
 
     leftPortsMap.forEach((list, hostId) => {
-      if (list.length <= 1) return;
       const host = nodeById.get(hostId);
-      const hostCenter = host.y + host.h / 2;
-      list.sort((a, b) => (a.approachY - b.approachY) || (a.isBack ? 1 : -1) || (a.idx - b.idx));
-      const uppers = list.filter((it) => it.approachY < hostCenter - 4);
-      const sames = list.filter((it) => Math.abs(it.approachY - hostCenter) <= 4);
-      const lowers = list.filter((it) => it.approachY > hostCenter + 4);
-
-      if (sames.length === 2 && uppers.length > 0 && lowers.length === 0) {
-        const uStep = uppers.length > 1 ? 18 / (uppers.length - 1) : 0;
-        uppers.forEach((it, i) => leftPortOffsetByEdge.set(it.idx, -38 + i * uStep));
-        sames.forEach((it, i) => leftPortOffsetByEdge.set(it.idx, i === 0 ? 6 : 46));
-      } else if (sames.length === 1 && uppers.length >= 1 && lowers.length === 0) {
-        const uStep = uppers.length > 1 ? 18 / (uppers.length - 1) : 0;
-        uppers.forEach((it, i) => leftPortOffsetByEdge.set(it.idx, -36 + i * uStep));
-        leftPortOffsetByEdge.set(sames[0].idx, 0);
-      } else if (sames.length === 1 && lowers.length >= 1 && uppers.length === 0) {
-        leftPortOffsetByEdge.set(sames[0].idx, 0);
-        const lStep = lowers.length > 1 ? 18 / (lowers.length - 1) : 0;
-        lowers.forEach((it, i) => leftPortOffsetByEdge.set(it.idx, 18 + i * lStep));
-      } else if (sames.length === 1 && uppers.length > 0 && lowers.length > 0 && uppers.length !== lowers.length) {
-        const uStep = uppers.length > 1 ? 20 / (uppers.length - 1) : 0;
-        uppers.forEach((it, i) => leftPortOffsetByEdge.set(it.idx, -38 + i * uStep));
-        leftPortOffsetByEdge.set(sames[0].idx, 0);
-        const lStep = lowers.length > 1 ? 20 / (lowers.length - 1) : 0;
-        lowers.forEach((it, i) => leftPortOffsetByEdge.set(it.idx, 18 + i * lStep));
-      } else {
-        const span = Math.min(64, (list.length - 1) * 26);
-        list.forEach((it, pos) => {
-          leftPortOffsetByEdge.set(it.idx, -span / 2 + (pos * span) / (list.length - 1));
-        });
-      }
+      const portOffs = assignNodeSidePortOffsets(
+        list.map((it) => ({ key: it.idx, approachY: it.approachY, priority: (it.isBack ? 10000 : 0) + it.idx })),
+        host.y + host.h / 2,
+        { mode: 'in' }
+      );
+      portOffs.forEach((val, idx) => leftPortOffsetByEdge.set(idx, val));
     });
 
     rightPortsMap.forEach((list, hostId) => {
-      if (list.length <= 1) return;
       const host = nodeById.get(hostId);
-      const hostCenter = host.y + host.h / 2;
-      list.sort((a, b) => (a.approachY - b.approachY) || (a.idx - b.idx));
-      const setRightPort = (it, val) => {
+      const portOffs = assignNodeSidePortOffsets(
+        list.map((it, i) => ({ key: i, approachY: it.approachY, priority: it.idx })),
+        host.y + host.h / 2,
+        { mode: 'out' }
+      );
+      portOffs.forEach((val, i) => {
+        const it = list[i];
         if (it.groupIdxs) it.groupIdxs.forEach((gi) => rightPortOffsetByEdge.set(gi, val));
         else rightPortOffsetByEdge.set(it.idx, val);
-      };
-      const sameItem = list.length === 2 && list.filter((it) => Math.abs(it.approachY - hostCenter) <= 4).length === 1
-        ? list.find((it) => Math.abs(it.approachY - hostCenter) <= 4) : null;
-      if (sameItem) {
-        const otherItem = list.find((it) => it !== sameItem);
-        setRightPort(sameItem, 0);
-        setRightPort(otherItem, otherItem.approachY < hostCenter ? -16 : 16);
-      } else {
-        const span = Math.min(36, (list.length - 1) * 20);
-        list.forEach((it, pos) => {
-          setRightPort(it, -span / 2 + (pos * span) / (list.length - 1));
-        });
-      }
+      });
     });
   }
 
@@ -2013,6 +2000,8 @@ function drawNetworkSvg(rawCode, container, labelText) {
     const isFanIn = (inEdgeCount.get(e.to) || 0) > 1;
     let x1, y1, x2, y2, anchorX, anchorY;
     let busClampRange = null;
+    let labelMinX = null;
+    let labelMaxX = null;
 
     const isSameColVertical = parsed.direction !== 'TD' && src.col === dst.col;
 
@@ -2062,10 +2051,9 @@ function drawNetworkSvg(rawCode, container, labelText) {
         y1 = src.y + src.h;
         y2 = dst.y;
       }
-      const midY = (y1 + y2) / 2;
-      const dStr = Math.abs(x1 - x2) < 2 ? `M ${x1} ${y1} L ${x2} ${y2}` : `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
-      appendEdgePath(dStr, e.arrow === 'back' || e.arrow === 'both', e.arrow === 'forward' || e.arrow === 'both');
-      anchorX = (x1 + x2) / 2;
+      const orthV = buildOrthogonalEdgePath(x1, y1, x2, y2, { orientation: 'V' });
+      appendEdgePath(orthV.d, e.arrow === 'back' || e.arrow === 'both', e.arrow === 'forward' || e.arrow === 'both');
+      anchorX = orthV.anchorX;
       if (isSameColVertical && dst.y >= src.y) {
         const sZb = src.zoneId ? zoneBoxes.find((zb) => zb.zone.id === src.zoneId) : null;
         const dZb = dst.zoneId ? zoneBoxes.find((zb) => zb.zone.id === dst.zoneId) : null;
@@ -2100,12 +2088,14 @@ function drawNetworkSvg(rawCode, container, labelText) {
         const rightN = dst.x < src.x ? src : dst;
         const lane1X = Math.round(leftX + (colHasZone.has(leftN.col) ? (zonePadX + 14) : 20));
         const lane2X = Math.round(rightX - (colHasZone.has(rightN.col) ? (zonePadX + 28) : 26));
-        const by = bypass.bypassY;
-        const sy = dst.x < src.x ? y2 : y1;
-        const ey = dst.x < src.x ? y1 : y2;
-        dStr = `M ${leftX} ${sy} L ${lane1X} ${sy} L ${lane1X} ${by} L ${lane2X} ${by} L ${lane2X} ${ey} L ${rightX} ${ey}`;
-        anchorX = Math.round((lane1X + lane2X) / 2);
-        anchorY = by;
+        const bpRes = buildOrthogonalEdgePath(x1, y1, x2, y2, {
+          bypassY: bypass.bypassY,
+          lane1X,
+          lane2X
+        });
+        dStr = bpRes.d;
+        anchorX = bpRes.anchorX;
+        anchorY = bpRes.anchorY;
       } else {
         const gapKey = `${Math.min(src.col, dst.col)}-${Math.max(src.col, dst.col)}`;
         const gLanes = gapEdgeLanes.get(gapKey) || [];
@@ -2124,18 +2114,25 @@ function drawNetworkSvg(rawCode, container, labelText) {
           anchorX = Math.round((gapLeft + leftZoneOff + gapRight - rightZoneOff) / 2);
           anchorY = y1;
         } else if (isFanOut && !isFanIn && dst.x >= src.x) {
-          midX = Math.round(gapLeft + leftZoneOff + Math.max(10, (gapW - leftZoneOff - rightZoneOff) * 0.16));
-          anchorX = (midX + gapRight - rightZoneOff) / 2;
+          const fLanes = fanOutGapLanes.get(`${e.from}::${gapKey}`) || [];
+          const fIdx = Math.max(0, fLanes.indexOf(edgeIdx));
+          const laneSpanAvail = Math.max(0, gapW - leftZoneOff - rightZoneOff - 84);
+          const laneStep = fLanes.length > 1 ? Math.min(16, Math.max(11, Math.floor(laneSpanAvail / (fLanes.length - 1)))) : 0;
+          midX = Math.round(gapLeft + leftZoneOff + 10 + fIdx * laneStep);
+          labelMinX = midX + 16;
+          anchorX = Math.round((labelMinX + gapRight - rightZoneOff) / 2);
           anchorY = y2;
         } else if (dst.x < src.x) {
-          const laneOff = rightZoneOff + (gLanes.length > 1 ? gIdx * 9 : 4);
-          midX = Math.round(gapRight - Math.min(gapW * 0.34, laneOff));
-          anchorX = (gapLeft + leftZoneOff + midX) / 2;
+          const laneOff = rightZoneOff + (gLanes.length > 1 ? gIdx * 12 : 4);
+          midX = Math.round(gapRight - Math.min(gapW * 0.36, laneOff));
+          labelMaxX = midX - 16;
+          anchorX = Math.round((gapLeft + leftZoneOff + labelMaxX) / 2);
           anchorY = y2;
         } else if (gLanes.length > 1 && Math.abs(y1 - y2) >= 2) {
-          const laneOff = rightZoneOff + gIdx * 9;
-          midX = Math.round(gapRight - Math.min(gapW * 0.34, laneOff));
-          anchorX = (gapLeft + leftZoneOff + midX) / 2;
+          const laneOff = rightZoneOff + gIdx * 12;
+          midX = Math.round(gapRight - Math.min(gapW * 0.36, laneOff));
+          labelMaxX = midX - 16;
+          anchorX = Math.round((gapLeft + leftZoneOff + labelMaxX) / 2);
           anchorY = y1;
         } else {
           // 単一ギャップエッジはゾーン余白内の中央を通し、両側ゾーン枠と広い隙間を確保
@@ -2143,27 +2140,19 @@ function drawNetworkSvg(rawCode, container, labelText) {
           anchorX = midX;
           anchorY = (y1 + y2) / 2;
         }
-        dStr = Math.abs(y1 - y2) < 2 ? `M ${x1} ${y1} L ${x2} ${y2}` : `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+        dStr = buildOrthogonalEdgePath(x1, y1, x2, y2, { orientation: 'H', midX }).d;
       }
       appendEdgePath(dStr, e.arrow === 'back' || e.arrow === 'both', e.arrow === 'forward' || e.arrow === 'both');
     }
 
     let mx = anchorX;
-    let my = anchorY;
+    const my = anchorY;
 
-    // エッジラベル（角丸ピルバッジ：左右ゾーン破線枠との隙間確保＋2D衝突回避）
+    // エッジラベル（角丸ピルバッジ：左右ゾーン破線枠・曲がり角との隙間確保＋2D衝突回避）
     if (e.label) {
-      const labelLines = wrapNetText(e.label, 92, 10, false);
-      const maxLW = Math.max(...labelLines.map((ln) => measureNetTextW(ln, 10, false)));
-      const badgeW = Math.max(40, Math.ceil(maxLW + 16));
-      const badgeLH = 13;
-      const badgeH = labelLines.length > 1 ? (labelLines.length * badgeLH + 8) : 19;
-      let badgeCenterY = e.wifi ? (my + 8) : my;
-
+      let fitRangeX = null;
       if (busClampRange) {
-        if (busClampRange[1] - busClampRange[0] >= badgeW) {
-          mx = Math.max(busClampRange[0] + badgeW / 2, Math.min(busClampRange[1] - badgeW / 2, mx));
-        }
+        fitRangeX = busClampRange;
       } else if (parsed.direction !== 'TD') {
         const gLeft = Math.min(x1, x2);
         const gRight = Math.max(x1, x2);
@@ -2171,52 +2160,33 @@ function drawNetworkSvg(rawCode, container, labelText) {
         const rNode = dst.x < src.x ? src : dst;
         const lPad = colHasZone.has(lNode.col) ? (zonePadX + 8) : 8;
         const rPad = colHasZone.has(rNode.col) ? (zonePadX + 8) : 8;
-        if (gRight - gLeft >= badgeW + lPad + rPad) {
-          mx = Math.max(gLeft + badgeW / 2 + lPad, Math.min(gRight - badgeW / 2 - rPad, mx));
-        } else if (gRight - gLeft >= badgeW + 16) {
-          mx = Math.max(gLeft + badgeW / 2 + 8, Math.min(gRight - badgeW / 2 - 8, mx));
-        }
+        const safeLeft = labelMinX != null ? Math.max(gLeft + lPad, labelMinX) : (gLeft + lPad);
+        const safeRight = labelMaxX != null ? Math.min(gRight - rPad, labelMaxX) : (gRight - rPad);
+        fitRangeX = [
+          [safeLeft, safeRight],
+          [labelMinX ?? (gLeft + 8), labelMaxX ?? (gRight - 8)],
+          [gLeft + 8, gRight - 8]
+        ];
       }
 
-      const candidateBox = (cy) => ({ x: mx - badgeW / 2, y: cy - badgeH / 2, w: badgeW, h: badgeH });
-      if (placedBadges.some((pb) => badgesOverlap(pb, candidateBox(badgeCenterY)))) {
-        for (let step = 16; step <= 96; step += 16) {
-          if (!placedBadges.some((pb) => badgesOverlap(pb, candidateBox(badgeCenterY - step)))) {
-            badgeCenterY -= step;
-            break;
-          }
-          if (!placedBadges.some((pb) => badgesOverlap(pb, candidateBox(badgeCenterY + step)))) {
-            badgeCenterY += step;
-            break;
-          }
-        }
-      }
-      placedBadges.push(candidateBox(badgeCenterY));
-
-      const pillRect = document.createElementNS(svgNS, 'rect');
-      pillRect.setAttribute('x', (mx - badgeW / 2).toFixed(1));
-      pillRect.setAttribute('y', (badgeCenterY - badgeH / 2).toFixed(1));
-      pillRect.setAttribute('width', String(badgeW));
-      pillRect.setAttribute('height', String(badgeH));
-      pillRect.setAttribute('rx', labelLines.length > 1 ? '6' : '9.5');
-      pillRect.setAttribute('fill', palette.cardBg);
-      pillRect.setAttribute('stroke', e.style === 'default' ? '#cbd5e1' : eColor);
-      pillRect.setAttribute('stroke-width', '1.2');
-      edgeLabelG.appendChild(pillRect);
-
-      const startY = badgeCenterY - ((labelLines.length - 1) * badgeLH) / 2 + 3.8;
-      labelLines.forEach((ln, li) => {
-        const lEl = document.createElementNS(svgNS, 'text');
-        lEl.setAttribute('x', mx);
-        lEl.setAttribute('y', (startY + li * badgeLH).toFixed(1));
-        lEl.setAttribute('text-anchor', 'middle');
-        lEl.setAttribute('font-size', '10');
-        lEl.setAttribute('font-weight', '600');
-        lEl.setAttribute('fill', e.style === 'default' ? palette.textMuted : eColor);
-        lEl.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif');
-        lEl.textContent = ln;
-        edgeLabelG.appendChild(lEl);
+      const badgeRes = drawSvgEdgeBadge(edgeLabelG, mx, e.wifi ? (my + 8) : my, e.label, {
+        fontSize: 10,
+        lineHeight: 13,
+        wrapWidth: 92,
+        wrapSafety: 1,
+        fontWeight: '600',
+        fill: e.style === 'default' ? palette.textMuted : eColor,
+        bgFill: palette.cardBg,
+        stroke: e.style === 'default' ? '#cbd5e1' : eColor,
+        strokeWidth: '1.2',
+        padX: 16,
+        multiPadY: 8,
+        minWidth: 40,
+        singleHeight: 19,
+        placedBoxes: placedBadges,
+        fitRangeX
       });
+      if (badgeRes) mx = badgeRes.centerX;
     }
 
     // Wi-Fi電波ミニアイコン（ピルがある場合は線の上側へずらして非重なり）

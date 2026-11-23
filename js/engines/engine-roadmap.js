@@ -3,20 +3,6 @@
 // ==============================================================================
 
 /**
- * テキストの推定ピクセル幅計算ヘルパー
- */
-function getApproxRoadmapTextWidth(str) {
-  return estimateSvgTextWidth(str, 12, false);
-}
-
-/**
- * テキスト自動折り返しヘルパー（区切り記号・括弧・禁則対応）
- */
-function wrapRoadmapText(str, maxCharUnits = 24) {
-  return wrapSvgTextLines(str, maxCharUnits * 6.8, 12);
-}
-
-/**
  * LaTeX chronosys パッケージ構文パーサー
  * @param {string} text 
  * @returns {object|null}
@@ -487,12 +473,12 @@ function renderRoadmapTimelineSvg(data, svg) {
   let maxBelowH = 90;
 
   milestones.forEach((m) => {
-    const titleLines = wrapRoadmapText(m.title, 18);
+    const titleLines = wrapSvgTextLines(m.title, 18 * 6.8, 12);
     let cardH = 34 + titleLines.length * 16;
     if (m.bullets && m.bullets.length > 0) {
       cardH += 8;
       m.bullets.forEach((b) => {
-        const bLines = wrapRoadmapText(b, 20);
+        const bLines = wrapSvgTextLines(b, 20 * 6.8, 12);
         cardH += bLines.length * 14 + 3;
       });
     }
@@ -640,7 +626,7 @@ function renderRoadmapTimelineSvg(data, svg) {
 
     // 上部ヘッダー（時期ピルバッジ）
     const badgeH = 18;
-    const badgeW = Math.max(54, getApproxRoadmapTextWidth(m.date) + 14);
+    const badgeW = Math.max(54, estimateSvgTextWidth(m.date, 12, false) + 14);
     const badgeX = cardX + 8;
     const badgeY = cardY + 7;
 
@@ -678,7 +664,7 @@ function renderRoadmapTimelineSvg(data, svg) {
 
     // タイトル
     let curY = cardY + 36;
-    const titleLines = wrapRoadmapText(m.title, 18);
+    const titleLines = wrapSvgTextLines(m.title, 18 * 6.8, 12);
     titleLines.forEach((tl) => {
       const tEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       tEl.setAttribute('x', cardX + 10);
@@ -695,7 +681,7 @@ function renderRoadmapTimelineSvg(data, svg) {
     if (m.bullets && m.bullets.length > 0) {
       curY += 2;
       m.bullets.forEach((bullet) => {
-        const bLines = wrapRoadmapText(bullet, 20);
+        const bLines = wrapSvgTextLines(bullet, 20 * 6.8, 12);
         bLines.forEach((bl, blIdx) => {
           const bEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
           bEl.setAttribute('x', cardX + (blIdx === 0 ? 12 : 20));

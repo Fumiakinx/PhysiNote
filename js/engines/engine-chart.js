@@ -354,15 +354,6 @@ function parsePgfplotsChart(text) {
   };
 }
 
-// SVGテキスト概算幅計測・折り返し共通ヘルパー
-function measureChartTextW(str, fontSize, isBold) {
-  return estimateSvgTextWidth(str, fontSize, isBold);
-}
-
-function wrapChartTextLines(str, maxWidthPx, fontSize, isBold = false) {
-  return wrapSvgTextLines(str, maxWidthPx, fontSize, { isBold, safety: 1.05, emptyLine: true });
-}
-
 // ==========================================
 // SVG レンダリングエンジン
 // ==========================================
@@ -419,21 +410,21 @@ function drawChartSvg(text, container, label) {
 
     const headerPadX = 28;
     const fullHeaderW = viewBoxWidth - headerPadX * 2;
-    const unitW = unitText ? measureChartTextW(unitText, 12, false) * 1.08 : 0;
+    const unitW = unitText ? estimateSvgTextWidth(unitText, 12, false) * 1.08 : 0;
     const sameLineMaxTitleW = unitText ? (fullHeaderW - unitW - 18) : fullHeaderW;
 
     let titleFontSize = 20;
-    const rawTitleW20 = measureChartTextW(titleText, 20, true) * 1.05;
+    const rawTitleW20 = estimateSvgTextWidth(titleText, 20, true) * 1.05;
     const collidesSameLine = Boolean(unitText && rawTitleW20 > sameLineMaxTitleW);
 
     let titleLines = [titleText];
     if (rawTitleW20 > fullHeaderW) {
-      const rawTitleW18 = measureChartTextW(titleText, 18, true) * 1.05;
+      const rawTitleW18 = estimateSvgTextWidth(titleText, 18, true) * 1.05;
       if (rawTitleW18 <= fullHeaderW) {
         titleFontSize = 18;
       } else {
         titleFontSize = 18;
-        titleLines = wrapChartTextLines(titleText, fullHeaderW, titleFontSize, true);
+        titleLines = wrapSvgTextLines(titleText, fullHeaderW, titleFontSize, { isBold: true, safety: 1.05, emptyLine: true });
       }
     }
 
@@ -1099,9 +1090,9 @@ function renderPieOrDonutChart(g, parsed, colors, svgNS) {
     const val = item.value || 0;
     const pct = ((val / total) * 100).toFixed(1);
     const valText = `${val.toLocaleString()} (${pct}%)`;
-    const valW = measureChartTextW(valText, labelFontSize, true);
+    const valW = estimateSvgTextWidth(valText, labelFontSize, true);
     const maxLabelW = Math.max(90, valX - labelX - valW - 20);
-    const nameLines = wrapChartTextLines(item.name, maxLabelW, labelFontSize, false);
+    const nameLines = wrapSvgTextLines(item.name, maxLabelW, labelFontSize, { isBold: false, safety: 1.05, emptyLine: true });
     const rowH = nameLines.length > 1 ? baseItemH + (nameLines.length - 1) * lineStep : baseItemH;
     return { color, valText, nameLines, rowH };
   });

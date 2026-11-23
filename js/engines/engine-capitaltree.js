@@ -59,21 +59,7 @@ function wrapCapitalTreeNote(noteText, maxCharUnits = 28) {
     const segments = trimmedSeg.includes(' / ') ? trimmedSeg.split(' / ') : [trimmedSeg];
     segments.forEach((seg, sIdx) => {
       const segText = sIdx < segments.length - 1 ? `${seg.trim()} /` : seg.trim();
-      let curLine = '';
-      let curUnits = 0;
-      for (let i = 0; i < segText.length; i++) {
-        const ch = segText[i];
-        const unit = ch.charCodeAt(0) > 255 ? 2 : 1;
-        if (curUnits + unit > maxCharUnits && curLine.length > 0) {
-          lines.push(curLine.trim());
-          curLine = ch;
-          curUnits = unit;
-        } else {
-          curLine += ch;
-          curUnits += unit;
-        }
-      }
-      if (curLine.trim()) lines.push(curLine.trim());
+      lines.push(...wrapSvgTextLines(segText, maxCharUnits, 12, { measure: getTextDisplayUnits }));
     });
   });
   return lines;
@@ -992,17 +978,7 @@ function drawCapitalTreeSvg(code, container, labelText) {
       }
     });
 
-    let maxLineW = 0;
-    labelLines.forEach((l) => {
-      const w = getApproxTextWidth(l);
-      if (w > maxLineW) maxLineW = w;
-    });
-
     const isMultiLine = labelLines.length > 1;
-    const labelW = Math.max(maxLineW + (isMultiLine ? 20 : 16), 46);
-    const lineHeight = 13.5;
-    const labelH = isMultiLine ? labelLines.length * lineHeight + 10 : 19;
-
     const isAlertEdge = Boolean(e.color && /red|danger|#e|#f4|#dc/i.test(e.color));
     let strokeCol = '#cbd5e1';
     let textCol = '#475569';
@@ -1017,49 +993,23 @@ function drawCapitalTreeSvg(code, container, labelText) {
       textCol = '#0369a1';
     }
 
-    const badgeBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    badgeBg.setAttribute('x', badgeX - labelW / 2);
-    badgeBg.setAttribute('y', badgeY - labelH / 2);
-    badgeBg.setAttribute('width', labelW);
-    badgeBg.setAttribute('height', labelH);
-    badgeBg.setAttribute('rx', isMultiLine ? '6' : '9.5');
-    badgeBg.setAttribute('fill', '#ffffff');
-    badgeBg.setAttribute('stroke', strokeCol);
-    badgeBg.setAttribute('stroke-width', '1.2');
-    badgeG.appendChild(badgeBg);
-
-    if (!isMultiLine) {
-      const badgeTxt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      badgeTxt.setAttribute('x', badgeX);
-      badgeTxt.setAttribute('y', badgeY + 4.5);
-      badgeTxt.setAttribute('text-anchor', 'middle');
-      badgeTxt.setAttribute('font-size', '11');
-      badgeTxt.setAttribute('font-weight', '700');
-      badgeTxt.setAttribute('fill', textCol);
-      badgeTxt.setAttribute('font-family', 'sans-serif');
-      badgeTxt.textContent = labelLines[0];
-      badgeG.appendChild(badgeTxt);
-    } else {
-      const startY = badgeY - (labelLines.length - 1) * (lineHeight / 2) + 3.5;
-      labelLines.forEach((ln, lIdx) => {
-        const txtEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        txtEl.setAttribute('x', badgeX);
-        txtEl.setAttribute('y', startY + lIdx * lineHeight);
-        txtEl.setAttribute('text-anchor', 'middle');
-        txtEl.setAttribute('font-family', 'sans-serif');
-        if (lIdx === 0) {
-          txtEl.setAttribute('font-size', '10.5');
-          txtEl.setAttribute('font-weight', '700');
-          txtEl.setAttribute('fill', textCol);
-        } else {
-          txtEl.setAttribute('font-size', '9.5');
-          txtEl.setAttribute('font-weight', '600');
-          txtEl.setAttribute('fill', '#64748b');
-        }
-        txtEl.textContent = ln;
-        badgeG.appendChild(txtEl);
-      });
-    }
+    drawSvgEdgeBadge(badgeG, badgeX, badgeY, labelLines, {
+      fontSize: isMultiLine ? 10.5 : 11,
+      subFontSize: 9.5,
+      fontWeight: '700',
+      subFontWeight: '600',
+      fill: textCol,
+      subFill: '#64748b',
+      stroke: strokeCol,
+      lineHeight: 13.5,
+      padX: 16,
+      multiPadX: 20,
+      multiPadY: 10,
+      minWidth: 46,
+      singleHeight: 19,
+      textDy: isMultiLine ? 3.5 : 4.5,
+      fontFamily: 'sans-serif'
+    });
   }
 
   // 多段折り返し（wrapInfo）を持つ親ノードのエッジ描画

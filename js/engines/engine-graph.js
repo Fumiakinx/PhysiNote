@@ -363,54 +363,28 @@ function drawGraphSvg(text, container, labelText) {
       pathD = `M ${x1} ${y1} L ${x2} ${y2}`;
     }
 
-    const path = document.createElementNS(svgNS, 'path');
-    path.setAttribute('d', pathD);
-    path.setAttribute('fill', 'none');
-
-    if (e.isHighlight) {
-      path.setAttribute('stroke', '#6366f1');
-      path.setAttribute('stroke-width', '2.8');
-      path.setAttribute('stroke-linecap', 'round');
-      if (e.directed) path.setAttribute('marker-end', 'url(#graph-arrow-highlight)');
-    } else {
-      path.setAttribute('stroke', '#94a3b8');
-      path.setAttribute('stroke-width', '1.6');
-      if (e.dashed) path.setAttribute('stroke-dasharray', '4 3');
-      if (e.directed) path.setAttribute('marker-end', 'url(#graph-arrow)');
-    }
-    edgeGroup.appendChild(path);
+    drawSvgConnector(edgeGroup, pathD, {
+      stroke: e.isHighlight ? '#6366f1' : '#94a3b8',
+      strokeWidth: e.isHighlight ? '2.8' : '1.6',
+      dasharray: !e.isHighlight && e.dashed ? '4 3' : null,
+      markerEnd: e.directed ? (e.isHighlight ? 'graph-arrow-highlight' : 'graph-arrow') : null
+    });
 
     // エッジラベル（重み/コスト数値）
     if (e.label) {
-      const g = document.createElementNS(svgNS, 'g');
-
-      const tw = Math.max(e.label.length * 7.5 + 10, 20);
-      const th = 17;
-
-      const bg = document.createElementNS(svgNS, 'rect');
-      bg.setAttribute('x', (labelX - tw / 2).toString());
-      bg.setAttribute('y', (labelY - th / 2).toString());
-      bg.setAttribute('width', tw.toString());
-      bg.setAttribute('height', th.toString());
-      bg.setAttribute('rx', '4');
-      bg.setAttribute('ry', '4');
-      bg.setAttribute('fill', '#ffffff');
-      bg.setAttribute('stroke', e.isHighlight ? '#c7d2fe' : '#e2e8f0');
-      bg.setAttribute('stroke-width', '1');
-      g.appendChild(bg);
-
-      const txt = document.createElementNS(svgNS, 'text');
-      txt.setAttribute('x', labelX.toString());
-      txt.setAttribute('y', (labelY + 3.8).toString());
-      txt.setAttribute('text-anchor', 'middle');
-      txt.setAttribute('font-family', "'Outfit', 'Inter', monospace");
-      txt.setAttribute('font-size', '11.5');
-      txt.setAttribute('font-weight', '600');
-      txt.setAttribute('fill', e.isHighlight ? '#4338ca' : '#475569');
-      txt.textContent = e.label;
-      g.appendChild(txt);
-
-      edgeLabelGroup.appendChild(g);
+      drawSvgEdgeBadge(edgeLabelGroup, labelX, labelY, e.label, {
+        fontSize: 11.5,
+        fontWeight: '600',
+        fontFamily: "'Outfit', 'Inter', monospace",
+        fill: e.isHighlight ? '#4338ca' : '#475569',
+        stroke: e.isHighlight ? '#c7d2fe' : '#e2e8f0',
+        strokeWidth: '1',
+        padX: 12,
+        minWidth: 20,
+        singleHeight: 17,
+        rx: 4,
+        ry: 4
+      });
     }
   });
 

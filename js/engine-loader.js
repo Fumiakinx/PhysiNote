@@ -104,12 +104,21 @@ const EngineLoader = (() => {
   }
 
   /**
+   * 図種 ID からエンジンファイル名を解決する
+   * @param {string} engineId
+   * @returns {string}
+   */
+  function resolveEngineFileName(engineId) {
+    return ENGINE_MAP[engineId] || (engineId.startsWith('engine-') ? `${engineId}.js` : `engine-${engineId}.js`);
+  }
+
+  /**
    * 指定されたエンジンを非同期ロード
    * @param {string} engineId 
    * @returns {Promise<void>}
    */
   function loadEngine(engineId) {
-    const fileName = ENGINE_MAP[engineId] || (engineId.startsWith('engine-') ? `${engineId}.js` : `engine-${engineId}.js`);
+    const fileName = resolveEngineFileName(engineId);
     return loadScriptOnce(fileName, `js/engines/${fileName}`);
   }
 
@@ -131,8 +140,7 @@ const EngineLoader = (() => {
    * @returns {boolean}
    */
   function isLoaded(engineId) {
-    const fileName = ENGINE_MAP[engineId] || (engineId.startsWith('engine-') ? `${engineId}.js` : `engine-${engineId}.js`);
-    return loadedEngines.has(fileName);
+    return loadedEngines.has(resolveEngineFileName(engineId));
   }
 
   return {

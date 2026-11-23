@@ -4,20 +4,6 @@
 // ==========================================
 
 /**
- * テキスト自動折り返しヘルパー
- */
-function wrapCycleText(str, maxChars = 14) {
-  return wrapSvgTextLines(str, maxChars * 12, 12);
-}
-
-/**
- * テキストの推定ピクセル幅計算ヘルパー
- */
-function getApproxCycleTextWidth(str) {
-  return estimateSvgTextWidth(str, 12, false);
-}
-
-/**
  * サイクル・バブル図パーサー
  * @param {string} rawText
  * @returns {object|null}
@@ -396,7 +382,7 @@ function drawCycleSvg(text, container, labelText) {
       g.appendChild(numText);
 
       // テキスト
-      const titleLines = wrapCycleText(it.name, 9);
+      const titleLines = wrapSvgTextLines(it.name, 9 * 12, 12);
       if (it.desc) {
         // タイトル + サブ説明
         const tEl = document.createElementNS(svgNS, 'text');
@@ -487,12 +473,12 @@ function drawCycleSvg(text, container, labelText) {
 
       // テキスト描画（円の直径に応じた安全幅計算）
       const maxSafeWidth = satR * 1.62;
-      const lines = wrapCycleText(it.name, satR > 50 ? 8 : 6);
+      const lines = wrapSvgTextLines(it.name, (satR > 50 ? 8 : 6) * 12, 12);
 
       // タイトル行の最大推定幅
       let maxTitleW = 0;
       lines.forEach((l) => {
-        const w = getApproxCycleTextWidth(l);
+        const w = estimateSvgTextWidth(l, 12, false);
         if (w > maxTitleW) maxTitleW = w;
       });
 
@@ -505,7 +491,7 @@ function drawCycleSvg(text, container, labelText) {
       // 説明文（desc）フォントサイズの自動スケーリング
       let descFs = satR > 50 ? 10 : 9;
       if (it.desc) {
-        const descW = getApproxCycleTextWidth(it.desc);
+        const descW = estimateSvgTextWidth(it.desc, 12, false);
         if (descW * (descFs / 10) > maxSafeWidth) {
           descFs = Math.max(8.0, Math.floor(maxSafeWidth / (descW / 10)));
         }
@@ -565,7 +551,7 @@ function drawCycleSvg(text, container, labelText) {
     cHalo.setAttribute('opacity', '0.6');
     centerG.appendChild(cHalo);
 
-    const cLines = wrapCycleText(data.center.name, 8);
+    const cLines = wrapSvgTextLines(data.center.name, 8 * 12, 12);
     const cStartY = data.center.desc ? -(cLines.length * 7.5) : -(cLines.length - 1) * 8 + 4;
 
     cLines.forEach((cl, lIdx) => {

@@ -176,21 +176,6 @@ function parseFlowchart(flowText) {
   return { nodes, edges };
 }
 
-// 全角（日本語等）と半角を判別して実効表示幅を推定するヘルパー
-function estimateFlowchartTextWidth(str, fontSize = 12) {
-  if (!str) return 0;
-  let units = 0;
-  for (let i = 0; i < str.length; i++) {
-    const code = str.charCodeAt(i);
-    if (code > 0x7f) {
-      units += 1.05; // 全角文字（漢字・ひらがな・カタカナなど）
-    } else {
-      units += 0.58; // 半角英数記号
-    }
-  }
-  return units * fontSize;
-}
-
 function drawFlowchartSvg(flowText, container, labelText) {
   container.innerHTML = '';
   const { nodes, edges } = parseFlowchart(flowText);
@@ -206,7 +191,7 @@ function drawFlowchartSvg(flowText, container, labelText) {
     const rawStr = n.text || n.id;
     const textLines = rawStr.split(/\\n|\n/);
     n.textLines = textLines;
-    const maxLineWidth = Math.max(...textLines.map((l) => estimateFlowchartTextWidth(l, 12)));
+    const maxLineWidth = Math.max(...textLines.map((l) => estimateSvgTextWidth(l, 12, false)));
     const extraH = (textLines.length - 1) * 18;
 
     if (n.type === 'start' || n.type === 'end') {
@@ -254,6 +239,7 @@ function drawFlowchartSvg(flowText, container, labelText) {
 
   let leftLaneIdx = 0;
   let rightLaneIdx = 0;
+  const placedEdgeBadges = [];
 
   edges.forEach((e) => {
     const s1 = nodeLookup.get(e.from);
@@ -361,47 +347,34 @@ function drawFlowchartSvg(flowText, container, labelText) {
       }
     }
 
-    const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    pathEl.setAttribute('d', pathD);
-    pathEl.setAttribute('fill', 'none');
-    pathEl.setAttribute('stroke', '#475569');
-    pathEl.setAttribute('stroke-width', '2');
-    pathEl.setAttribute('marker-end', 'url(#flowchart-arrow)');
-    edgesG.appendChild(pathEl);
+    drawSvgConnector(edgesG, pathD, {
+      stroke: '#475569',
+      strokeWidth: '2',
+      markerEnd: 'flowchart-arrow'
+    });
 
     if (e.label && labelPos) {
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      const tw = Math.max(estimateFlowchartTextWidth(e.label, 11) + 18, 36);
-      const th = 22;
-      const rx = labelPos.x - tw / 2;
-      const ry = labelPos.y - th / 2;
-
-      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      bg.setAttribute('x', rx);
-      bg.setAttribute('y', ry);
-      bg.setAttribute('width', tw);
-      bg.setAttribute('height', th);
-      bg.setAttribute('rx', '4');
-      bg.setAttribute('ry', '4');
-      bg.setAttribute('fill', '#ffffff');
-      bg.setAttribute('stroke', '#cbd5e1');
-      bg.setAttribute('stroke-width', '1');
-      g.appendChild(bg);
-
-      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      txt.setAttribute('x', labelPos.x);
-      txt.setAttribute('y', labelPos.y + 4);
-      txt.setAttribute('text-anchor', 'middle');
-      txt.setAttribute('font-size', '11.5');
-      txt.setAttribute('font-weight', '700');
-      txt.setAttribute('font-family', 'ui-monospace, monospace');
-      txt.setAttribute('fill', '#0284c7');
-      txt.textContent = e.label;
-      g.appendChild(txt);
-
-      edgesG.appendChild(g);
-      pts.push({ x: rx, y: ry });
-      pts.push({ x: rx + tw, y: ry + th });
+      const badge = drawSvgEdgeBadge(edgesG, labelPos.x, labelPos.y, e.label, {
+        fontSize: 11.5,
+        fontWeight: '700',
+        fontFamily: 'ui-monospace, monospace',
+        fill: '#0284c7',
+        stroke: '#cbd5e1',
+        strokeWidth: '1',
+        padX: 18,
+        minWidth: 36,
+        singleHeight: 22,
+        rx: 4,
+        ry: 4,
+        textDy: 4,
+        placedBoxes: placedEdgeBadges,
+        avoidStep: 14,
+        avoidMax: 70
+      });
+      if (badge) {
+        pts.push({ x: badge.box.x, y: badge.box.y });
+        pts.push({ x: badge.box.x + badge.box.w, y: badge.box.y + badge.box.h });
+      }
     }
   });
 

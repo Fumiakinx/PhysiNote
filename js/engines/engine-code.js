@@ -4,25 +4,6 @@
 // ==========================================
 
 /**
- * 全角・半角を考慮した表示桁数の計算
- * @param {string} str 
- * @returns {number}
- */
-function getDisplayWidth(str) {
-  let w = 0;
-  for (let i = 0; i < str.length; i++) {
-    const code = str.charCodeAt(i);
-    // 半角アスキーおよび半角カナ以外を全角(2幅)として扱う
-    if ((code >= 0x0020 && code <= 0x007E) || (code >= 0xFF61 && code <= 0xFF9F)) {
-      w += 1;
-    } else {
-      w += 2;
-    }
-  }
-  return w;
-}
-
-/**
  * タブ文字 (\t) を指定タブ幅でスペースに展開
  * 全角文字の2桁幅も考慮して桁揃えを行う
  * @param {string} line 
@@ -41,12 +22,7 @@ function expandTabsInLine(line, tabSize = 4) {
       col += numSpaces;
     } else {
       result += ch;
-      const code = line.charCodeAt(i);
-      if ((code >= 0x0020 && code <= 0x007E) || (code >= 0xFF61 && code <= 0xFF9F)) {
-        col += 1;
-      } else {
-        col += 2;
-      }
+      col += getTextDisplayUnits(ch);
     }
   }
   return result;
@@ -423,7 +399,7 @@ function drawCodeSvg(text, container, label) {
   // 最長表示行幅の計算
   let maxDisplayCols = 0;
   for (const line of parsed.lines) {
-    const w = getDisplayWidth(line);
+    const w = getTextDisplayUnits(line);
     if (w > maxDisplayCols) maxDisplayCols = w;
   }
   // 最低列数の確保
@@ -645,7 +621,7 @@ function drawCodeSvg(text, container, label) {
   if (parsed.showCursor && parsed.lines.length > 0) {
     const lastLineIdx = parsed.lines.length - 1;
     const lastLineText = parsed.lines[lastLineIdx];
-    const lastLineWidth = getDisplayWidth(lastLineText) * charWidth;
+    const lastLineWidth = getTextDisplayUnits(lastLineText) * charWidth;
     const cursorX = codeOriginX + lastLineWidth + 4;
     const cursorY = startY + lastLineIdx * lineHeight - fontSize + 3;
 

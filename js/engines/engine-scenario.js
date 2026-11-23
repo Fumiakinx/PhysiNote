@@ -532,7 +532,7 @@ function drawScenarioSvg(text, container, label) {
     drawTargetProfileCard(contentGroup, targetX, targetY, targetW, targetH, tNode, themeColors, isDark);
 
     container.appendChild(svg);
-    appendLabel(container, label);
+    appendDiagramLabel(container, label);
     return;
   }
 
@@ -700,7 +700,7 @@ function drawScenarioSvg(text, container, label) {
     drawStraightLine(contentGroup, busX, Math.min(firstCenter, hubCenterY), busX, Math.max(lastCenter, hubCenterY), themeColors.lineActive, false);
 
     container.appendChild(svg);
-    appendLabel(container, label);
+    appendDiagramLabel(container, label);
     return;
   }
 
@@ -852,7 +852,7 @@ function drawScenarioSvg(text, container, label) {
   });
 
   container.appendChild(svg);
-  appendLabel(container, label);
+  appendDiagramLabel(container, label);
 }
 
 // -------------------------------------------------------------------
@@ -1588,7 +1588,7 @@ function drawPlatformFlowSvg(parsed, container, label, themeColors, isDark, getN
   }
 
   container.appendChild(svg);
-  appendLabel(container, label);
+  appendDiagramLabel(container, label);
 }
 
 function appendDefs(svg, themeColors, isDark) {
@@ -1619,8 +1619,4 @@ function appendTitle(svg, icon, title, textColor, leftMargin = 36) {
     </text>
   `;
   svg.appendChild(titleGroup);
-}
-
-function appendLabel(container, label) {
-  appendDiagramLabel(container, label);
 }

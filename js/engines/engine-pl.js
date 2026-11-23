@@ -12,72 +12,26 @@ function parseProfitAndLoss(text) {
   const links = [];
   const nodeNamesSet = new Set();
   const nodeMeta = {};
-  let company = null;
-  let code = null;
-  let period = null;
-  let unit = '百万円';
-  let consolidated = true;
-  let title = null;
-  let subtitle = null;
-  let note = null;
-
-  const extractBracketProps = (bracketStr) => {
-    if (!bracketStr) return { value: null, percent: null, color: null, side: null };
-    const parts = bracketStr.split(',').map((p) => p.trim()).filter(Boolean);
-    let value = null;
-    let percent = null;
-    let color = null;
-    let side = null;
-
-    parts.forEach((p) => {
-      if (/^-?[\d,]+(?:\.\d+)?%$/.test(p)) {
-        percent = p;
-      } else if (/^-?[\d,]+(?:\.\d+)?$/.test(p)) {
-        value = parseFloat(p.replace(/,/g, ''));
-      } else if (/^(above|below|left|right)$/i.test(p)) {
-        side = p.toLowerCase();
-      } else if (/^#[0-9a-fA-F]{3,8}$/.test(p) || /^[a-zA-Z]+$/.test(p)) {
-        color = p;
-      }
-    });
-    return { value, percent, color, side };
+  const meta = {
+    company: null,
+    code: null,
+    period: null,
+    unit: '百万円',
+    consolidated: true,
+    title: null,
+    subtitle: null,
+    note: null
   };
 
   lines.forEach((line) => {
-    const mComp = line.match(/^(?:company|企業名)\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mComp) { company = (mComp[1] || mComp[2] || mComp[3] || '').trim(); return; }
-
-    const mCode = line.match(/^(?:code|証券番号|証券コード)\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mCode) { code = (mCode[1] || mCode[2] || mCode[3] || '').trim(); return; }
-
-    const mPeriod = line.match(/^(?:period|決算期)\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mPeriod) { period = (mPeriod[1] || mPeriod[2] || mPeriod[3] || '').trim(); return; }
-
-    const mUnit = line.match(/^(?:unit|単位)\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mUnit) { unit = (mUnit[1] || mUnit[2] || mUnit[3] || '').trim(); return; }
-
-    const mCons = line.match(/^(?:consolidated|連結)\s*:\s*(true|false|1|0|有|無|単体)?/i);
-    if (mCons) {
-      const val = (mCons[1] || '').toLowerCase();
-      consolidated = !(val === 'false' || val === '0' || val === '無' || val === '単体');
-      return;
-    }
-
-    const mTitle = line.match(/^title\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mTitle) { title = (mTitle[1] || mTitle[2] || mTitle[3] || '').trim(); return; }
-
-    const mSub = line.match(/^subtitle\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mSub) { subtitle = (mSub[1] || mSub[2] || mSub[3] || '').trim(); return; }
-
-    const mNote = line.match(/^note\s*:\s*(?:"([^"\n]+)"|'([^'\n]+)'|([^;"'\n]+))/i);
-    if (mNote) { note = (mNote[1] || mNote[2] || mNote[3] || '').trim(); return; }
+    if (parseFinancialMetaLine(line, meta)) return;
 
     const mNode = line.match(/^node\s*:\s*([^\[]+)(?:\[(.*?)\])?$/i);
     if (mNode) {
       const name = mNode[1].replace(/^["']|["']$/g, '').trim();
       if (name) {
         nodeNamesSet.add(name);
-        const props = extractBracketProps(mNode[2]);
+        const props = parseSankeyBracketProps(mNode[2]);
         nodeMeta[name] = Object.assign(nodeMeta[name] || {}, props);
       }
       return;
@@ -88,19 +42,17 @@ function parseProfitAndLoss(text) {
       let leftPart = line.substring(0, arrowIdx).trim();
       let rightPart = line.substring(arrowIdx + 2).trim();
 
-      let srcProps = { value: null, percent: null, color: null, side: null };
       const mLeftBracket = leftPart.match(/\[(.*?)\]$/);
       if (mLeftBracket) {
-        srcProps = extractBracketProps(mLeftBracket[1]);
         leftPart = leftPart.substring(0, mLeftBracket.index).trim();
       }
+      const srcProps = parseSankeyBracketProps(mLeftBracket ? mLeftBracket[1] : null);
 
-      let tgtProps = { value: null, percent: null, color: null, side: null };
       const mRightBracket = rightPart.match(/\[(.*?)\]$/);
       if (mRightBracket) {
-        tgtProps = extractBracketProps(mRightBracket[1]);
         rightPart = rightPart.substring(0, mRightBracket.index).trim();
       }
+      const tgtProps = parseSankeyBracketProps(mRightBracket ? mRightBracket[1] : null);
 
       const srcName = leftPart.replace(/^["']|["']$/g, '').trim();
       const tgtName = rightPart.replace(/^["']|["']$/g, '').trim();
@@ -132,14 +84,7 @@ function parseProfitAndLoss(text) {
   });
 
   return {
-    company,
-    code,
-    period,
-    unit,
-    consolidated,
-    title,
-    subtitle,
-    note,
+    ...meta,
     nodeMeta,
     links,
   };
@@ -330,7 +275,6 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
   };
 
   // 7. 幾何レイアウト・座標計算
-  const padTop = 100;
   const padBottom = 60;
 
   // 左右端のラベル最大行長を計測し、余白を動的確保（はみ出し切れを完全防止）
@@ -352,6 +296,25 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
   }
   const padRight = Math.max(140, Math.min(260, maxRightLabelLen * 14 + 36));
   const svgWidth = Math.max(960, (maxStage + 1) * 210 + padRight);
+
+  let titleStr = company || title || '損益計算書 (Profit & Loss Statement)';
+  if (code) titleStr += `（${code}）`;
+  const metaRightParts = [];
+  if (period) metaRightParts.push(period);
+  metaRightParts.push('損益計算書');
+  if (unit) metaRightParts.push(`(${unit})`);
+  if (!consolidated) metaRightParts.push('[単体]');
+  const headerLayout = layoutDualSideSvgHeader(svgWidth, {
+    leftText: titleStr,
+    rightText: metaRightParts.join(' '),
+    rightSubText: 'Income Statement / P&L Flow',
+    leftSize: 17,
+    rightSize: 13,
+    rightSubSize: 11,
+    rightBaseY: 36,
+    rightSubBaseY: 54
+  });
+  const padTop = Math.max(100, headerLayout.headerBottom + 16);
   const nodeWidth = 14;
   const baseHeight = 240;
   const scalePxPerPct = baseHeight / 100;
@@ -464,49 +427,8 @@ function drawProfitAndLossSvg(rawText, container, labelText) {
   svg.style.borderRadius = '12px';
   svg.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif';
 
-  // 10. ヘッダー描画（B/Sと同一のIRスタイリッシュデザイン）
-  const headerG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  headerG.setAttribute('class', 'pl-header');
-
-  const titleEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  titleEl.setAttribute('x', '24');
-  titleEl.setAttribute('y', '38');
-  titleEl.setAttribute('font-size', '17');
-  titleEl.setAttribute('font-weight', '800');
-  titleEl.setAttribute('fill', '#0f172a');
-
-  let titleStr = company || title || '損益計算書 (Profit & Loss Statement)';
-  if (code) titleStr += `（${code}）`;
-  titleEl.textContent = titleStr;
-  headerG.appendChild(titleEl);
-
-  const subEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  subEl.setAttribute('x', svgWidth - 24);
-  subEl.setAttribute('y', '36');
-  subEl.setAttribute('text-anchor', 'end');
-  subEl.setAttribute('font-size', '13');
-  subEl.setAttribute('font-weight', '700');
-  subEl.setAttribute('fill', '#334155');
-
-  const metaRightParts = [];
-  if (period) metaRightParts.push(period);
-  metaRightParts.push('損益計算書');
-  if (unit) metaRightParts.push(`(${unit})`);
-  if (!consolidated) metaRightParts.push('[単体]');
-  subEl.textContent = metaRightParts.join(' ');
-  headerG.appendChild(subEl);
-
-  const sub2 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  sub2.setAttribute('x', svgWidth - 24);
-  sub2.setAttribute('y', '54');
-  sub2.setAttribute('text-anchor', 'end');
-  sub2.setAttribute('font-size', '11');
-  sub2.setAttribute('font-weight', '600');
-  sub2.setAttribute('fill', '#94a3b8');
-  sub2.textContent = 'Income Statement / P&L Flow';
-  headerG.appendChild(sub2);
-
-  svg.appendChild(headerG);
+  // 10. ヘッダー描画（B/Sと共通のIRスタイリッシュデザイン・重なり自動回避）
+  renderDualSideSvgHeader(svg, headerLayout, { className: 'pl-header' });
 
   // 11. サンキーバンド（リンク）描画
   const linksG = document.createElementNS('http://www.w3.org/2000/svg', 'g');

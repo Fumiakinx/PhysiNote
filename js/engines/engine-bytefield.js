@@ -4,29 +4,6 @@
 // ==========================================
 
 /**
- * テキスト自動折り返しヘルパー
- */
-function wrapBytefieldText(str, maxChars = 16) {
-  if (!str) return [];
-  if (str.includes('\\n') || str.includes('\n')) {
-    return str.split(/\\n|\n/).map(s => s.trim()).filter(Boolean);
-  }
-  const lines = [];
-  let cur = '';
-  for (let i = 0; i < str.length; i++) {
-    const ch = str[i];
-    cur += ch;
-    const len = cur.replace(/[^\x00-\xff]/g, 'aa').length;
-    if (len >= maxChars * 2 && i < str.length - 1) {
-      lines.push(cur.trim());
-      cur = '';
-    }
-  }
-  if (cur.trim()) lines.push(cur.trim());
-  return lines;
-}
-
-/**
  * bytefield 構文パーサー
  * @param {string} rawText
  * @returns {object|null}
@@ -374,7 +351,8 @@ function drawBytefieldSvg(text, container, labelText) {
       }
 
       // ラベルテキスト描画
-      const lines = wrapBytefieldText(field.label, Math.max(Math.floor(fw / 11), 3));
+      const maxUnits = Math.max(Math.floor(fw / 11), 3) * 2;
+      const lines = wrapSvgTextLines(field.label, maxUnits, 12, { measure: getTextDisplayUnits });
       const textStartY = rowH / 2 - (lines.length - 1) * 7 + 4.5;
 
       lines.forEach((tl, lIdx) => {

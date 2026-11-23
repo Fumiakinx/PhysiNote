@@ -128,14 +128,6 @@ function parseTechStackText(rawText) {
   return { title, containerTitle, theme, arrows, tiers: tiers.filter((t) => t.items.length > 0), legendItems };
 }
 
-function measureStackTextW(str, fontSize) {
-  return estimateSvgTextWidth(str, fontSize, false);
-}
-
-function wrapStackLines(str, maxW, fontSize) {
-  return wrapSvgTextLines(str, maxW, fontSize);
-}
-
 // 統一モノトーン ベクターアイコン（48x48 基準）
 function renderTechStackIcon(iconType, strokeCol, fillCol, svgNS) {
   const g = document.createElementNS(svgNS, 'g');
@@ -326,8 +318,8 @@ function drawTechStackSvg(rawCode, container, labelText) {
       const titleFs = isSplit ? 15 : 17;
       const subFs = isSplit ? 12.5 : 13;
 
-      const titleLines = wrapStackLines(item.title, availTextW, titleFs);
-      const subLines = wrapStackLines(item.sub, availTextW, subFs);
+      const titleLines = wrapSvgTextLines(item.title, availTextW, titleFs);
+      const subLines = wrapSvgTextLines(item.sub, availTextW, subFs);
       const badgeLines = item.badge ? item.badge.split('\n').map((s) => s.trim()).filter(Boolean) : [];
       const badgeH = badgeLines.length > 0 ? (badgeLines.length * 13 + 10) : 0;
       const badgeInBox = (isSplit && badgeH > 0) ? (badgeH - Math.round(badgeH * 0.55)) : 0;
@@ -558,7 +550,7 @@ function drawTechStackSvg(rawCode, container, labelText) {
 
       // リスク・CVEピルバッジ
       if (item.badgeLines.length > 0) {
-        const maxBLen = Math.max(...item.badgeLines.map((l) => measureStackTextW(l, 10.5)));
+        const maxBLen = Math.max(...item.badgeLines.map((l) => estimateSvgTextWidth(l, 10.5, false)));
         const bw = Math.max(82, Math.ceil(maxBLen + 20));
         const bh = item.badgeLines.length * 13 + 10;
         const bx = item.isSplit
@@ -598,7 +590,7 @@ function drawTechStackSvg(rawCode, container, labelText) {
     let lx = frameX + frameW;
     for (let i = parsed.legendItems.length - 1; i >= 0; i--) {
       const li = parsed.legendItems[i];
-      const textW = measureStackTextW(`: ${li.label}`, 11.5);
+      const textW = estimateSvgTextWidth(`: ${li.label}`, 11.5, false);
       lx -= (textW + 18);
 
       const txt = document.createElementNS(svgNS, 'text');

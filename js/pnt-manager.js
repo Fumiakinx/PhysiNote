@@ -15,18 +15,10 @@
       return;
     }
 
-    // 画像保存と同じルールでファイル名を推測・サニタイズ生成
+    // 画像保存と共通のルールで拡張子付きファイル名を生成
     function generateFileName(text) {
       const previewEl = document.getElementById('formula-preview');
-      if (typeof window.resolvePhysiNoteBaseFileName === 'function') {
-        const sharedBase = window.resolvePhysiNoteBaseFileName(text, previewEl);
-        if (sharedBase) return `${sharedBase}.pnt`;
-      }
-
-      const now = new Date();
-      const pad = (n) => String(n).padStart(2, '0');
-      const timeStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
-      return `diagram_${timeStr}.pnt`;
+      return window.resolvePhysiNoteFileName('pnt', text, previewEl);
     }
 
     // 構文テキストをエディタに反映してプレビューを再描画
@@ -63,12 +55,7 @@
       const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
 
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      triggerFileDownload(url, fileName);
       URL.revokeObjectURL(url);
     });
 
